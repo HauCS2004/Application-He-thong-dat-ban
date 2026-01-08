@@ -85,11 +85,13 @@ public class TrangChu extends JFrame {
 //        JPanel pnlQuanLyMonAn = new JPanel(); // (Placeholder)
 //        pnlQuanLyMonAn.add(new JLabel("CODE QUẢN LÝ MÓN ĂN Ở ĐÂY"));
 
-        JPanel pnlBan = new JPanel();
-        pnlBan.add(new JLabel("MÀN HÌNH SƠ ĐỒ BÀN"));
+        //JPanel pnlBan = new JPanel();
+        //pnlBan.add(new JLabel("MÀN HÌNH SƠ ĐỒ BÀN"));
+        QuanLyBan pnlBan =new QuanLyBan();
 
         JPanel pnlGoiMon = new JPanel();
         pnlGoiMon.add(new JLabel("MÀN HÌNH GỌI MÓN (ORDER)"));
+       // ManHinhGoiMon pnlGoiMon= new ManHinhGoiMon(int maHD, getName());
 
 //        JPanel pnlKhachHang = new JPanel();
 //        pnlKhachHang.add(new JLabel("MÀN HÌNH KHÁCH HÀNG"));
