@@ -4,33 +4,40 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+
 import connectDB.ConnectDB;
 import Entity.HoaDon;
 
 public class HoaDonDAO {
     
     // 1. Tạo hóa đơn mới (Quan trọng: Trả về Mã HĐ vừa tạo)
-    public int insert(HoaDon hd) {
-        try {
-            Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "INSERT INTO HoaDon (MaBan, SoLuongKhach, SDT_Khach, GhiChu, TrangThai, TongTien) VALUES (?, ?, ?, ?, 0, 0)";
-            
-            // Tham số Statement.RETURN_GENERATED_KEYS để lấy ID tự tăng
-            PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            
-            ps.setString(1, hd.getMaBan());
-            ps.setInt(2, hd.getSoLuongKhach());
-            ps.setString(3, hd.getSdtKhach()); // Có thể null
-            ps.setString(4, hd.getGhiChu());
-            
-            if (ps.executeUpdate() > 0) {
-                // Lấy ngay cái ID vừa tạo ra
-                ResultSet rs = ps.getGeneratedKeys();
-                if(rs.next()) return rs.getInt(1);
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-        return -1; // Lỗi
-    }
+	// Trong HoaDonDAO.java
+
+	public int insert(HoaDon hd) {
+	    int maHD = -1;
+	    try {
+	        Connection con = ConnectDB.getInstance().getConnection();
+	        // Cập nhật câu SQL thêm cột SDT_Khach
+	        String sql = "INSERT INTO HoaDon (MaBan, SoLuongKhach, SDT_Khach, GhiChu, TrangThai, TongTien) " +
+	                     "VALUES (?, ?, ?, ?, 0, 0)";
+	        
+	        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+	        ps.setString(1, hd.getMaBan());
+	        ps.setInt(2, hd.getSoLuongKhach());
+	        
+	        // [QUAN TRỌNG] Lưu SĐT vào đây
+	        ps.setString(3, hd.getSdtKhach()); 
+	        
+	        ps.setString(4, hd.getGhiChu());
+	        
+	        if (ps.executeUpdate() > 0) {
+	            ResultSet rs = ps.getGeneratedKeys();
+	            if (rs.next()) maHD = rs.getInt(1);
+	        }
+	    } catch (Exception e) { e.printStackTrace(); }
+	    return maHD;
+	}
 
     // 2. Tìm Mã HĐ đang hoạt động của bàn (TrangThai = 0)
     // Hàm này giúp biết bàn đó đang ăn dở hóa đơn nào để thêm món vào
@@ -89,6 +96,7 @@ public class HoaDonDAO {
         } catch (Exception e) { e.printStackTrace(); }
         return tong;
     }
+    
 
     // 5. [MỚI] Lấy SĐT và Tên khách đã lưu trong Hóa Đơn (lúc mở bàn)
     public HoaDon getThongTinHoaDon(int maHD) {
@@ -108,4 +116,83 @@ public class HoaDonDAO {
         } catch(Exception e) {}
         return null;
     }
+ // Thêm vào HoaDonDAO.java
+
+    public ArrayList<HoaDon> timKiemHoaDon(int ngay, int thang, int nam) {
+        ArrayList<HoaDon> list = new ArrayList<>();
+        try {
+            java.sql.Connection con = ConnectDB.getInstance().getConnection();
+            
+            // Tạo câu SQL động
+            String sql = "SELECT * FROM HoaDon WHERE 1=1";
+            
+            // Nếu ngày > 0 thì thêm điều kiện ngày, ngược lại là tìm hết các ngày
+            if (ngay > 0) sql += " AND DAY(NgayTao) = " + ngay;
+            
+            // Nếu tháng > 0 thì thêm điều kiện tháng
+            if (thang > 0) sql += " AND MONTH(NgayTao) = " + thang;
+            
+            // Nếu năm > 0 thì thêm điều kiện năm
+            if (nam > 0) sql += " AND YEAR(NgayTao) = " + nam;
+            
+            // Sắp xếp mới nhất lên đầu
+            sql += " ORDER BY NgayTao DESC";
+
+            java.sql.Statement st = con.createStatement();
+            java.sql.ResultSet rs = st.executeQuery(sql);
+            
+            while(rs.next()) {
+                HoaDon hd = new HoaDon();
+                hd.setMaHD(rs.getInt("MaHD"));
+                hd.setMaBan(rs.getString("MaBan"));
+                hd.setNgayTao(rs.getTimestamp("NgayTao"));
+                hd.setTongTien(rs.getDouble("TongTien"));
+                hd.setTrangThai(rs.getInt("TrangThai"));
+                hd.setSdtKhach(rs.getString("SDT_Khach"));
+                hd.setGhiChu(rs.getString("GhiChu")); // Lấy tên khách để hiện cho rõ
+                list.add(hd);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
+    }
+
+ // Hàm lấy danh sách chi tiết món ăn để đổ vào bảng bên phải
+	 public ArrayList<String[]> getChiTietHoaDon(int maHD) {
+	     ArrayList<String[]> list = new ArrayList<>();
+	     try {
+	         java.sql.Connection con = ConnectDB.getInstance().getConnection();
+	         // Join bảng ChiTiet với bảng MonAn để lấy tên và giá
+	         String sql = "SELECT m.TenMon, c.SoLuong, m.DonGia, (c.SoLuong * m.DonGia) as ThanhTien " +
+	                      "FROM ChiTietHoaDon c " +
+	                      "JOIN MonAn m ON c.MaMon = m.MaMon " +
+	                      "WHERE c.MaHD = ?";
+	         
+	         java.sql.PreparedStatement ps = con.prepareStatement(sql);
+	         ps.setInt(1, maHD);
+	         java.sql.ResultSet rs = ps.executeQuery();
+	         
+	         while(rs.next()) {
+	             list.add(new String[]{
+	                 rs.getString("TenMon"),
+	                 String.valueOf(rs.getInt("SoLuong")),
+	                 String.format("%,.0f", rs.getDouble("DonGia")),   // Format số tiền 100,000
+	                 String.format("%,.0f", rs.getDouble("ThanhTien"))
+	             });
+	         }
+	     } catch (Exception e) { e.printStackTrace(); }
+	     return list;
+	 }
+	 public boolean updateSdtKhach(int maHD, String sdt) {
+	        try {
+	            java.sql.Connection con = ConnectDB.getInstance().getConnection();
+	            String sql = "UPDATE HoaDon SET SDT_Khach = ? WHERE MaHD = ?";
+	            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+	            ps.setString(1, sdt);
+	            ps.setInt(2, maHD);
+	            return ps.executeUpdate() > 0;
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	            return false;
+	        }
+	    }
 }

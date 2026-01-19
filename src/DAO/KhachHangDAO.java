@@ -5,11 +5,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import connectDB.ConnectDB;
-import Entity.KhachHang;
+import Entity.KhachHang; // Chú ý: Package ENTITY hay Entity thì sửa lại cho đúng project của bạn
 
 public class KhachHangDAO {
 
-    // 1. Lấy tất cả
+    // 1. Lấy tất cả khách hàng
     public ArrayList<KhachHang> getAll() {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
@@ -27,20 +27,38 @@ public class KhachHangDAO {
         return list;
     }
 
-    // 2. Thêm khách
+    // 2. Thêm khách hàng mới (Full thông tin)
     public boolean insert(KhachHang kh) {
         try {
+            // Kiểm tra trùng trước khi thêm
+            if(checkTonTai(kh.getSoDienThoai())) return false;
+
             Connection con = ConnectDB.getInstance().getConnection();
-            String sql = "INSERT INTO KhachHang VALUES (?, ?, ?)";
+            String sql = "INSERT INTO KhachHang (SoDienThoai, TenKhach, DiemTichLuy) VALUES (?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, kh.getSoDienThoai());
             ps.setString(2, kh.getTenKhach());
-            ps.setInt(3, kh.getDiemTichLuy()); // Mặc định thường là 0
+            ps.setInt(3, kh.getDiemTichLuy());
             return ps.executeUpdate() > 0;
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
+    
+    // 2.1. Thêm khách nhanh (Chỉ cần SĐT và Tên, mặc định 0 điểm)
+    // Hàm này dùng cho nút Thanh Toán khi gặp khách mới
+    public void themKhachMoi(String sdt, String tenKhach) {
+        try {
+            if(checkTonTai(sdt)) return; // Có rồi thì thôi
+            
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "INSERT INTO KhachHang (SoDienThoai, TenKhach, DiemTichLuy) VALUES (?, ?, 0)";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ps.setString(2, tenKhach);
+            ps.executeUpdate();
+        } catch (Exception e) { e.printStackTrace(); }
+    }
 
-    // 3. Sửa khách
+    // 3. Cập nhật thông tin khách
     public boolean update(KhachHang kh) {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
@@ -53,7 +71,7 @@ public class KhachHangDAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // 4. Xóa khách
+    // 4. Xóa khách hàng
     public boolean delete(String sdt) {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
@@ -80,58 +98,18 @@ public class KhachHangDAO {
         } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
- // Thêm vào KhachHangDAO.java
-    public void tichDiem(String sdt, String tenKhach, double tongTienDaTra) {
-        if(sdt == null || sdt.trim().isEmpty()) return;
-        
-        Connection con = ConnectDB.getInstance().getConnection();
-        try {
-            // Quy đổi: 10.000 VNĐ = 1 điểm
-            int diemMoi = (int) (tongTienDaTra / 10000);
 
-            // Kiểm tra tồn tại
-            String checkSQL = "SELECT DiemTichLuy FROM KhachHang WHERE SoDienThoai = ?";
-            PreparedStatement psCheck = con.prepareStatement(checkSQL);
-            psCheck.setString(1, sdt);
-            ResultSet rs = psCheck.executeQuery();
-
-            if (rs.next()) {
-                // UPDATE
-                int diemCu = rs.getInt(1);
-                String sqlUp = "UPDATE KhachHang SET DiemTichLuy = ?, TenKhach = ? WHERE SoDienThoai = ?";
-                PreparedStatement psUp = con.prepareStatement(sqlUp);
-                psUp.setInt(1, diemCu + diemMoi);
-                psUp.setString(2, tenKhach); // Cập nhật tên mới nhất (lỡ khách đổi tên)
-                psUp.setString(3, sdt);
-                psUp.executeUpdate();
-            } else {
-                // INSERT
-                String sqlIn = "INSERT INTO KhachHang (SoDienThoai, TenKhach, DiemTichLuy) VALUES (?, ?, ?)";
-                PreparedStatement psIn = con.prepareStatement(sqlIn);
-                psIn.setString(1, sdt);
-                psIn.setString(2, tenKhach);
-                psIn.setInt(3, diemMoi);
-                psIn.executeUpdate();
-            }
-        } catch (Exception e) { e.printStackTrace(); }
-    }
-    // Hàm lấy % giảm giá dựa trên SĐT (Dùng để hiển thị lúc thanh toán)
-    public int getPhanTramGiam(String sdt) {
+    // 6. Kiểm tra SĐT đã tồn tại chưa? (Hỗ trợ validate)
+    public boolean checkTonTai(String sdt) {
         try {
-            String sql = "SELECT DiemTichLuy FROM KhachHang WHERE SoDienThoai = ?";
-            PreparedStatement ps = ConnectDB.getInstance().getConnection().prepareStatement(sql);
+            Connection con = ConnectDB.getInstance().getConnection();
+            PreparedStatement ps = con.prepareStatement("SELECT SoDienThoai FROM KhachHang WHERE SoDienThoai = ?");
             ps.setString(1, sdt);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                int diem = rs.getInt(1);
-                // Quy định hạng:
-                if (diem >= 1000) return 15; // VIP Kim Cương
-                if (diem >= 500) return 10;  // VIP Vàng
-                if (diem >= 200) return 5;   // VIP Bạc
-            }
-        } catch (Exception e) {}
-        return 0; // Khách thường hoặc không tìm thấy
+            return ps.executeQuery().next();
+        } catch (Exception e) { return false; }
     }
+
+    // 7. Lấy tên khách hàng theo SĐT (Dùng để hiện tên khi nhập SĐT)
     public String getTenKhach(String sdt) {
         try {
             Connection con = ConnectDB.getInstance().getConnection();
@@ -141,6 +119,41 @@ public class KhachHangDAO {
             ResultSet rs = ps.executeQuery();
             if(rs.next()) return rs.getString(1);
         } catch(Exception e) {}
-        return "Khách vãng lai";
+        return "Khách vãng lai"; // Hoặc trả về null tùy logic
+    }
+
+    // 8. TÍCH ĐIỂM (Logic chuẩn: 100.000 VNĐ = 1 điểm)
+    public void tichDiem(String sdt, double tongTien) {
+        try {
+            // Quy đổi điểm (Lấy phần nguyên)
+            int diemMoi = (int) (tongTien / 100000); 
+            if (diemMoi <= 0) return; // Không đủ điểm thì thôi
+
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "UPDATE KhachHang SET DiemTichLuy = DiemTichLuy + ? WHERE SoDienThoai = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, diemMoi);
+            ps.setString(2, sdt);
+            ps.executeUpdate();
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    // 9. Lấy % giảm giá (Dựa theo hạng thành viên)
+    public int getPhanTramGiam(String sdt) {
+        try {
+            Connection con = ConnectDB.getInstance().getConnection();
+            String sql = "SELECT DiemTichLuy FROM KhachHang WHERE SoDienThoai = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                int diem = rs.getInt(1);
+                // Quy định hạng:
+                if (diem >= 1000) return 15; // Kim Cương: Giảm 15%
+                if (diem >= 500) return 10;  // Vàng: Giảm 10%
+                if (diem >= 200) return 5;   // Bạc: Giảm 5%
+            }
+        } catch (Exception e) {}
+        return 0; // Không giảm
     }
 }

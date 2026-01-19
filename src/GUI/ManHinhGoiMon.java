@@ -20,7 +20,7 @@ import UTILS.XImage;
 
 public class ManHinhGoiMon extends JDialog {
 
-    private int maHD; // Hóa đơn đang xử lý
+    private int maHD; 
     private String tenBan;
     
     // Component bên trái (Menu)
@@ -40,55 +40,73 @@ public class ManHinhGoiMon extends JDialog {
     
     private DecimalFormat df = new DecimalFormat("#,###");
 
-    public ManHinhGoiMon(int maHD, String tenBan) {
+    // [SỬA 1] Thêm tham số boolean isViewOnly vào Constructor
+    public ManHinhGoiMon(int maHD, String tenBan, boolean isViewOnly) {
         this.maHD = maHD;
         this.tenBan = tenBan;
         
-        setTitle("Gọi Món - " + tenBan + " (Mã HĐ: " + maHD + ")");
+        // [SỬA 2] Đổi tiêu đề nếu là xem lại
+        setTitle((isViewOnly ? "CHI TIẾT HÓA ĐƠN: " : "GỌI MÓN: ") + tenBan + " (Mã HĐ: " + maHD + ")");
         setSize(1100, 700);
         setLocationRelativeTo(null);
         setModal(true);
         setLayout(new BorderLayout());
 
         // --- PHẦN TRÁI: DANH SÁCH MÓN ĂN (60%) ---
-        JPanel pnlLeft = new JPanel(new BorderLayout());
-        pnlLeft.setPreferredSize(new Dimension(650, 0));
-        pnlLeft.setBorder(new TitledBorder("THỰC ĐƠN NHÀ HÀNG"));
+        // [SỬA 3] Chỉ tạo và thêm Menu bên trái nếu KHÔNG PHẢI chế độ xem lại
+        if (!isViewOnly) {
+            JPanel pnlLeft = new JPanel(new BorderLayout());
+            pnlLeft.setPreferredSize(new Dimension(650, 0));
+            pnlLeft.setBorder(new TitledBorder("THỰC ĐƠN NHÀ HÀNG"));
 
-        // 1. Bộ lọc (Loại món & Tìm kiếm)
-        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        cboLoai = new JComboBox<>();
-        cboLoai.addItem(new LoaiMon(null, "--- Tất cả ---"));
-        for(LoaiMon lm : loaiDAO.getAllLoai()) cboLoai.addItem(lm);
-        
-        txtTim = new JTextField(15);
-        JButton btnTim = new JButton("Tìm");
-        
-        pnlFilter.add(new JLabel("Loại:")); pnlFilter.add(cboLoai);
-        pnlFilter.add(new JLabel("Tìm:"));  pnlFilter.add(txtTim);
-        pnlFilter.add(btnTim);
-        pnlLeft.add(pnlFilter, BorderLayout.NORTH);
+            // 1. Bộ lọc (Loại món & Tìm kiếm)
+            JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            cboLoai = new JComboBox<>();
+            cboLoai.addItem(new LoaiMon(null, "--- Tất cả ---"));
+            for(LoaiMon lm : loaiDAO.getAllLoai()) cboLoai.addItem(lm);
+            
+            txtTim = new JTextField(15);
+            JButton btnTim = new JButton("Tìm");
+            
+            pnlFilter.add(new JLabel("Loại:")); pnlFilter.add(cboLoai);
+            pnlFilter.add(new JLabel("Tìm:"));  pnlFilter.add(txtTim);
+            pnlFilter.add(btnTim);
+            pnlLeft.add(pnlFilter, BorderLayout.NORTH);
 
-        // 2. Lưới hiển thị món ăn
-        pnlMenu = new JPanel(new GridLayout(0, 3, 10, 10)); // 3 cột
-        pnlMenu.setBackground(Color.WHITE);
-        JScrollPane scrollMenu = new JScrollPane(pnlMenu);
-        scrollMenu.getVerticalScrollBar().setUnitIncrement(16);
-        pnlLeft.add(scrollMenu, BorderLayout.CENTER);
+            // 2. Lưới hiển thị món ăn
+            pnlMenu = new JPanel(new GridLayout(0, 3, 10, 10)); // 3 cột
+            pnlMenu.setBackground(Color.WHITE);
+            JScrollPane scrollMenu = new JScrollPane(pnlMenu);
+            scrollMenu.getVerticalScrollBar().setUnitIncrement(16);
+            pnlLeft.add(scrollMenu, BorderLayout.CENTER);
 
-        add(pnlLeft, BorderLayout.WEST);
+            add(pnlLeft, BorderLayout.WEST);
+            
+            // Các sự kiện của phần bên trái cũng chỉ cần khi !isViewOnly
+            loadMenu(""); 
+
+            cboLoai.addActionListener(e -> {
+                LoaiMon lm = (LoaiMon) cboLoai.getSelectedItem();
+                String maLoai = (lm.getMaLoai() == null) ? "" : lm.getMaLoai();
+                loadMenu(maLoai); 
+            });
+            
+            btnTim.addActionListener(e -> loadMenuSearch(txtTim.getText()));
+        }
 
         // --- PHẦN PHẢI: HÓA ĐƠN TẠM TÍNH (40%) ---
         JPanel pnlRight = new JPanel(new BorderLayout());
-        pnlRight.setBorder(new TitledBorder("DANH SÁCH ĐANG GỌI: " + tenBan.toUpperCase()));
+        pnlRight.setBorder(new TitledBorder("DANH SÁCH " + (isViewOnly ? "ĐÃ GỌI: " : "ĐANG GỌI: ") + tenBan.toUpperCase()));
         
         // 1. Bảng chi tiết
         String[] cols = {"Tên Món", "SL", "Đơn Giá", "Thành Tiền"};
-        modelBill = new DefaultTableModel(cols, 0);
+        modelBill = new DefaultTableModel(cols, 0) {
+            @Override // [SỬA 4] Chặn không cho sửa trực tiếp trên bảng
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
         tableBill = new JTable(modelBill);
         tableBill.setRowHeight(30);
         tableBill.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        // Chỉnh độ rộng cột
         tableBill.getColumnModel().getColumn(0).setPreferredWidth(150);
         tableBill.getColumnModel().getColumn(1).setPreferredWidth(30);
         
@@ -108,13 +126,17 @@ public class ManHinhGoiMon extends JDialog {
         JButton btnXoaMon = new JButton("Xóa Món");
         btnXoaMon.setBackground(Color.RED); btnXoaMon.setForeground(Color.WHITE);
         
-        JButton btnXong = new JButton("HOÀN TẤT GỌI MÓN");
-        btnXong.setBackground(new Color(46, 204, 113)); 
+        JButton btnXong = new JButton(isViewOnly ? "ĐÓNG (ESC)" : "HOÀN TẤT GỌI MÓN");
+        btnXong.setBackground(isViewOnly ? Color.GRAY : new Color(46, 204, 113)); 
         btnXong.setForeground(Color.WHITE);
         btnXong.setPreferredSize(new Dimension(200, 40));
         btnXong.setFont(new Font("Arial", Font.BOLD, 14));
 
-        pnlAction.add(btnXoaMon);
+        // [SỬA 5] Chỉ hiện nút Xóa Món nếu KHÔNG PHẢI xem lại
+        if (!isViewOnly) {
+            pnlAction.add(btnXoaMon);
+        }
+        
         pnlBot.add(lblTongTien, BorderLayout.NORTH);
         pnlBot.add(btnXong, BorderLayout.CENTER);
         pnlBot.add(pnlAction, BorderLayout.SOUTH);
@@ -122,47 +144,32 @@ public class ManHinhGoiMon extends JDialog {
         pnlRight.add(pnlBot, BorderLayout.SOUTH);
         add(pnlRight, BorderLayout.CENTER);
 
-        // --- EVENTS ---
-        loadMenu(""); // Load toàn bộ món ban đầu
-        loadBill();   // Load danh sách món đã gọi (nếu có)
+        // --- EVENTS CHUNG ---
+        loadBill();   // Luôn luôn load bill
 
-        // Sự kiện lọc loại
-        cboLoai.addActionListener(e -> {
-            LoaiMon lm = (LoaiMon) cboLoai.getSelectedItem();
-            String maLoai = (lm.getMaLoai() == null) ? "" : lm.getMaLoai();
-            loadMenu(maLoai); // Bạn cần sửa DAO MonAnDAO thêm hàm getByLoai nhé, hoặc dùng hàm timKiem
-        });
-        
-        // Sự kiện tìm kiếm
-        btnTim.addActionListener(e -> loadMenuSearch(txtTim.getText()));
-
-        // Sự kiện nút Xóa Món
-        btnXoaMon.addActionListener(e -> {
-            int row = tableBill.getSelectedRow();
-            if(row == -1) return;
-            String tenMon = tableBill.getValueAt(row, 0).toString();
-            // Cần lấy mã món (nhưng trên bảng đang hiện tên). 
-            // Mẹo: Lưu list ChiTietHoaDon ở ngoài để tra cứu, hoặc truy vấn ngược.
-            // Để đơn giản, ta load lại list chi tiết để lấy mã.
-            ArrayList<ChiTietHoaDon> list = ctDAO.getChiTiet(maHD);
-            String maMonXoa = list.get(row).getMaMon();
-            
-            ctDAO.xoaMon(maHD, maMonXoa);
-            loadBill();
-        });
+        // Sự kiện nút Xóa Món (Chỉ cần khi !isViewOnly)
+        if (!isViewOnly) {
+            btnXoaMon.addActionListener(e -> {
+                int row = tableBill.getSelectedRow();
+                if(row == -1) return;
+                // Lưu ý: Đoạn này nên lấy mã món từ list ẩn, lấy theo tên trên bảng có thể bị trùng nếu tên giống nhau
+                ArrayList<ChiTietHoaDon> list = ctDAO.getChiTiet(maHD);
+                String maMonXoa = list.get(row).getMaMon();
+                
+                ctDAO.xoaMon(maHD, maMonXoa);
+                loadBill();
+            });
+        }
 
         // Nút Xong
         btnXong.addActionListener(e -> dispose());
     }
 
-    // --- CÁC HÀM LOGIC ---
+    // --- CÁC HÀM LOGIC (GIỮ NGUYÊN) ---
 
-    // 1. Vẽ Menu Món Ăn (Giống phần quản lý món)
     private void loadMenu(String maLoai) {
         pnlMenu.removeAll();
-        // Bạn dùng hàm timKiem của MonAnDAO ở bài trước để lọc
         ArrayList<MonAn> list = monAnDAO.timKiem("", maLoai); 
-        
         for(MonAn m : list) {
             JPanel item = createItemMenu(m);
             pnlMenu.add(item);
@@ -179,7 +186,6 @@ public class ManHinhGoiMon extends JDialog {
         pnlMenu.repaint();
     }
 
-    // Tạo 1 ô món ăn để click
     private JPanel createItemMenu(MonAn m) {
         JPanel p = new JPanel(new BorderLayout());
         p.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
@@ -187,7 +193,6 @@ public class ManHinhGoiMon extends JDialog {
         p.setPreferredSize(new Dimension(150, 180));
         p.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Ảnh
         JLabel lblAnh = new JLabel();
         lblAnh.setHorizontalAlignment(JLabel.CENTER);
         ImageIcon icon = XImage.read(m.getHinhAnh());
@@ -197,7 +202,6 @@ public class ManHinhGoiMon extends JDialog {
         }
         p.add(lblAnh, BorderLayout.CENTER);
 
-        // Tên & Giá
         JPanel pInfo = new JPanel(new GridLayout(2, 1));
         pInfo.setBackground(new Color(245, 245, 245));
         JLabel lblTen = new JLabel(m.getTenMon(), JLabel.CENTER);
@@ -207,13 +211,10 @@ public class ManHinhGoiMon extends JDialog {
         pInfo.add(lblTen); pInfo.add(lblGia);
         p.add(pInfo, BorderLayout.SOUTH);
 
-        // SỰ KIỆN CLICK VÀO MÓN -> THÊM VÀO BILL
         p.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // Thêm 1 món vào CSDL
                 ctDAO.themMon(maHD, m.getMaMon(), 1, m.getDonGia());
-                // Load lại bảng bên phải
                 loadBill();
             }
         });
@@ -221,7 +222,6 @@ public class ManHinhGoiMon extends JDialog {
         return p;
     }
 
-    // 2. Load Bill từ SQL lên bảng bên phải
     private void loadBill() {
         modelBill.setRowCount(0);
         ArrayList<ChiTietHoaDon> list = ctDAO.getChiTiet(maHD);

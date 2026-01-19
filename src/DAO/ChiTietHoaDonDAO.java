@@ -98,4 +98,25 @@ public class ChiTietHoaDonDAO {
             ps.executeUpdate();
         } catch (Exception e) {}
     }
+ // Cập nhật số lượng món ăn (Dùng cho nút Tăng/Giảm)
+    public boolean updateSoLuong(int maHD, String maMon, int slMoi) {
+        try {
+            java.sql.Connection con = connectDB.ConnectDB.getInstance().getConnection();
+            
+            // Câu lệnh SQL: Cập nhật cột SoLuong nơi có MaHD và MaMon trùng khớp
+            String sql = "UPDATE ChiTietHoaDon SET SoLuong = ? WHERE MaHD = ? AND MaMon = ?";
+            
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, slMoi);  // Tham số 1: Số lượng mới
+            ps.setInt(2, maHD);   // Tham số 2: Mã hóa đơn
+            ps.setString(3, maMon); // Tham số 3: Mã món ăn
+            
+            // Trả về true nếu update thành công (số dòng bị ảnh hưởng > 0)
+            return ps.executeUpdate() > 0;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

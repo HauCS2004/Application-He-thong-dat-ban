@@ -15,6 +15,7 @@ import DAO.HoaDonDAO;
 import Entity.Ban;
 import Entity.DatBan;
 import Entity.HoaDon;
+import DAO.KhachHangDAO;
 
 public class QuanLyBan extends JPanel {
     
@@ -23,7 +24,10 @@ public class QuanLyBan extends JPanel {
     private JLabel lblTenBan, lblTrangThai;
     private JButton btnDatBan, btnGoiMon, btnThanhToan, btnChuyenBan, btnGhepBan;
     private JPanel pnlRight;
-    
+ // Khai báo trên đầu class QuanLyBan
+    private JTable tblOrder;
+    private javax.swing.table.DefaultTableModel modelOrder;
+    private JLabel lblTongTienTam; // Để hiện tổng tiền bên dưới
     // --- DATA ---
     private BanDAO banDAO = new BanDAO();
     private HoaDonDAO hdDAO = new HoaDonDAO();
@@ -72,7 +76,33 @@ public class QuanLyBan extends JPanel {
         lblTrangThai.setFont(new Font("Segoe UI", Font.ITALIC, 18));
         pnlInfo.add(lblTenBan); pnlInfo.add(lblTrangThai);
         pnlRight.add(pnlInfo, BorderLayout.NORTH);
+        // B. DANH SÁCH MÓN ĂN (SỬA LẠI PHẦN NÀY)
+        JPanel pnlList = new JPanel(new BorderLayout());
+        pnlList.setBackground(Color.WHITE);
+        pnlList.setBorder(BorderFactory.createTitledBorder("DANH SÁCH MÓN ĐANG GỌI"));
         
+        // -> Tạo Bảng
+        String[] headers = {"Tên món", "SL", "Đ.Giá", "T.Tiền"};
+        modelOrder = new javax.swing.table.DefaultTableModel(headers, 0);
+        tblOrder = new JTable(modelOrder);
+        tblOrder.setRowHeight(25);
+        tblOrder.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        
+        // Chỉnh độ rộng cột cho đẹp
+        tblOrder.getColumnModel().getColumn(0).setPreferredWidth(130); // Tên món dài
+        tblOrder.getColumnModel().getColumn(1).setPreferredWidth(30);  // SL ngắn
+        
+        JScrollPane sc = new JScrollPane(tblOrder);
+        pnlList.add(sc, BorderLayout.CENTER);
+        
+        // -> Tạo dòng Tổng tiền tạm tính
+        lblTongTienTam = new JLabel("Tổng: 0 VNĐ", SwingConstants.RIGHT);
+        lblTongTienTam.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTongTienTam.setForeground(Color.RED);
+        lblTongTienTam.setBorder(new EmptyBorder(10, 0, 10, 10));
+        pnlList.add(lblTongTienTam, BorderLayout.SOUTH);
+        
+        pnlRight.add(pnlList, BorderLayout.CENTER);
         // Buttons
         JPanel pnlAction = new JPanel(new GridLayout(3, 2, 10, 10));
         pnlAction.setPreferredSize(new Dimension(0, 180));
@@ -88,45 +118,39 @@ public class QuanLyBan extends JPanel {
         pnlAction.add(btnDatBan); 
 
         pnlRight.add(pnlAction, BorderLayout.SOUTH);
+        
     }
 
     private void initEvents() {
         // GỌI MÓN (Mở bàn / Check-in / Thêm món)
-        btnGoiMon.addActionListener(e -> {
+    	btnGoiMon.addActionListener(e -> {
             if (banDangChon == null) {
                 JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn!"); return;
             }
-            // Logic Mở bàn mới hoặc Nhận bàn đặt
-            if (banDangChon.getTrangThai().equals("Trống") || banDangChon.getTrangThai().equals("Đã Đặt")) {
-                if(banDangChon.getTrangThai().equals("Đang Gộp")) {
-                    JOptionPane.showMessageDialog(this, "Bàn này đang gộp vào " + banDangChon.getMaBanGop() + ". Hãy thao tác bên đó!");
-                    return;
-                }
-                
-                String msg = banDangChon.getTrangThai().equals("Đã Đặt") ? "Khách đặt đã đến? Nhận bàn?" : "Mở bàn mới?";
-                if (JOptionPane.showConfirmDialog(this, msg, "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                    
-                    String input = JOptionPane.showInputDialog(this, "Nhập số lượng khách:", "1");
-                    if (input == null) return;
-                    int soKhach = 1;
-                    try { soKhach = Integer.parseInt(input); } catch(Exception ex){}
 
-                    if (!checkSucChua(banDangChon, soKhach)) return;
+            String trangThai = banDangChon.getTrangThai();
 
-                    HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "");
-                    int maHD = hdDAO.insert(hd);
-
-                    if (maHD != -1) {
-                        banDAO.updateTrangThai(banDangChon.getMaBan(), "Có Khách");
-                        reloadTableData();
-                        new ManHinhGoiMon(maHD, banDangChon.getTenBan()).setVisible(true);
-                    }
-                }
+            // TRƯỜNG HỢP 1: BÀN TRỐNG -> KHÁCH VÃNG LAI
+            if (trangThai.equals("Trống")) {
+                moBanChoKhachVangLai();
             } 
-            // Logic Gọi thêm
-            else if (banDangChon.getTrangThai().equals("Có Khách")) {
+            
+            // TRƯỜNG HỢP 2: BÀN ĐÃ ĐẶT -> CHECK-IN (NHẬN BÀN)
+            else if (trangThai.equals("Đã Đặt")) {
+                checkInKhachDat();
+            }
+            
+            // TRƯỜNG HỢP 3: ĐANG CÓ KHÁCH -> GỌI THÊM MÓN
+            else if (trangThai.equals("Có Khách")) {
                 int maHD = hdDAO.getMaHDByBan(banDangChon.getMaBan());
-                if (maHD != -1) new ManHinhGoiMon(maHD, banDangChon.getTenBan()).setVisible(true);
+                if (maHD != -1) {
+                	new ManHinhGoiMon(maHD, banDangChon.getTenBan(), false).setVisible(true);
+                }
+            }
+            
+            // TRƯỜNG HỢP 4: BÀN ĐANG GỘP -> CHẶN
+            else if (trangThai.equals("Đang Gộp")) {
+                 JOptionPane.showMessageDialog(this, "Bàn này đang gộp vào bàn " + banDangChon.getMaBanGop() + ". Hãy thao tác bên bàn chính!");
             }
         });
 
@@ -202,21 +226,62 @@ public class QuanLyBan extends JPanel {
 
         // THANH TOÁN
         btnThanhToan.addActionListener(e -> {
-             if (banDangChon != null && banDangChon.getTrangThai().equals("Có Khách")) {
-                 int chon = JOptionPane.showConfirmDialog(this, "Thanh toán bàn " + banDangChon.getTenBan() + "?");
-                 if(chon == JOptionPane.YES_OPTION) {
-                     int maHD = hdDAO.getMaHDByBan(banDangChon.getMaBan());
-                     hdDAO.thanhToan(maHD, 0); // Set tạm 0 đồng
-                     
-                     // Trả bàn chính về Trống
-                     banDAO.updateTrangThai(banDangChon.getMaBan(), "Trống");
-                     // Giải phóng các bàn phụ
-                     banDAO.huyGopBan(banDangChon.getMaBan());
-                     
-                     reloadTableData();
-                     JOptionPane.showMessageDialog(this, "Đã thanh toán và giải phóng bàn!");
-                 }
-             }
+            if (banDangChon != null && banDangChon.getTrangThai().equals("Có Khách")) {
+                
+                // 1. Lấy thông tin hóa đơn hiện tại
+                int maHD = hdDAO.getMaHDByBan(banDangChon.getMaBan());
+                HoaDon hdInfo = hdDAO.getThongTinHoaDon(maHD); // Lấy SĐT và Tên đã lưu lúc check-in
+                
+                String sdt = (hdInfo != null) ? hdInfo.getSdtKhach() : "";
+                String ten = (hdInfo != null) ? hdInfo.getGhiChu() : "";
+
+                // 2. Nếu hóa đơn chưa có SĐT (Khách vãng lai), hỏi xem có muốn nhập để tích điểm không?
+                if (sdt == null || sdt.isEmpty()) {
+                    String nhapSDT = JOptionPane.showInputDialog(this, "Khách vãng lai. Nhập SĐT để tích điểm (Để trống nếu không cần):");
+                    if (nhapSDT != null && !nhapSDT.trim().isEmpty()) {
+                        sdt = nhapSDT;
+                        // Nếu là SĐT mới -> Hỏi tên để lưu
+                        KhachHangDAO khDAO = new KhachHangDAO();
+                        if (!khDAO.checkTonTai(sdt)) {
+                            String nhapTen = JOptionPane.showInputDialog(this, "Khách hàng mới! Vui lòng nhập tên:");
+                            ten = (nhapTen != null) ? nhapTen : "Khách Mới";
+                            khDAO.themKhachMoi(sdt, ten); // [QUAN TRỌNG] Insert vào bảng KhachHang ngay
+                        }
+                        // Cập nhật ngược lại SĐT vào Hóa Đơn để lưu vết
+                        hdDAO.updateSdtKhach(maHD, sdt); 
+                    }
+                }
+
+                // 3. Tính tiền & Giảm giá VIP
+                double tongTienHang = hdDAO.getTongTienTamTinh(maHD);
+                int phanTramGiam = new DAO.KhachHangDAO().getPhanTramGiam(sdt);
+                double tienGiam = tongTienHang * phanTramGiam / 100;
+                double tongThanhToan = tongTienHang - tienGiam;
+
+                // 4. Hiển thị xác nhận
+                java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+                String msg = "<html><h3>THANH TOÁN: " + banDangChon.getTenBan() + "</h3>" +
+                             "Khách: " + (ten==null?"Vãng lai":ten) + "<br>" +
+                             "Tổng tiền: " + df.format(tongTienHang) + "<br>" +
+                             "Giảm giá VIP (" + phanTramGiam + "%): -" + df.format(tienGiam) + "<br>" +
+                             "<h2 style='color:red'>THỰC THU: " + df.format(tongThanhToan) + " VNĐ</h2></html>";
+
+                if (JOptionPane.showConfirmDialog(this, msg, "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    
+                    // 5. Thanh toán & Tích điểm
+                    hdDAO.thanhToan(maHD, tongThanhToan);
+                    
+                    if (sdt != null && !sdt.isEmpty()) {
+                        new DAO.KhachHangDAO().tichDiem(sdt, tongThanhToan); // [QUAN TRỌNG] Cộng điểm
+                    }
+                    
+                    // 6. Dọn bàn
+                    banDAO.updateTrangThai(banDangChon.getMaBan(), "Trống");
+                    banDAO.huyGopBan(banDangChon.getMaBan());
+                    reloadTableData();
+                    JOptionPane.showMessageDialog(this, "Đã thanh toán! " + (sdt!=null ? "Đã cộng điểm cho khách." : ""));
+                }
+            }
         });
     }
 
@@ -261,6 +326,7 @@ public class QuanLyBan extends JPanel {
             btn.addActionListener(e -> {
                 this.banDangChon = b;
                 updateRightPanel();
+                loadDSMonChoBan();
             });
             pnl.add(btn);
         }
@@ -285,6 +351,7 @@ public class QuanLyBan extends JPanel {
         loadTabs();
         tabKhuVuc.setSelectedIndex(index);
         updateRightPanel();
+        loadDSMonChoBan();
     }
     
     private boolean checkSucChua(Ban b, int khach) {
@@ -381,5 +448,113 @@ public class QuanLyBan extends JPanel {
         });
         btnHuy.addActionListener(e -> dialog.dispose());
         dialog.setVisible(true);
+    }
+ // --- HÀM XỬ LÝ CHECK-IN (KHÁCH ĐẶT ĐẾN) ---
+    private void checkInKhachDat() {
+        // 1. Lấy thông tin người đặt
+        DatBan db = DatBanDAO.getDatBanGanNhat(banDangChon.getMaBan());
+        
+        String thongtin = "Có khách đặt bàn này nhưng không tìm thấy dữ liệu!";
+        int soKhach = 2;
+        String tenKhach = "Khách đặt";
+        String sdtKhach = ""; // Biến lưu SĐT
+
+        if (db != null) {
+            thongtin = "Thông tin đặt bàn:\n" +
+                       "- Khách hàng: " + db.getTenKhach() + "\n" +
+                       "- SĐT: " + db.getSdt() + "\n" +
+                       "- Số người dự kiến: " + db.getSoLuongKhach() + "\n\n" +
+                       "Khách đã đến và muốn nhận bàn?";
+            soKhach = db.getSoLuongKhach();
+            tenKhach = db.getTenKhach();
+            sdtKhach = db.getSdt();
+        } else {
+             JOptionPane.showMessageDialog(this, "Không tìm thấy thông tin đặt bàn!");
+             return;
+        }
+
+        // 2. Hỏi xác nhận Check-in
+        int confirm = JOptionPane.showConfirmDialog(this, thongtin, "Check-in Bàn Đặt", JOptionPane.YES_NO_OPTION);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (!checkSucChua(banDangChon, soKhach)) return;
+
+            // --- [ĐOẠN CODE SỬA LỖI Ở ĐÂY] ---
+            // Kiểm tra khách hàng đã có trong hệ thống chưa? Nếu chưa thì thêm vào.
+            DAO.KhachHangDAO khDAO = new DAO.KhachHangDAO();
+            if (sdtKhach != null && !sdtKhach.isEmpty()) {
+                if (!khDAO.checkTonTai(sdtKhach)) {
+                    // Chưa có -> Tự động thêm khách mới vào bảng KhachHang
+                    khDAO.themKhachMoi(sdtKhach, tenKhach);
+                }
+            }
+            // ---------------------------------
+
+            // Giờ mới tạo hóa đơn (Lúc này SĐT đã chắc chắn có trong bảng KhachHang rồi)
+            HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, sdtKhach, "Khách đặt: " + tenKhach);
+            
+            int maHD = hdDAO.insert(hd); // <-- Dòng này sẽ hết lỗi
+            if (maHD != -1) {
+                banDAO.updateTrangThai(banDangChon.getMaBan(), "Có Khách");
+                
+                // (Tùy chọn) Cập nhật trạng thái đơn đặt thành "Hoàn tất" để không hiện lại lần sau
+                // datBanDAO.updateTrangThai(db.getMaDat(), "Hoàn tất");
+                
+                reloadTableData();
+                new ManHinhGoiMon(maHD, banDangChon.getTenBan(), false).setVisible(true);
+            }
+        }
+    }
+     
+
+    // --- HÀM XỬ LÝ KHÁCH VÃNG LAI ---
+    private void moBanChoKhachVangLai() {
+        String input = JOptionPane.showInputDialog(this, "Mở bàn mới cho khách vãng lai.\nNhập số lượng khách:", "1");
+        if (input == null) return;
+        
+        int soKhach = 1;
+        try { soKhach = Integer.parseInt(input); } catch(Exception ex){ return; }
+
+        if (!checkSucChua(banDangChon, soKhach)) return;
+
+        HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "Khách vãng lai");
+        int maHD = hdDAO.insert(hd);
+
+        if (maHD != -1) {
+            banDAO.updateTrangThai(banDangChon.getMaBan(), "Có Khách");
+            reloadTableData();
+            new ManHinhGoiMon(maHD, banDangChon.getTenBan(), false).setVisible(true);
+        }
+    }
+    private void loadDSMonChoBan() {
+        // Xóa dữ liệu cũ trên bảng
+        modelOrder.setRowCount(0);
+        lblTongTienTam.setText("Tổng: 0 VNĐ");
+        
+        if (banDangChon == null || banDangChon.getTrangThai().equals("Trống")) {
+            return; // Bàn trống thì không có gì để hiện
+        }
+
+        // Lấy mã hóa đơn đang hoạt động
+        int maHD = hdDAO.getMaHDByBan(banDangChon.getMaBan());
+        if (maHD == -1) return;
+
+        // Lấy danh sách món từ DAO
+        ArrayList<String[]> listMon = hdDAO.getChiTietHoaDon(maHD);
+        double tongTien = 0;
+
+        for (String[] row : listMon) {
+            modelOrder.addRow(row);
+            
+            // Cộng dồn tiền (Xử lý chuỗi "100,000" về số double để cộng)
+            try {
+                String tienStr = row[3].replace(",", "").replace(".", ""); // Bỏ dấu phẩy
+                tongTien += Double.parseDouble(tienStr);
+            } catch (Exception e) {}
+        }
+        
+        // Cập nhật Label tổng tiền
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+        lblTongTienTam.setText("Tổng: " + df.format(tongTien) + " VNĐ");
     }
 }
