@@ -19,7 +19,7 @@ public class NhanVienDAO {
         NhanVien nv = null;
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM NhanVien WHERE MaNV = ? AND MatKhau = ?";
             PreparedStatement ps = con.prepareStatement(sql);
 
@@ -59,7 +59,7 @@ public class NhanVienDAO {
         NhanVien nv = null;
 
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM NhanVien WHERE MaNV = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maNV);
@@ -89,7 +89,7 @@ public class NhanVienDAO {
      */
     public boolean changePassword(String maNV, String oldPass, String newPass) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             // Verify old password first
             String checkSql = "SELECT COUNT(*) FROM NhanVien WHERE MaNV = ? AND MatKhau = ?";

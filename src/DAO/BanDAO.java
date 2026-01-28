@@ -10,7 +10,7 @@ public class BanDAO {
     // 1. Lấy danh sách bàn theo khu vực (Cập nhật lấy thêm MaBanGop)
     public ArrayList<Ban> getBanTheoKhuVuc(String maKV) {
         ArrayList<Ban> list = new ArrayList<>();
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         String sql = "SELECT * FROM Ban WHERE MaKV = ?";
         try {
             PreparedStatement ps = con.prepareStatement(sql);
@@ -38,7 +38,7 @@ public class BanDAO {
     // 2. Lấy danh sách bàn theo Trạng Thái (Fix lỗi thiếu cột)
     public ArrayList<Ban> getBanTheoTrangThai(String trangThaiCanTim) {
         ArrayList<Ban> list = new ArrayList<>();
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         String sql = "SELECT * FROM Ban WHERE TrangThai = ?";
         try {
             PreparedStatement ps = con.prepareStatement(sql);
@@ -69,7 +69,7 @@ public class BanDAO {
     public void updateTrangThai(String maBan, String tt) {
         try {
             String sql = "UPDATE Ban SET TrangThai = ? WHERE MaBan = ?";
-            PreparedStatement ps = ConnectDB.getInstance().getConnection().prepareStatement(sql);
+            PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
             ps.setString(1, tt);
             ps.setString(2, maBan);
             ps.executeUpdate();
@@ -80,7 +80,7 @@ public class BanDAO {
 
     public void capNhatTrangThaiDatBan() {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE Ban SET TrangThai = N'Đã Đặt' " +
                     "WHERE MaBan IN (SELECT MaBan FROM DatBan " +
                     "WHERE ABS(DATEDIFF(MINUTE, ThoiGianBatDau, GETDATE())) <= 30) " +
@@ -94,7 +94,7 @@ public class BanDAO {
 
     // 6. Chuyển Bàn
     public boolean chuyenBan(String maBanCu, String maBanMoi) {
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try {
             con.setAutoCommit(false);
             // Chuyển hóa đơn
@@ -126,7 +126,7 @@ public class BanDAO {
 
     // 7. Ghép Nhiều Bàn (Logic gộp và set trạng thái 'Đang Gộp')
     public boolean ghepNhieuBan(String maBanDich, ArrayList<String> listMaBanNguon) {
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try {
             con.setAutoCommit(false);
 
@@ -183,7 +183,7 @@ public class BanDAO {
         try {
             // Trả tất cả các bàn đang gộp vào bàn chính này về trạng thái Trống
             String sql = "UPDATE Ban SET TrangThai = N'Trống', MaBanGop = NULL WHERE MaBanGop = ?";
-            PreparedStatement ps = ConnectDB.getInstance().getConnection().prepareStatement(sql);
+            PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
             ps.setString(1, maBanChinh);
             ps.executeUpdate();
         } catch (Exception e) {
@@ -195,7 +195,7 @@ public class BanDAO {
     // public void getDatBanGannhat(String maBan) {
     // Entity.DatBan db = null;
     // try {
-    // Connection con = connectDB.ConnectDB.getInstance().getConnection();
+    // Connection con = connectDB.ConnectDB.getConnection();
     //
     // // Lấy đơn đặt của bàn này, mà thời gian đặt nằm trong khoảng (Hiện tại +/-
     // 60 phút)

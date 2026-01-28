@@ -13,7 +13,7 @@ public class MonAnDAO {
     public ArrayList<MonAn> getAll() {
         ArrayList<MonAn> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM MonAn";
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
@@ -34,7 +34,7 @@ public class MonAnDAO {
     // 2. Thêm món
     public boolean insert(MonAn m) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "INSERT INTO MonAn (MaMon, TenMon, DonViTinh, DonGia, HinhAnh, MaLoai) VALUES (?, ?, ?, ?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, m.getMaMon());
@@ -50,7 +50,7 @@ public class MonAnDAO {
     // 3. Xóa món
     public boolean delete(String maMon) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "DELETE FROM MonAn WHERE MaMon = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maMon);
@@ -61,7 +61,7 @@ public class MonAnDAO {
     // 4. Sửa món
     public boolean update(MonAn m) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE MonAn SET TenMon=?, DonViTinh=?, DonGia=?, HinhAnh=?, MaLoai=? WHERE MaMon=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, m.getTenMon());
@@ -76,7 +76,7 @@ public class MonAnDAO {
  // Hàm tìm kiếm đa năng: Tìm theo tên GẦN ĐÚNG và theo Mã Loại
     public ArrayList<MonAn> timKiem(String keyword, String maLoai) {
         ArrayList<MonAn> list = new ArrayList<>();
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         
         // Tạo câu SQL động
         String sql = "SELECT * FROM MonAn WHERE TenMon LIKE ? ";

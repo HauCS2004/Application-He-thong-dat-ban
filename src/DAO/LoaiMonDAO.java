@@ -11,7 +11,7 @@ public class LoaiMonDAO {
     public ArrayList<LoaiMon> getAllLoai() {
         ArrayList<LoaiMon> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM LoaiMon";
             Statement st = con.createStatement();
             ResultSet rs = st.executeQuery(sql);

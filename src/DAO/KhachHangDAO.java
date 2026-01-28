@@ -13,7 +13,7 @@ public class KhachHangDAO {
     public ArrayList<KhachHang> getAll() {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM KhachHang";
             ResultSet rs = con.createStatement().executeQuery(sql);
             while (rs.next()) {
@@ -31,7 +31,7 @@ public class KhachHangDAO {
     // 2. Thêm khách
     public boolean insert(KhachHang kh) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "INSERT INTO KhachHang VALUES (?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, kh.getSoDienThoai());
@@ -47,7 +47,7 @@ public class KhachHangDAO {
     // 3. Sửa khách
     public boolean update(KhachHang kh) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE KhachHang SET TenKhach=?, DiemTichLuy=? WHERE SoDienThoai=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, kh.getTenKhach());
@@ -63,7 +63,7 @@ public class KhachHangDAO {
     // 4. Xóa khách
     public boolean delete(String sdt) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "DELETE FROM KhachHang WHERE SoDienThoai=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);
@@ -78,7 +78,7 @@ public class KhachHangDAO {
     public ArrayList<KhachHang> timKiem(String keyword) {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM KhachHang WHERE TenKhach LIKE ? OR SoDienThoai LIKE ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, "%" + keyword + "%");
@@ -102,7 +102,7 @@ public class KhachHangDAO {
     // 7. Check khách hàng đã tồn tại chưa
     public boolean checkTonTai(String sdt) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT COUNT(*) FROM KhachHang WHERE SoDienThoai = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);
@@ -120,7 +120,7 @@ public class KhachHangDAO {
     public void tichDiem(String sdt, double tongTien) {
         try {
             int diemThem = (int) (tongTien / 10000);
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE KhachHang SET DiemTichLuy = DiemTichLuy + ? WHERE SoDienThoai = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, diemThem);
@@ -134,7 +134,7 @@ public class KhachHangDAO {
     // 9. Lấy phần trăm giảm giá VIP
     public int getPhanTramGiam(String sdt) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "SELECT DiemTichLuy FROM KhachHang WHERE SoDienThoai = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);

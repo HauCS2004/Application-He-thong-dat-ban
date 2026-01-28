@@ -14,7 +14,7 @@ public class DatBanDAO {
      * @return true nếu thành công
      */
     public boolean insertDatBan(DatBan db) {
-        Connection con = ConnectDB.getInstance().getConnection();
+        Connection con = ConnectDB.getConnection();
         try {
             // Sử dụng Stored Procedure SP_DatBan từ database mới
             String sql = "{CALL SP_DatBan(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
@@ -62,7 +62,7 @@ public class DatBanDAO {
     public static DatBan getDatBanGanNhat(String maBan) {
         DatBan db = null;
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             // Query theo schema mới
             String sql = "SELECT TOP 1 * FROM DatBan " +
@@ -102,7 +102,7 @@ public class DatBanDAO {
     public ArrayList<DatBan> getDanhSachDatBan(java.util.Date tuNgay, java.util.Date denNgay) {
         ArrayList<DatBan> list = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
 
             // Query theo schema mới
             String sql = "SELECT * FROM DatBan " +
@@ -140,7 +140,7 @@ public class DatBanDAO {
      */
     public int kiemTraXungDot(String maBan, java.util.Date thoiGianBatDau, java.util.Date thoiGianKetThuc) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "{CALL SP_KiemTraDatBan(?, ?, ?)}";
             CallableStatement cs = con.prepareCall(sql);
 
@@ -163,7 +163,7 @@ public class DatBanDAO {
      */
     public boolean capNhatTrangThai(int maDat, String trangThai) {
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "UPDATE DatBan SET TrangThai = ? WHERE MaDat = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, trangThai);
@@ -183,7 +183,7 @@ public class DatBanDAO {
             java.util.Date thoiGianKetThuc, String maKV) {
         ArrayList<String> danhSachBan = new ArrayList<>();
         try {
-            Connection con = ConnectDB.getInstance().getConnection();
+            Connection con = ConnectDB.getConnection();
             String sql = "{CALL SP_GoiYBan(?, ?, ?, ?)}";
             CallableStatement cs = con.prepareCall(sql);
 
