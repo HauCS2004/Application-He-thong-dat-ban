@@ -14,34 +14,42 @@ public class ConnectDB {
 
     public void connect() {
         // Thông số kết nối SQL Server
-        String databaseName = "QuanLyNhaHang"; // Tên DB của bạn trong SQL Server
-        String user = "sa";                    // Tài khoản mặc định là sa
-        String password = "123";               // Mật khẩu bạn cài lúc cài SQL Server
-        
-        // Chuỗi kết nối chuẩn
-        String url = "jdbc:sqlserver://localhost:1433;"
-                   + "databaseName=" + databaseName + ";"
-                   + "encrypt=true;trustServerCertificate=true;";
+        String databaseName = "QuanLyNhaHang";
+        String user = "sa";
+        String password = "11111"; // SỬA LẠI NẾU KHÁC
+
+        // Dùng SQL Server Authentication (không cần DLL)
+        String url = "jdbc:sqlserver://localhost\\SQLEXPRESS:1433;"
+                + "databaseName=" + databaseName + ";"
+                + "user=" + user + ";password=" + password + ";"
+                + "encrypt=true;trustServerCertificate=true;";
+
+        // ℹ️ Nếu dùng SQL Server full (không phải Express):
+        // String url = "jdbc:sqlserver://localhost:1433;..."
 
         try {
             // Đăng ký driver (phòng hờ)
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver"); 
-            
-            con = DriverManager.getConnection(url, user, password);
-            System.out.println("Kết nối SQL Server thành công!");
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+
+            // Kết nối với Windows Authentication (không cần user/pass)
+            con = DriverManager.getConnection(url);
+            System.out.println("✅ Kết nối SQL Server thành công!");
         } catch (SQLException e) {
             e.printStackTrace();
-            System.out.println("Lỗi kết nối SQL! Sai tên DB hoặc sai mật khẩu.");
+            System.out.println("❌ Lỗi kết nối SQL! Kiểm tra:");
+            System.out.println("   - SQL Server có đang chạy?");
+            System.out.println("   - Database 'QuanLyNhaHang' đã tạo chưa?");
+            System.out.println("   - Instance name: localhost\\SQLEXPRESS");
         } catch (ClassNotFoundException e) {
-             e.printStackTrace();
-             System.out.println("Chưa add thư viện JDBC .jar vào Eclipse!");
+            e.printStackTrace();
+            System.out.println("❌ Chưa add thư viện JDBC .jar vào project!");
         }
     }
 
     public static Connection getConnection() {
         return con;
     }
-    
+
     // Hàm ngắt kết nối
     public void disconnect() {
         if (con != null) {

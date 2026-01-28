@@ -1,0 +1,26 @@
+Changed database context to 'master'.
+Changed database context to 'QuanLyNhaHang'.
+
+(3 rows affected)
+
+(3 rows affected)
+
+(11 rows affected)
+
+(4 rows affected)
+
+(15 rows affected)
+
+(5 rows affected)
+
+(5 rows affected)
+
+(5 rows affected)
+
+(4 rows affected)
+
+(4 rows affected)
+Msg 102, Level 15, State 1, Server Nguyenxe\SQLEXPRESS, Line 8
+Incorrect syntax near 'HOUR'.
+Msg 102, Level 15, State 1, Server Nguyenxe\SQLEXPRESS, Line 14
+Incorrect syntax near 'HOUR'.
