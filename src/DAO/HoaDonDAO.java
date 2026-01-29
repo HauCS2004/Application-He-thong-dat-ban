@@ -90,22 +90,42 @@ public class HoaDonDAO {
     // 5. Thêm hóa đơn mới
     public int insertHoaDon(HoaDon hd) {
         int maHD = -1;
+        Connection con = null;
+        PreparedStatement ps = null;
         try {
-            Connection con = ConnectDB.getConnection();
-            String sql = "INSERT INTO HoaDon(MaBan, MaNV, NgayTao, TrangThai, SoLuongKhach) VALUES(?, ?, GETDATE(), 0, ?)";
-            PreparedStatement ps = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+            con = ConnectDB.getConnection();
+            // Try Full Insert First
+            String sql = "INSERT INTO HoaDon(MaBan, MaNV, NgayTao, TrangThai, SoLuongKhach, SDT_Khach) VALUES(?, ?, GETDATE(), 0, ?, ?)";
+            ps = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, hd.getMaBan());
             ps.setString(2, hd.getMaNV());
-            ps.setInt(3, hd.getSoLuongKhach()); // Nâng cấp: thêm số khách
+            ps.setInt(3, hd.getSoLuongKhach());
+            ps.setString(4, hd.getSdtKhach());
 
             ps.executeUpdate();
-
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 maHD = rs.getInt(1);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Full Insert failed, trying fallback: " + e.getMessage());
+            // Fallback: Minimal Insert with Phone
+            try {
+                String sqlFallback = "INSERT INTO HoaDon(MaBan, NgayTao, TrangThai, SDT_Khach) VALUES(?, GETDATE(), 0, ?)";
+                if (ps != null)
+                    ps.close();
+                ps = con.prepareStatement(sqlFallback, PreparedStatement.RETURN_GENERATED_KEYS);
+                ps.setString(1, hd.getMaBan());
+                ps.setString(2, hd.getSdtKhach());
+
+                ps.executeUpdate();
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    maHD = rs.getInt(1);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
         return maHD;
     }
@@ -172,7 +192,8 @@ public class HoaDonDAO {
         ArrayList<String[]> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT m.TenMon, c.SoLuong, c.DonGia, (c.SoLuong * c.DonGia) as ThanhTien, c.GhiChu " +
+            String sql = "SELECT m.MaMon, m.TenMon, c.SoLuong, c.DonGia, (c.SoLuong * c.DonGia) as ThanhTien, c.GhiChu "
+                    +
                     "FROM ChiTietHoaDon c JOIN MonAn m ON c.MaMon = m.MaMon WHERE MaHD = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, maHD);
@@ -183,7 +204,8 @@ public class HoaDonDAO {
                         String.valueOf(rs.getInt("SoLuong")),
                         String.valueOf((int) rs.getDouble("DonGia")),
                         String.valueOf((int) rs.getDouble("ThanhTien")),
-                        rs.getString("GhiChu")
+                        rs.getString("GhiChu"),
+                        rs.getString("MaMon") // Index 5
                 });
             }
         } catch (Exception e) {

@@ -136,6 +136,39 @@ public class DatBanDAO {
     }
 
     /**
+     * Lấy danh sách đặt bàn gần đây (không lọc ngày, giới hạn số lượng)
+     */
+    public ArrayList<DatBan> getDanhSachDatBanGanDay(int limit) {
+        ArrayList<DatBan> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            String sql = "SELECT TOP " + limit + " * FROM DatBan ORDER BY ThoiGianBatDau DESC";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new DatBan(
+                        rs.getInt("MaDat"),
+                        rs.getString("MaBan"),
+                        rs.getString("TenKhachDat"),
+                        rs.getString("SDT"),
+                        rs.getTimestamp("ThoiGianBatDau"),
+                        rs.getTimestamp("ThoiGianKetThuc"),
+                        rs.getInt("SoLuongKhach"),
+                        rs.getString("TrangThai"),
+                        rs.getDouble("TienCoc"),
+                        rs.getString("GhiChu"),
+                        rs.getTimestamp("NgayTao"),
+                        (Integer) rs.getObject("MaHD")));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
      * Kiểm tra xung đột đặt bàn (sử dụng SP_KiemTraDatBan)
      */
     public int kiemTraXungDot(String maBan, java.util.Date thoiGianBatDau, java.util.Date thoiGianKetThuc) {
@@ -200,5 +233,164 @@ public class DatBanDAO {
             e.printStackTrace();
         }
         return danhSachBan;
+    }
+
+    /**
+     * Hoàn tất đơn đặt hàng của bàn (Khi thanh toán)
+     */
+    public void completeBookingOfTable(String maBan) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "UPDATE DatBan SET TrangThai = N'Đã hoàn tất' WHERE MaBan = ? AND TrangThai = N'Đã nhận bàn'";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maBan);
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Tự động hủy các đơn đặt quá 30 phút mà chưa check-in
+     * Cập nhật trạng thái Booking -> "Đã hủy (Quá giờ)"
+     * Cập nhật trạng thái Bàn -> "Trống"
+     */
+    public int autoCancelOverdueBookings() {
+        int count = 0;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String validStatuses = "N'Đã xác nhận', N'Chờ xác nhận'";
+
+            // 1. Get Tables to release
+            String sqlSelect = "SELECT MaBan FROM DatBan WHERE TrangThai IN (" + validStatuses
+                    + ") AND DATEDIFF(MINUTE, ThoiGianBatDau, GETDATE()) > 30";
+            PreparedStatement psSel = con.prepareStatement(sqlSelect);
+            ResultSet rs = psSel.executeQuery();
+            while (rs.next()) {
+                String maBan = rs.getString("MaBan");
+                // Reset Table
+                new BanDAO().updateTrangThai(maBan, "Trống");
+            }
+
+            // 2. Update Bookings
+            String sqlUpdate = "UPDATE DatBan SET TrangThai = N'Đã hủy (Quá giờ)' WHERE TrangThai IN (" + validStatuses
+                    + ") AND DATEDIFF(MINUTE, ThoiGianBatDau, GETDATE()) > 30";
+            PreparedStatement psUp = con.prepareStatement(sqlUpdate);
+            count = psUp.executeUpdate();
+
+            if (count > 0)
+                System.out.println("Auto-Cancelled " + count + " bookings.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    /**
+     * Lấy danh sách sắp đến giờ (trong vòng X phút)
+     */
+    public ArrayList<DatBan> getUpcomingBookings(int minutes) {
+        ArrayList<DatBan> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            // Include 'Chờ xác nhận' to notify staff of pending requests too
+            String sql = "SELECT * FROM DatBan WHERE TrangThai IN (N'Đã xác nhận', N'Chờ xác nhận') " +
+                    "AND DATEDIFF(MINUTE, GETDATE(), ThoiGianBatDau) BETWEEN -15 AND ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, minutes);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new DatBan(
+                        rs.getInt("MaDat"), rs.getString("MaBan"), rs.getString("TenKhachDat"),
+                        rs.getString("SDT"), rs.getTimestamp("ThoiGianBatDau"), rs.getTimestamp("ThoiGianKetThuc"),
+                        rs.getInt("SoLuongKhach"), rs.getString("TrangThai"), rs.getDouble("TienCoc"),
+                        rs.getString("GhiChu"), rs.getTimestamp("NgayTao"), (Integer) rs.getObject("MaHD")));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách quá giờ (đã trễ X phút nhưng chưa bị hủy tự động)
+     */
+    public ArrayList<DatBan> getOverdueBookings() {
+        ArrayList<DatBan> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM DatBan WHERE TrangThai IN (N'Đã xác nhận', N'Chờ xác nhận') " +
+                    "AND GETDATE() > ThoiGianBatDau";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new DatBan(
+                        rs.getInt("MaDat"), rs.getString("MaBan"), rs.getString("TenKhachDat"),
+                        rs.getString("SDT"), rs.getTimestamp("ThoiGianBatDau"), rs.getTimestamp("ThoiGianKetThuc"),
+                        rs.getInt("SoLuongKhach"), rs.getString("TrangThai"), rs.getDouble("TienCoc"),
+                        rs.getString("GhiChu"), rs.getTimestamp("NgayTao"), (Integer) rs.getObject("MaHD")));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Đồng bộ trạng thái bàn với dữ liệu đặt bàn và hóa đơn
+     * (Fix lỗi bàn ảo màu vàng)
+     */
+    public void syncTableStatus() {
+        try {
+            Connection con = ConnectDB.getConnection();
+
+            // 1. Reset all to Trống first (Clean state)
+            String sqlReset = "UPDATE Ban SET TrangThai = N'Trống'";
+            con.createStatement().executeUpdate(sqlReset);
+
+            // 2. Mark 'Có Khách' for tables with Active Unpaid Invoice
+            String sqlServing = "UPDATE Ban SET TrangThai = N'Có Khách' WHERE MaBan IN (SELECT MaBan FROM HoaDon WHERE TrangThai = 0)";
+            con.createStatement().executeUpdate(sqlServing);
+
+            // 3. Mark 'Đã Đặt' for Confirmed/Pending Bookings in valid time range (Start -
+            // 30m <= Now <= End)
+            // Only if not already 'Có Khách'
+            String sqlBooked = "UPDATE Ban SET TrangThai = N'Đã Đặt' WHERE TrangThai = N'Trống' AND MaBan IN (" +
+                    "SELECT MaBan FROM DatBan WHERE TrangThai IN (N'Đã xác nhận', N'Chờ xác nhận') " +
+                    "AND GETDATE() BETWEEN DATEADD(MINUTE, -30, ThoiGianBatDau) AND ThoiGianKetThuc)";
+            con.createStatement().executeUpdate(sqlBooked);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public DatBan getDatBanByID(int maDat) {
+        Connection con = ConnectDB.getConnection();
+        String sql = "SELECT * FROM DatBan WHERE MaDat = ?";
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, maDat);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new DatBan(
+                        rs.getInt("MaDat"),
+                        rs.getString("MaBan"),
+                        rs.getString("TenKhachDat"),
+                        rs.getString("SDT"),
+                        rs.getTimestamp("ThoiGianBatDau"),
+                        rs.getTimestamp("ThoiGianKetThuc"),
+                        rs.getInt("SoLuongKhach"),
+                        rs.getString("TrangThai"), // 8. Status
+                        rs.getDouble("TienCoc"), // 9. Deposit
+                        rs.getString("GhiChu"), // 10. Note
+                        rs.getTimestamp("NgayTao"), // 11. Created
+                        (Integer) rs.getObject("MaHD")); // 12. Invoice ID (Nullable)
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

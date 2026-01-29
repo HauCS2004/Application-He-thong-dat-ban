@@ -24,6 +24,7 @@ public class TrangChu extends JFrame {
     private QuanLyKhachHang pnlKhachHang;
     private ThongKeDoanhThu pnlThongKe;
     private QuanLyBanVisual pnlQuanLyBanVisual;
+    private ManHinhPhucVu pnlPhucVu; // NEW
 
     public TrangChu() {
         ConnectDB.getInstance().connect();
@@ -52,12 +53,14 @@ public class TrangChu extends JFrame {
         pnlKhachHang = new QuanLyKhachHang();
         pnlThongKe = new ThongKeDoanhThu();
         pnlQuanLyBanVisual = new QuanLyBanVisual(); // NEW: Visual table system
+        pnlPhucVu = new ManHinhPhucVu(); // NEW: Service Screen
 
         // Add vào CardLayout
         pnlContent.add(pnlTrangChu, "home");
         pnlContent.add(pnlDatBan, "dat_ban");
         pnlContent.add(pnlBan, "ban");
-        // pnlContent.add(pnlHoaDon, "hoa_don"); // TODO
+        pnlContent.add(pnlPhucVu, "phuc_vu"); // NEW
+        pnlContent.add(pnlHoaDon, "hoa_don");
         pnlContent.add(pnlKhachHang, "khach_hang");
 
         // Menu chỉ dành cho quản lý (card names match sidebar)

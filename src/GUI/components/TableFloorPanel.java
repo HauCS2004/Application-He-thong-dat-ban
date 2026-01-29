@@ -40,8 +40,8 @@ public class TableFloorPanel extends JPanel {
         add(pnlHeader, BorderLayout.NORTH);
 
         // Table grid with scroll
-        pnlTableGrid = new JPanel();
-        pnlTableGrid.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 12)); // Use FlowLayout to respect card sizes
+        // Use custom ResponsivePanel to force FlowLayout to wrap
+        pnlTableGrid = new ResponsiveGridPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
         pnlTableGrid.setBackground(new Color(249, 250, 251));
 
         JScrollPane scroll = new JScrollPane(pnlTableGrid);
@@ -110,7 +110,12 @@ public class TableFloorPanel extends JPanel {
         tableCards.clear();
 
         // Load tables from DAO
-        ArrayList<Ban> tables = banDAO.getBanTheoKhuVuc(khuVuc);
+        ArrayList<Ban> tables;
+        if ("ALL".equals(khuVuc)) {
+            tables = banDAO.getAllBan();
+        } else {
+            tables = banDAO.getBanTheoKhuVuc(khuVuc);
+        }
 
         for (Ban table : tables) {
             TableCard card = new TableCard(table);
@@ -128,11 +133,33 @@ public class TableFloorPanel extends JPanel {
     }
 
     public void setTableCardListener(TableCard.TableCardListener listener) {
-        this.cardListener = listener;
+        // Wrapper to enforce Single Selection
+        TableCard.TableCardListener wrapper = new TableCard.TableCardListener() {
+            @Override
+            public void onTableCardClicked(Ban table) {
+                // 1. Deselect ALL cards first
+                deselectAllCards();
 
-        // Apply to existing cards
+                // 2. Select ONLY the clicked card (Visual update)
+                for (TableCard card : tableCards) {
+                    if (card.getTable().getMaBan().equals(table.getMaBan())) {
+                        card.setSelected(true);
+                        break;
+                    }
+                }
+
+                // 3. Propagate event to original listener
+                if (listener != null) {
+                    listener.onTableCardClicked(table);
+                }
+            }
+        };
+
+        this.cardListener = wrapper;
+
+        // Apply wrapper to existing cards
         for (TableCard card : tableCards) {
-            card.setTableCardListener(listener);
+            card.setTableCardListener(wrapper);
         }
     }
 
@@ -148,5 +175,121 @@ public class TableFloorPanel extends JPanel {
 
     public ArrayList<TableCard> getTableCards() {
         return tableCards;
+    }
+
+    // --- NEW: Update statuses for availability check ---
+    // --- NEW: Update statuses for availability check ---
+    // --- NEW: Update statuses for availability check ---
+    public void updateTableStatuses(java.util.Map<String, Entity.DatBan> bookingMap) {
+        pnlTableGrid.removeAll(); // Reset Grid
+
+        for (TableCard card : tableCards) {
+            String id = card.getTable().getMaBan();
+
+            if (bookingMap.containsKey(id)) {
+                // Table is OCCUPIED in this time slot -> HIDE IT
+                card.setVisible(false);
+            } else {
+                // Table is AVAILABLE -> SHOW IT
+                card.setTemporaryStatus("Trống");
+                card.setVisible(true);
+            }
+            // Ensure card is added (ResponsiveGridPanel handles visibility)
+            pnlTableGrid.add(card);
+        }
+        pnlTableGrid.revalidate();
+        pnlTableGrid.repaint();
+    }
+
+    public void restoreOriginalStatuses() {
+        pnlTableGrid.removeAll(); // Reset Grid
+        for (TableCard card : tableCards) {
+            card.restoreStatus();
+            card.setVisible(true);
+            pnlTableGrid.add(card);
+        }
+        pnlTableGrid.revalidate();
+        pnlTableGrid.repaint();
+    }
+
+    // --- Helper Class for Responsive wrapping ---
+    private class ResponsiveGridPanel extends JPanel implements Scrollable {
+        public ResponsiveGridPanel(LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            // If inside a scroll pane, calculate height based on available width
+            if (getParent() instanceof JViewport) {
+                int targetWidth = getParent().getWidth();
+                if (targetWidth <= 0)
+                    return super.getPreferredSize();
+
+                int nmembers = getComponentCount();
+                int x = 0, y = 0;
+                int rowHeight = 0;
+                int maxRowWidth = 0;
+                int startX = 0;
+
+                FlowLayout fl = (FlowLayout) getLayout();
+                int hgap = fl.getHgap();
+                int vgap = fl.getVgap();
+                Insets insets = getInsets();
+
+                x = insets.left + hgap;
+                y = insets.top + vgap;
+
+                for (int i = 0; i < nmembers; i++) {
+                    Component m = getComponent(i);
+                    if (m.isVisible()) {
+                        Dimension d = m.getPreferredSize();
+                        m.setSize(d.width, d.height);
+
+                        // Check if wraps
+                        if ((x == insets.left + hgap) || ((x + d.width) <= (targetWidth - insets.right))) {
+                            // Fits in current row
+                            if (x > insets.left + hgap)
+                                x += hgap;
+                            x += d.width;
+                            rowHeight = Math.max(rowHeight, d.height);
+                        } else {
+                            // Start new row
+                            x = insets.left + hgap + d.width;
+                            y += vgap + rowHeight;
+                            rowHeight = d.height;
+                        }
+                    }
+                }
+                y += rowHeight + vgap + insets.bottom;
+                return new Dimension(targetWidth, y);
+            }
+            return super.getPreferredSize();
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 20; // Scroll speed
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 100;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true; // Force width to match viewport -> FlowLayout wraps
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false;
+        }
     }
 }

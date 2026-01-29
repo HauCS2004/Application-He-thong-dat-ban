@@ -32,7 +32,7 @@ public class KhachHangDAO {
     public boolean insert(KhachHang kh) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "INSERT INTO KhachHang VALUES (?, ?, ?)";
+            String sql = "INSERT INTO KhachHang(SoDienThoai, TenKhach, DiemTichLuy) VALUES (?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, kh.getSoDienThoai());
             ps.setString(2, kh.getTenKhach());
@@ -153,5 +153,22 @@ public class KhachHangDAO {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    // 10. Lấy tên khách hàng
+    public String getTenKhachHang(String sdt) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT TenKhach FROM KhachHang WHERE SoDienThoai = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("TenKhach");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

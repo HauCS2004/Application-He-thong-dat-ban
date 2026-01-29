@@ -131,6 +131,15 @@ public class TableCard extends JPanel {
         }
     }
 
+    private String bookingTime = "";
+    private String customerName = "";
+
+    public void setBookingInfo(String time, String name) {
+        this.bookingTime = time;
+        this.customerName = name;
+        updateInfoDisplay();
+    }
+
     private void updateInfoDisplay() {
         String status = table.getTrangThai();
 
@@ -145,18 +154,16 @@ public class TableCard extends JPanel {
             case "Có Khách":
                 lblInfo1.setText("CÓ KHÁCH");
                 lblInfo1.setForeground(new Color(239, 68, 68));
-                lblInfo2.setText(""); // Can add bill total if available
+                lblInfo2.setText("");
                 lblInfo3.setText("");
                 break;
 
             case "Đã Đặt":
-                // TODO: Get booking info from database
-                lblInfo1.setText("📅 19:30"); // Booking time
+                lblInfo1.setText(bookingTime.isEmpty() ? "Đã Đặt" : "📅 " + bookingTime);
                 lblInfo1.setForeground(new Color(245, 158, 11));
-                lblInfo2.setText("👤 Nguyễn A"); // Customer name
+                lblInfo2.setText(customerName.isEmpty() ? "" : "👤 " + customerName);
                 lblInfo2.setForeground(new Color(107, 114, 128));
-                lblInfo3.setText("☎ 090..."); // Phone
-                lblInfo3.setForeground(new Color(107, 114, 128));
+                lblInfo3.setText("");
                 break;
 
             case "Đang Gộp":
@@ -235,6 +242,53 @@ public class TableCard extends JPanel {
             lblInfo2.setText("👤 " + customerName);
             lblInfo3.setText("☎ " + phone);
         }
+    }
+
+    // --- NEW: Temporary Status for Availability Check ---
+    public void setTemporaryStatus(String tempStatus) {
+        // Change visuals but don't update the 'table' entity permanently
+        String originalStatus = table.getTrangThai();
+
+        // Mock the status in the entity temporarily for getTrangThai() calls if needed,
+        // OR just handle visual update here.
+        // Better: Just update visuals.
+
+        lblInfo1.setText(tempStatus.toUpperCase());
+
+        if ("Trống".equals(tempStatus)) {
+            lblTableImage.setIcon(new ImageIcon(new ImageIcon("view/icons/tables/table_green.png").getImage()
+                    .getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+            lblInfo1.setForeground(new Color(34, 197, 94));
+            lblInfo1.setText("TRỐNG");
+        } else if ("Đã Đặt".equals(tempStatus)) {
+            lblTableImage.setIcon(new ImageIcon(new ImageIcon("view/icons/tables/table_yellow.png").getImage()
+                    .getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+            lblInfo1.setForeground(new Color(245, 158, 11));
+            lblInfo1.setText("ĐÃ ĐẶT");
+        } else {
+            // Fallback
+            loadTableImage();
+            updateInfoDisplay();
+        }
+
+        // Clear other infos
+        lblInfo2.setText("");
+        lblInfo3.setText("");
+
+        // Add visual indicator that this is a "Preview"
+        if (!tempStatus.equals(originalStatus)) {
+            setBorder(BorderFactory.createDashedBorder(Color.GRAY, 2, 5));
+        } else {
+            setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 2));
+        }
+        revalidate();
+        repaint();
+    }
+
+    public void restoreStatus() {
+        loadTableImage();
+        updateInfoDisplay();
+        setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 2));
     }
 
     // Listener interface

@@ -115,8 +115,8 @@ public class Sidebar extends JPanel {
 
         // Menu chung cho tất cả - Load icons từ view/icons/
         addMenuItem("home.png", "Trang Chủ", "home");
-        addMenuItem("booking.png", "Đặt Bàn", "dat_ban");
-        addMenuItem("serving.png", "Phục Vụ", "ban");
+        addMenuItem("booking.png", "Quản Lý Đặt Bàn", "dat_ban");
+        addMenuItem("serving.png", "Phục Vụ", "phuc_vu"); // Updated to new screen
         addMenuItem("payment.png", "Thanh Toán", "hoa_don");
         addMenuItem("customer.png", "Khách Hàng", "khach_hang");
 

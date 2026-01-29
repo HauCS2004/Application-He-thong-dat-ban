@@ -190,6 +190,7 @@ public class BanDAO {
             e.printStackTrace();
         }
     }
+
     // // Hàm mới: Lấy thông tin đơn đặt bàn gần nhất (trong khoảng 1 tiếng đổ lại)
     // của bàn này
     // public void getDatBanGannhat(String maBan) {
@@ -224,4 +225,26 @@ public class BanDAO {
     // }
     // return db;
     // }
+    // 9. Lấy tất cả bàn
+    public ArrayList<Ban> getAllBan() {
+        ArrayList<Ban> list = new ArrayList<>();
+        Connection con = ConnectDB.getConnection();
+        String sql = "SELECT * FROM Ban";
+        try {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Ban(
+                        rs.getString("MaBan"),
+                        rs.getString("TenBan"),
+                        rs.getString("TrangThai"),
+                        rs.getString("MaKV"),
+                        rs.getInt("SoGhe"),
+                        rs.getString("MaBanGop")));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
