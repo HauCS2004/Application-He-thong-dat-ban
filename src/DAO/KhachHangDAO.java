@@ -94,7 +94,9 @@ public class KhachHangDAO {
     }
 
     // 6. Thêm khách mới (shorthand)
+
     public boolean themKhachMoi(String sdt, String ten) {
+        System.out.println("DEBUG: Adding new customer: " + ten);
         KhachHang kh = new KhachHang(sdt, ten, 0);
         return insert(kh);
     }

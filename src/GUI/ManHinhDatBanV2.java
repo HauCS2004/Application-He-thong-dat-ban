@@ -440,8 +440,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
         if (confirm == JOptionPane.YES_OPTION) {
             // 1. Create/Verify Customer
-            DAO.KhachHangDAO khDAO = new DAO.KhachHangDAO();
+            KhachHangDAO khDAO = new KhachHangDAO();
             if (!khDAO.checkTonTai(sdt)) {
+                // Try to create new customer
                 boolean createdKhach = khDAO.themKhachMoi(sdt, tenKhach);
                 if (!createdKhach) {
                     JOptionPane.showMessageDialog(this,
