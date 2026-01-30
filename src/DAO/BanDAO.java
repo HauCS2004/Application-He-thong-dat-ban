@@ -68,11 +68,30 @@ public class BanDAO {
     // 4. Cập nhật trạng thái đơn giản
     public void updateTrangThai(String maBan, String tt) {
         try {
+            // Sử dụng tiền tố N cho Unicode để đảm bảo tính đúng đắn trong SQL Server
             String sql = "UPDATE Ban SET TrangThai = ? WHERE MaBan = ?";
-            PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
-            ps.setString(1, tt);
-            ps.setString(2, maBan);
-            ps.executeUpdate();
+
+            // Xử lý cứng các trạng thái phổ biến với N'...'
+            // Dùng PreparedStatement setString thường đã tự xử lý,
+            // nhưng để chắc chắn với một số driver cũ hoặc cấu hình DB đặc biệt:
+
+            if (tt.equals("Trống")) {
+                sql = "UPDATE Ban SET TrangThai = N'Trống' WHERE MaBan = ?";
+                PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ps.setString(1, maBan);
+                ps.executeUpdate();
+            } else if (tt.equals("Có Khách")) {
+                sql = "UPDATE Ban SET TrangThai = N'Có Khách' WHERE MaBan = ?";
+                PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ps.setString(1, maBan);
+                ps.executeUpdate();
+            } else {
+                // Trường hợp mặc định
+                PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ps.setString(1, tt);
+                ps.setString(2, maBan);
+                ps.executeUpdate();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -81,9 +100,13 @@ public class BanDAO {
     public void capNhatTrangThaiDatBan() {
         try {
             Connection con = ConnectDB.getConnection();
+            // FIX: Exclude completed/canceled bookings from triggering "Đã Đặt"
             String sql = "UPDATE Ban SET TrangThai = N'Đã Đặt' " +
                     "WHERE MaBan IN (SELECT MaBan FROM DatBan " +
-                    "WHERE ABS(DATEDIFF(MINUTE, ThoiGianBatDau, GETDATE())) <= 30) " +
+                    "WHERE ABS(DATEDIFF(MINUTE, ThoiGianBatDau, GETDATE())) <= 30 " +
+                    "AND TrangThai NOT LIKE N'%Đã hủy%' " +
+                    "AND TrangThai NOT LIKE N'%hoàn%' " +
+                    "AND TrangThai NOT LIKE N'%đã thanh toán%') " +
                     "AND TrangThai = N'Trống'";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.executeUpdate();
@@ -246,5 +269,53 @@ public class BanDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // 5. Thêm bàn mới
+    public boolean insert(Ban b) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "INSERT INTO Ban(MaBan, TenBan, MaKV, SoGhe, TrangThai, MaBanGop) VALUES(?, ?, ?, ?, N'Trống', NULL)";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, b.getMaBan());
+            ps.setString(2, b.getTenBan());
+            ps.setString(3, b.getMaKV());
+            ps.setInt(4, b.getSoGhe());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // 6. Cập nhật thông tin bàn (Tên, Khu vực, Số ghế)
+    public boolean updateInfo(Ban b) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "UPDATE Ban SET TenBan = ?, MaKV = ?, SoGhe = ? WHERE MaBan = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, b.getTenBan());
+            ps.setString(2, b.getMaKV());
+            ps.setInt(3, b.getSoGhe());
+            ps.setString(4, b.getMaBan());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // 7. Xóa bàn
+    public boolean delete(String maBan) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "DELETE FROM Ban WHERE MaBan = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maBan);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

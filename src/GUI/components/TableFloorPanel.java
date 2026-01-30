@@ -212,6 +212,26 @@ public class TableFloorPanel extends JPanel {
         pnlTableGrid.repaint();
     }
 
+    /**
+     * Updates the internal Ban objects with fresh data from DB
+     */
+    public void refreshTableData(java.util.List<Ban> freshTables) {
+        for (TableCard card : tableCards) {
+            String myId = card.getTable().getMaBan();
+            for (Ban fresh : freshTables) {
+                if (fresh.getMaBan().equals(myId)) {
+                    // Update the card's table entity
+                    card.setTable(fresh);
+                    // Refresh visual immediately
+                    card.restoreStatus();
+                    break;
+                }
+            }
+        }
+        revalidate();
+        repaint();
+    }
+
     // --- Helper Class for Responsive wrapping ---
     private class ResponsiveGridPanel extends JPanel implements Scrollable {
         public ResponsiveGridPanel(LayoutManager layout) {

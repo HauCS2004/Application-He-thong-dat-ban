@@ -113,19 +113,23 @@ public class Sidebar extends JPanel {
     private void buildMenu() {
         boolean isManager = SessionManager.isManager();
 
-        // Menu chung cho tất cả - Load icons từ view/icons/
+        // 1. NHÓM VẬN HÀNH (Chung)
+        addSeparator("VẬN HÀNH");
         addMenuItem("home.png", "Trang Chủ", "home");
+        addMenuItem("serving.png", "Phục Vụ", "phuc_vu"); // Most used -> High priority
         addMenuItem("booking.png", "Quản Lý Đặt Bàn", "dat_ban");
-        addMenuItem("serving.png", "Phục Vụ", "phuc_vu"); // Updated to new screen
-        addMenuItem("payment.png", "Thanh Toán", "hoa_don");
-        addMenuItem("customer.png", "Khách Hàng", "khach_hang");
+        addMenuItem("payment.png", "Quản Lý Hóa Đơn", "hoa_don"); // Renamed per user request
+        addMenuItem("customer.png", "Khách Hàng", "khach_hang"); // Moved to Operations
 
-        // Menu chỉ dành cho Quản lý
+        // 2. NHÓM QUẢN TRỊ (Manager Only)
         if (isManager) {
-            addSeparator("QUẢN LÝ");
-            addMenuItem("table.png", "Quản Lý Bàn", "quan_ly_ban_visual");
+            addSeparator("QUẢN TRỊ");
+            addMenuItem("table.png", "Phòng Bàn", "quan_ly_ban_visual");
             addMenuItem("menu.png", "Thực Đơn", "mon_an");
-            addMenuItem("report.png", "Báo Cáo", "thong_ke");
+
+            // 3. NHÓM BÁO CÁO
+            addSeparator("BÁO CÁO");
+            addMenuItem("report.png", "Thống Kê", "thong_ke");
         }
     }
 
@@ -138,23 +142,14 @@ public class Sidebar extends JPanel {
 
         // Load icon từ file
         JLabel lblIcon = new JLabel();
-        try {
-            String iconPath = "view/icons/" + iconFileName;
-            ImageIcon icon = new ImageIcon(iconPath);
+        // Load icon using helper
+        ImageIcon icon = GUI.utils.IconHelper.loadIcon("view/icons/" + iconFileName);
 
-            // Scale icon về 24x24
-            if (icon.getIconWidth() > 0) {
-                Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
-                lblIcon.setIcon(new ImageIcon(img));
-            } else {
-                // Fallback nếu không tìm thấy file
-                lblIcon.setText("•");
-                lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-            }
-        } catch (Exception e) {
-            // Fallback nếu lỗi
-            lblIcon.setText("•");
-            lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        if (icon != null && icon.getIconWidth() > 0) {
+            Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+            lblIcon.setIcon(new ImageIcon(img));
+        } else {
+            lblIcon.setText("");
         }
         lblIcon.setForeground(colorText);
 

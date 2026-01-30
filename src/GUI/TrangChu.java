@@ -65,9 +65,9 @@ public class TrangChu extends JFrame {
 
         // Menu chỉ dành cho quản lý (card names match sidebar)
         pnlContent.add(pnlBan, "quan_ly_ban"); // Alias cho quản lý bàn
-        pnlContent.add(pnlQuanLyBanVisual, "quan_ly_ban_visual"); // NEW: Visual table system
+        pnlContent.add(pnlQuanLyBanVisual, "quan_ly_ban_visual"); // Giao diện quản lý bàn (Visual)
         pnlContent.add(pnlQuanLyMonAn, "mon_an");
-        // pnlContent.add(pnlThongKe, "thong_ke"); // TODO
+        pnlContent.add(pnlThongKe, "thong_ke");
 
         // Sidebar
         Sidebar sidebar = new Sidebar(cardLayout, pnlContent);

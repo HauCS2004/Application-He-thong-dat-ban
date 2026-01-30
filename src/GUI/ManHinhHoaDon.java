@@ -3,14 +3,17 @@ package GUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Date;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import com.toedter.calendar.JDateChooser;
 
 import DAO.BanDAO;
 import DAO.HoaDonDAO;
 import DAO.KhuyenMaiDAO;
+import DAO.KhachHangDAO;
 import Entity.Ban;
 import Entity.HoaDon;
 import Entity.KhuyenMai;
@@ -20,12 +23,15 @@ public class ManHinhHoaDon extends JPanel {
     private BanDAO banDAO = new BanDAO();
     private HoaDonDAO hdDAO = new HoaDonDAO();
     private KhuyenMaiDAO kmDAO = new KhuyenMaiDAO();
+    private KhachHangDAO khDAO = new KhachHangDAO();
 
-    // UI Components - Left (Table List)
+    // TABS
+    private JTabbedPane tabs;
+
+    // --- TAB 1 COMPONENTS (PAYMENT) ---
     private JPanel pnlTableList;
     private JScrollPane scrollTables;
 
-    // UI Components - Right (Invoice)
     private JLabel lblTitleBan;
     private JLabel lblNhanVien;
     private JLabel lblMaHD;
@@ -37,45 +43,75 @@ public class ManHinhHoaDon extends JPanel {
 
     private JComboBox<KhuyenMai> cboKhuyenMai;
     private JLabel lblTongTienHang;
-    private JLabel lblGiamGia;
     private JLabel lblThanhTien;
 
     private JButton btnThanhToan;
     private JButton btnInHoaDon;
 
-    // Data
+    // Data Tab 1
     private String selectedMaBan = null;
     private int currentMaHD = -1;
     private double currentTongTienHang = 0;
+
+    // --- TAB 2 COMPONENTS (HISTORY) ---
+    private JTable tblHistory;
+    private DefaultTableModel modelHistory;
+    private JDateChooser dateFrom;
+    private JDateChooser dateTo;
+    private JTextField txtSearchHistory;
 
     public ManHinhHoaDon() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
-        // Split Pane: Left (Tables 30%) - Right (Invoice 70%)
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createLeftPanel(), createRightPanel());
-        splitPane.setDividerLocation(350);
-        splitPane.setResizeWeight(0.3);
-        add(splitPane, BorderLayout.CENTER);
+        tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        loadTableList();
+        tabs.addTab("Lập Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/payment.png"), createPaymentTab());
+        tabs.addTab("Lịch Sử Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/order-history.png"), createHistoryTab());
 
-        // Auto-refresh
+        add(tabs, BorderLayout.CENTER);
+
+        // Events
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
                 loadTableList();
+                loadHistoryData();
+            }
+        });
+
+        // Tab Change Event
+        tabs.addChangeListener(e -> {
+            if (tabs.getSelectedIndex() == 0) {
+                loadTableList();
+            } else {
+                loadHistoryData();
             }
         });
     }
 
-    // --- LEFT PANEL: LIST OF ACTIVE TABLES ---
+    // =========================================================================
+    // TAB 1: PAYMENT (LẬP HÓA ĐƠN)
+    // =========================================================================
+    private JPanel createPaymentTab() {
+        JPanel pnlRoot = new JPanel(new BorderLayout());
+
+        // Split Pane: Left (Tables 30%) - Right (Invoice 70%)
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createLeftPanel(), createRightPanel());
+        splitPane.setDividerLocation(350);
+        splitPane.setResizeWeight(0.3);
+        pnlRoot.add(splitPane, BorderLayout.CENTER);
+
+        return pnlRoot;
+    }
+
     private JPanel createLeftPanel() {
         JPanel pnl = new JPanel(new BorderLayout());
         pnl.setBackground(new Color(243, 244, 246));
         pnl.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        JLabel lblHeader = new JLabel("BÀN ĐANG PHỤC VỤ");
+        JLabel lblHeader = new JLabel("BÀN ĐANG PHỤC VỤ (" + connectDB.SessionManager.getDisplayName() + ")");
         lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblHeader.setForeground(new Color(31, 41, 55));
         lblHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
@@ -108,60 +144,6 @@ public class ManHinhHoaDon extends JPanel {
         return pnl;
     }
 
-    private void loadTableList() {
-        pnlTableList.removeAll();
-        ArrayList<Ban> listBan = banDAO.getAllBan();
-
-        for (Ban b : listBan) {
-            // Only show tables with status "Có Khách"
-            if ("Có Khách".equalsIgnoreCase(b.getTrangThai())) {
-
-                // Use TableCard component
-                GUI.components.TableCard card = new GUI.components.TableCard(b);
-                card.setPreferredSize(new Dimension(140, 140)); // Smaller for list
-                card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-                // Custom mouse listener for selection
-                card.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        // Visual feedback
-                        resetCardSelection();
-                        card.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
-                        selectTable(b.getMaBan());
-                    }
-                });
-
-                pnlTableList.add(card);
-            }
-        }
-
-        // Adjust height
-        int rowHeight = 160;
-        int cols = 2;
-        if (scrollTables.getWidth() > 0)
-            cols = scrollTables.getWidth() / 155;
-        if (cols < 1)
-            cols = 1;
-        int rows = (int) Math.ceil((double) pnlTableList.getComponentCount() / cols);
-        pnlTableList.setPreferredSize(new Dimension(pnlTableList.getWidth(), rows * rowHeight + 50));
-
-        pnlTableList.revalidate();
-        pnlTableList.repaint();
-    }
-
-    private void resetCardSelection() {
-        for (Component c : pnlTableList.getComponents()) {
-            if (c instanceof GUI.components.TableCard) {
-                ((GUI.components.TableCard) c).setBorder(null); // Reset border using standard logic if possible, or
-                                                                // just remove custom border
-                // Ideally TableCard has a setSelected(boolean) but checking raw border for now
-                ((GUI.components.TableCard) c).repaint();
-            }
-        }
-    }
-
-    // --- RIGHT PANEL: INVOICE DETAILS ---
     private JPanel createRightPanel() {
         JPanel pnl = new JPanel(new BorderLayout());
         pnl.setBackground(Color.WHITE);
@@ -262,7 +244,7 @@ public class ManHinhHoaDon extends JPanel {
             cboKhuyenMai.addItem(km);
 
         cboKhuyenMai.addActionListener(e -> updateFinalTotal());
-        pnlCalc.add(cboKhuyenMai); // Better if right aligned or wrapper? okay for grid
+        pnlCalc.add(cboKhuyenMai);
 
         JLabel lblTotalTitle = new JLabel("THANH TOÁN:", SwingConstants.RIGHT);
         lblTotalTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -301,7 +283,117 @@ public class ManHinhHoaDon extends JPanel {
         return pnl;
     }
 
-    // --- LOGIC ---
+    // =========================================================================
+    // TAB 2: HISTORY (LỊCH SỬ HÓA ĐƠN)
+    // =========================================================================
+    private JPanel createHistoryTab() {
+        JPanel pnl = new JPanel(new BorderLayout(10, 10));
+        pnl.setBackground(Color.WHITE);
+        pnl.setBorder(new EmptyBorder(15, 15, 15, 15));
+
+        // 1. Filter Panel
+        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        pnlFilter.setBackground(new Color(243, 244, 246));
+        pnlFilter.setBorder(BorderFactory.createTitledBorder("Bộ Lọc"));
+
+        dateFrom = new JDateChooser(new Date());
+        dateFrom.setDateFormatString("dd/MM/yyyy");
+        dateFrom.setPreferredSize(new Dimension(130, 30));
+
+        dateTo = new JDateChooser(new Date());
+        dateTo.setDateFormatString("dd/MM/yyyy");
+        dateTo.setPreferredSize(new Dimension(130, 30));
+
+        txtSearchHistory = new JTextField(20);
+        txtSearchHistory.setPreferredSize(new Dimension(200, 30));
+        txtSearchHistory.putClientProperty("JTextField.placeholderText", "SĐT Khách hoặc Mã HĐ...");
+
+        JButton btnSearch = new JButton("Tìm Kiếm");
+        btnSearch.setBackground(new Color(52, 152, 219));
+        btnSearch.setForeground(Color.WHITE);
+        btnSearch.addActionListener(e -> loadHistoryData());
+
+        pnlFilter.add(new JLabel("Từ ngày:"));
+        pnlFilter.add(dateFrom);
+        pnlFilter.add(new JLabel("Đến ngày:"));
+        pnlFilter.add(dateTo);
+        pnlFilter.add(new JLabel("Tìm kiếm:"));
+        pnlFilter.add(txtSearchHistory);
+        pnlFilter.add(btnSearch);
+
+        pnl.add(pnlFilter, BorderLayout.NORTH);
+
+        // 2. Table
+        String[] columns = { "Mã HĐ", "Bàn", "Ngày Tạo", "Tổng Tiền", "Khách Hàng", "Thu Ngân" };
+        modelHistory = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        tblHistory = new JTable(modelHistory);
+        tblHistory.setRowHeight(30);
+        tblHistory.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tblHistory.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        // Căn phải cột tiền
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+        tblHistory.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
+
+        JScrollPane scroll = new JScrollPane(tblHistory);
+        pnl.add(scroll, BorderLayout.CENTER);
+
+        return pnl;
+    }
+
+    // =========================================================================
+    // LOGIC METHODS
+    // =========================================================================
+
+    private void loadTableList() {
+        pnlTableList.removeAll();
+        ArrayList<Ban> listBan = banDAO.getAllBan();
+
+        for (Ban b : listBan) {
+            if ("Có Khách".equalsIgnoreCase(b.getTrangThai())) {
+                GUI.components.TableCard card = new GUI.components.TableCard(b);
+                card.setPreferredSize(new Dimension(140, 140));
+                card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                card.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        resetCardSelection();
+                        card.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
+                        selectTable(b.getMaBan());
+                    }
+                });
+                pnlTableList.add(card);
+            }
+        }
+
+        int rowHeight = 160;
+        int cols = 2;
+        if (scrollTables.getWidth() > 0)
+            cols = scrollTables.getWidth() / 155;
+        if (cols < 1)
+            cols = 1;
+        int rows = (int) Math.ceil((double) pnlTableList.getComponentCount() / cols);
+        pnlTableList.setPreferredSize(new Dimension(pnlTableList.getWidth(), rows * rowHeight + 50));
+
+        pnlTableList.revalidate();
+        pnlTableList.repaint();
+    }
+
+    private void resetCardSelection() {
+        for (Component c : pnlTableList.getComponents()) {
+            if (c instanceof GUI.components.TableCard) {
+                ((GUI.components.TableCard) c).setBorder(null);
+                ((GUI.components.TableCard) c).repaint();
+            }
+        }
+    }
 
     private void selectTable(String maBan) {
         this.selectedMaBan = maBan;
@@ -312,7 +404,6 @@ public class ManHinhHoaDon extends JPanel {
             resetInvoiceUI();
             return;
         }
-
         loadInvoiceDetails(currentMaHD);
     }
 
@@ -325,11 +416,10 @@ public class ManHinhHoaDon extends JPanel {
         lblMaHD.setText("Mã HĐ: #" + hd.getMaHD());
         lblNgayTao.setText("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()));
 
-        // Fetch Customer Name
         String sdt = hd.getSdtKhach();
         String displayKhach = "Khách lẻ";
         if (sdt != null && !sdt.isEmpty()) {
-            String tenKhach = new DAO.KhachHangDAO().getTenKhachHang(sdt);
+            String tenKhach = khDAO.getTenKhachHang(sdt); // Use localized DAO
             if (tenKhach != null) {
                 displayKhach = tenKhach + " (" + sdt + ")";
             } else {
@@ -339,7 +429,6 @@ public class ManHinhHoaDon extends JPanel {
         lblKhachHang.setText("Khách hàng: " + displayKhach);
         lblNhanVien.setText("Thu ngân: " + connectDB.SessionManager.getDisplayName());
 
-        // Load items
         modelChiTiet.setRowCount(0);
         ArrayList<String[]> details = hdDAO.getChiTietHoaDon(maHD);
         double total = 0;
@@ -348,7 +437,6 @@ public class ManHinhHoaDon extends JPanel {
             double sl = Double.parseDouble(row[1]);
             double gia = Double.parseDouble(row[2]);
             double thanhTien = Double.parseDouble(row[3]);
-
             modelChiTiet.addRow(new Object[] { ten, (int) sl, formatMoney(gia), formatMoney(thanhTien) });
             total += thanhTien;
         }
@@ -360,17 +448,14 @@ public class ManHinhHoaDon extends JPanel {
     private void updateFinalTotal() {
         double discount = 0;
         KhuyenMai selectedKM = (KhuyenMai) cboKhuyenMai.getSelectedItem();
-
         if (selectedKM != null) {
             discount = selectedKM.tinhGiamGia(currentTongTienHang);
         }
-
         double finalTotal = currentTongTienHang - discount;
         if (finalTotal < 0)
             finalTotal = 0;
 
         lblTongTienHang.setText(formatMoney(currentTongTienHang) + " VNĐ");
-        // lblGiamGia.setText can be added if UI has it, currently just calculating
         lblThanhTien.setText(formatMoney(finalTotal) + " VNĐ");
     }
 
@@ -379,22 +464,21 @@ public class ManHinhHoaDon extends JPanel {
             JOptionPane.showMessageDialog(this, "Chưa chọn hóa đơn để thanh toán!");
             return;
         }
-
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Xác nhận thanh toán cho bàn " + selectedMaBan + "?\nTổng tiền: " + lblThanhTien.getText(),
                 "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             double finalTotal = parseMoney(lblThanhTien.getText());
-
-            // 1. Update Invoice Status
             boolean success = hdDAO.thanhToan(currentMaHD, finalTotal);
             if (success) {
-                // 2. Update Table Status to Empty
                 banDAO.updateTrangThai(selectedMaBan, "Trống");
-
+                new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
                 JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
-                loadTableList(); // Refresh left list
+                loadTableList();
                 resetInvoiceUI();
+
+                // Switch to History Tab to show recent payment?
+                // tabs.setSelectedIndex(1);
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi khi thanh toán!");
             }
@@ -413,6 +497,37 @@ public class ManHinhHoaDon extends JPanel {
         this.currentMaHD = -1;
         this.selectedMaBan = null;
         this.currentTongTienHang = 0;
+    }
+
+    private void loadHistoryData() {
+        modelHistory.setRowCount(0);
+        Date from = dateFrom.getDate();
+        Date to = dateTo.getDate();
+        String search = txtSearchHistory.getText().trim();
+
+        if (from == null || to == null)
+            return;
+
+        ArrayList<HoaDon> list = hdDAO.getLichSuHoaDon(from, to, search);
+        for (HoaDon hd : list) {
+            String tenKhach = hd.getSdtKhach();
+            if (tenKhach != null && !tenKhach.isEmpty()) {
+                String name = khDAO.getTenKhachHang(tenKhach);
+                if (name != null)
+                    tenKhach = name + " (" + tenKhach + ")";
+            } else {
+                tenKhach = "Vãng lai";
+            }
+
+            modelHistory.addRow(new Object[] {
+                    hd.getMaHD(),
+                    "Bàn " + hd.getMaBan(),
+                    new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()),
+                    formatMoney(hd.getTongTien()) + " VNĐ",
+                    tenKhach,
+                    hd.getMaNV()
+            });
+        }
     }
 
     private String formatMoney(double amount) {

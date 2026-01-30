@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.Date;
 
 /**
- * ManHinhDatBanV2 - Redesigned Booking Screen
- * Features: Search, Filters, Booking Table, Visual Table Floor
+ * ManHinhDatBanV2 - Màn hình Đặt bàn (Giao diện mới)
+ * Tính năng: Tìm kiếm, Bộ lọc, Danh sách đặt bàn, Sơ đồ bàn trực quan
  */
 public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListener {
 
@@ -35,12 +35,12 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     private String selectedStatus = "Tất cả";
     private JPopupMenu popupTableAction;
 
-    // Map Filter UI
+    // Giao diện bộ lọc bản đồ
     private JDateChooser dateMap;
     private JComboBox<String> cboMapGio, cboMapPhut;
     private JButton btnCheckMap, btnResetMap;
 
-    // Detail Panel
+    // Panel chi tiết
     private JPanel pnlDetailContainer;
     private JPanel pnlDetailContent;
     private java.util.ArrayList<Entity.DatBan> dailyBookings;
@@ -49,7 +49,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     private BanDAO banDAO;
     private HoaDonDAO hoaDonDAO;
 
-    // --- FILTER STATE ---
+    // --- TRẠNG THÁI BỘ LỌC ---
     private boolean isFilterActive = false;
     private Date filterDate;
     private int filterHour;
@@ -74,34 +74,57 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         mainTabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
         mainTabs.setBackground(Color.WHITE);
 
-        // TAB 1: Sơ Đồ Bàn (Visual Map)
-        // Combine Map Filter + Floor Tabs
+        // TAB 1: Sơ Đồ Bàn
         JPanel pnlMapTab = new JPanel(new BorderLayout());
         pnlMapTab.setBackground(new Color(249, 250, 251));
         pnlMapTab.add(createVisualFloorSection(), BorderLayout.CENTER);
 
-        mainTabs.addTab("Sơ Đồ Bàn", new ImageIcon("view/icons/table.png"), pnlMapTab);
+        mainTabs.addTab("Sơ Đồ Bàn", GUI.utils.IconHelper.loadIcon("view/icons/table.png"), pnlMapTab);
 
-        // TAB 2: Danh Sách Đặt Bàn (Booking List)
-        // Combine Top Search Filters + Table
+        // TAB 2: Danh Sách Đặt Bàn
         JPanel pnlListTab = new JPanel(new BorderLayout(0, 15));
         pnlListTab.setBackground(new Color(249, 250, 251));
         pnlListTab.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Header for List
+        // Header cho Danh sách
         pnlListTab.add(createListHeaderSection(), BorderLayout.NORTH);
         pnlListTab.add(createBookingTableSection(), BorderLayout.CENTER);
 
-        mainTabs.addTab("Danh Sách Đặt Bàn", new ImageIcon("view/icons/menu.png"), pnlListTab);
+        mainTabs.addTab("Danh Sách Đặt Bàn", GUI.utils.IconHelper.loadIcon("view/icons/list.png"), pnlListTab);
 
         add(mainTabs, BorderLayout.CENTER);
+
+        // Tự động làm mới khi chuyển tab/menu
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                // System.out.println("DEBUG: ManHinhDatBanV2 shown - Refreshing data...");
+                loadBookings();
+
+                // Refresh Map
+                if (isFilterActive && dateMap != null && dateMap.getDate() != null) {
+                    checkMapAvailability(dateMap.getDate(),
+                            Integer.parseInt(cboMapGio.getSelectedItem().toString()),
+                            Integer.parseInt(cboMapPhut.getSelectedItem().toString()));
+                } else {
+                    // Just reload table statuses from DB to be safe
+                    ArrayList<Ban> currentTables = banDAO.getAllBan();
+                    for (int i = 0; i < tabFloors.getTabCount(); i++) {
+                        Component c = tabFloors.getComponentAt(i);
+                        if (c instanceof TableFloorPanel) {
+                            ((TableFloorPanel) c).refreshTableData(currentTables);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private JPanel createListHeaderSection() {
         JPanel pnl = new JPanel(new BorderLayout(10, 15));
         pnl.setOpaque(false);
 
-        // Title + Create Button
+        // Tiêu đề + Nút tạo
         JPanel pnlHeader = new JPanel(new BorderLayout());
         pnlHeader.setOpaque(false);
 
@@ -181,7 +204,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         txtSearch.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
                 new EmptyBorder(5, 10, 5, 10)));
-        txtSearch.putClientProperty("JTextField.placeholderText", "🔍 Tìm theo tên hoặc SĐT...");
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc SĐT...");
         txtSearch.addActionListener(e -> loadBookings()); // Enter to search
 
         // Date picker toggle
@@ -381,9 +404,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         // Find or Create Invoice for this table
         int maHD = hoaDonDAO.getMaHDByBan(maBan);
         if (maHD == -1) {
-            // Create first invoice
-            // Need basic info. Use generic or find booking info again?
-            // Since we have active booking, we can use it.
+            // Tạo hóa đơn mới
+            // Cần thông tin cơ bản. Vì đã có thông tin đặt bàn, ta có thể sử dụng luôn.
             int soKhach = Integer.parseInt(modelBookings.getValueAt(row, 4).toString());
             String sdt = modelBookings.getValueAt(row, 3).toString();
 
@@ -508,7 +530,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlMapFilter.setBackground(new Color(240, 240, 240));
         pnlMapFilter.setBorder(new EmptyBorder(5, 10, 5, 10));
 
-        JLabel lblMapFilter = new JLabel("🔍 Kiểm tra bàn trống lúc:");
+        JLabel lblMapFilter = new JLabel("Kiểm tra bàn trống lúc:");
         lblMapFilter.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         JDateChooser dateMap = new JDateChooser(new Date());
@@ -596,10 +618,20 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         cal.set(java.util.Calendar.MILLISECOND, 0);
         Date targetTime = cal.getTime();
 
-        System.out.println("DEBUG: Check Availability for " + targetTime);
+        // System.out.println("DEBUG: Check Availability for " + targetTime);
 
-        // 2. Get Bookings for that Date
         this.dailyBookings = datBanDAO.getDanhSachDatBan(date, date);
+
+        // 2b. FORCE RELOAD TABLE STATUSES FROM DB (To fix stale "Có Khách" after
+        // payment)
+        ArrayList<Ban> currentTables = banDAO.getAllBan();
+        for (int i = 0; i < tabFloors.getTabCount(); i++) {
+            Component c = tabFloors.getComponentAt(i);
+            if (c instanceof TableFloorPanel) {
+                ((TableFloorPanel) c).refreshTableData(currentTables);
+            }
+        }
+
         ArrayList<DatBan> listBooking = this.dailyBookings;
 
         // 3. Identify Occupied Tables and Map to Booking
@@ -608,7 +640,15 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         for (DatBan db : listBooking) {
             // Skip canceled
             // Skip canceled or completed (History)
-            if (db.getTrangThai().startsWith("Đã hủy") || db.getTrangThai().equals("Hoàn thành"))
+            // Skip canceled or completed (History)
+            String status = db.getTrangThai() != null ? db.getTrangThai().trim() : "";
+            // System.out.println("DEBUG: Checking Booking " + db.getMaDat() + " Status=[" +
+            // status + "]");
+
+            if (status.toLowerCase().startsWith("đã hủy")
+                    || status.toLowerCase().contains("hoàn thành")
+                    || status.toLowerCase().contains("hoàn tất")
+                    || status.toLowerCase().contains("thanh toán"))
                 continue;
 
             // Check overlaps: Start <= Target < End
@@ -628,7 +668,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
             if (startMillis <= targetMillis && targetMillis < endMillis) {
                 bookingMap.put(db.getMaBan(), db);
-                System.out.println("DEBUG: Table " + db.getMaBan() + " OCCUPIED at " + targetTime);
+                // System.out.println("DEBUG: Table " + db.getMaBan() + " OCCUPIED at " +
+                // targetTime);
             } else {
                 // System.out.println("DEBUG: Table " + db.getMaBan() + " FREE at " + targetTime
                 // + " (Start: " + db.getThoiGianBatDau() + ", End: " + db.getThoiGianKetThuc()
@@ -953,8 +994,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             return;
         pnlDetailContent.removeAll();
         pnlDetailContent.add(Box.createVerticalGlue());
-        JLabel lblIcon = new JLabel("👈");
-        lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 48));
+        JLabel lblIcon = new JLabel();
+        lblIcon.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/table.png"));
         lblIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlDetailContent.add(lblIcon);
 

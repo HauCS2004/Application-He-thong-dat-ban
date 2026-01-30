@@ -21,6 +21,7 @@ public class TableCard extends JPanel {
     private JLabel lblInfo1;
     private JLabel lblInfo2;
     private JLabel lblInfo3;
+    private JLabel lblCapacity; // Promoted to field
 
     public TableCard(Ban table) {
         this.table = table;
@@ -30,8 +31,8 @@ public class TableCard extends JPanel {
 
     private void initUI() {
         setLayout(new BorderLayout(5, 5));
-        setPreferredSize(new Dimension(140, 160)); // Increased from 120x140
-        setMaximumSize(new Dimension(140, 160)); // Prevent stretching beyond this
+        setPreferredSize(new Dimension(140, 160));
+        setMaximumSize(new Dimension(140, 160));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 2));
 
@@ -59,7 +60,7 @@ public class TableCard extends JPanel {
         pnlCenter.add(lblTableImage);
         pnlCenter.add(Box.createVerticalStrut(5));
 
-        // Info labels (will show different content based on status)
+        // Info labels
         lblInfo1 = new JLabel("", JLabel.CENTER);
         lblInfo1.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblInfo1.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -81,7 +82,7 @@ public class TableCard extends JPanel {
         pnlBottom.setOpaque(false);
         pnlBottom.setBorder(new EmptyBorder(0, 8, 8, 8));
 
-        JLabel lblCapacity = new JLabel(table.getSoGhe() + " chỗ");
+        lblCapacity = new JLabel(table.getSoGhe() + " chỗ"); // Assigned to field
         lblCapacity.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblCapacity.setForeground(new Color(107, 114, 128));
         pnlBottom.add(lblCapacity);
@@ -93,24 +94,27 @@ public class TableCard extends JPanel {
         updateInfoDisplay();
     }
 
+    public void setTable(Ban newTable) {
+        this.table = newTable;
+        lblName.setText(table.getTenBan());
+        lblCapacity.setText(table.getSoGhe() + " chỗ");
+        loadTableImage();
+    }
+
     private void loadTableImage() {
         String imagePath = "view/icons/tables/";
         String imageFile = getImageFileName();
 
-        try {
-            ImageIcon icon = new ImageIcon(imagePath + imageFile);
-            if (icon.getIconWidth() > 0) {
-                Image scaled = icon.getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH);
-                lblTableImage.setIcon(new ImageIcon(scaled));
-            } else {
-                // Fallback if image not found
-                lblTableImage.setText("🪑");
-                lblTableImage.setFont(new Font("Segoe UI", Font.PLAIN, 36));
-            }
-        } catch (Exception e) {
-            // Fallback
-            lblTableImage.setText("🪑");
+        ImageIcon icon = GUI.utils.IconHelper.loadIcon(imagePath + imageFile);
+
+        if (icon != null && icon.getIconWidth() > 0) {
+            Image scaled = icon.getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH);
+            lblTableImage.setIcon(new ImageIcon(scaled));
+        } else {
+            // Fallback if image not found
+            lblTableImage.setText("");
             lblTableImage.setFont(new Font("Segoe UI", Font.PLAIN, 36));
+            lblTableImage.setIcon(null); // Clear icon key
         }
     }
 
@@ -159,9 +163,9 @@ public class TableCard extends JPanel {
                 break;
 
             case "Đã Đặt":
-                lblInfo1.setText(bookingTime.isEmpty() ? "Đã Đặt" : "📅 " + bookingTime);
+                lblInfo1.setText(bookingTime.isEmpty() ? "Đã Đặt" : bookingTime);
                 lblInfo1.setForeground(new Color(245, 158, 11));
-                lblInfo2.setText(customerName.isEmpty() ? "" : "👤 " + customerName);
+                lblInfo2.setText(customerName.isEmpty() ? "" : customerName);
                 lblInfo2.setForeground(new Color(107, 114, 128));
                 lblInfo3.setText("");
                 break;
@@ -238,9 +242,9 @@ public class TableCard extends JPanel {
 
     public void setBookingInfo(String time, String customerName, String phone) {
         if ("Đã Đặt".equals(table.getTrangThai())) {
-            lblInfo1.setText("📅 " + time);
-            lblInfo2.setText("👤 " + customerName);
-            lblInfo3.setText("☎ " + phone);
+            lblInfo1.setText(time);
+            lblInfo2.setText(customerName);
+            lblInfo3.setText(phone);
         }
     }
 
@@ -256,13 +260,21 @@ public class TableCard extends JPanel {
         lblInfo1.setText(tempStatus.toUpperCase());
 
         if ("Trống".equals(tempStatus)) {
-            lblTableImage.setIcon(new ImageIcon(new ImageIcon("view/icons/tables/table_green.png").getImage()
-                    .getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+            ImageIcon icon = GUI.utils.IconHelper.loadIcon("view/icons/tables/table_green.png");
+
+            if (icon != null) {
+                lblTableImage.setIcon(new ImageIcon(icon.getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+                lblTableImage.setText("");
+            }
             lblInfo1.setForeground(new Color(34, 197, 94));
             lblInfo1.setText("TRỐNG");
         } else if ("Đã Đặt".equals(tempStatus)) {
-            lblTableImage.setIcon(new ImageIcon(new ImageIcon("view/icons/tables/table_yellow.png").getImage()
-                    .getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+            ImageIcon icon = GUI.utils.IconHelper.loadIcon("view/icons/tables/table_yellow.png");
+
+            if (icon != null) {
+                lblTableImage.setIcon(new ImageIcon(icon.getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
+                lblTableImage.setText("");
+            }
             lblInfo1.setForeground(new Color(245, 158, 11));
             lblInfo1.setText("ĐÃ ĐẶT");
         } else {

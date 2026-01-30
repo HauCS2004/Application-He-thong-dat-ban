@@ -213,4 +213,57 @@ public class HoaDonDAO {
         }
         return list;
     }
+
+    // 8. Lấy lịch sử hóa đơn (Đã thanh toán)
+    public ArrayList<HoaDon> getLichSuHoaDon(java.util.Date fromDate, java.util.Date toDate, String search) {
+        ArrayList<HoaDon> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM HoaDon WHERE TrangThai = 1 " + // Chỉ lấy đã thanh toán
+                    "AND NgayTao BETWEEN ? AND ? ";
+
+            if (search != null && !search.isEmpty()) {
+                sql += "AND (SDT_Khach LIKE ? OR MaHD LIKE ?)";
+            }
+
+            sql += " ORDER BY NgayTao DESC";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            // Convert start date to 00:00:00
+            java.sql.Timestamp start = new java.sql.Timestamp(fromDate.getTime());
+            start.setHours(0);
+            start.setMinutes(0);
+            start.setSeconds(0);
+
+            // Convert end date to 23:59:59
+            java.sql.Timestamp end = new java.sql.Timestamp(toDate.getTime());
+            end.setHours(23);
+            end.setMinutes(59);
+            end.setSeconds(59);
+
+            ps.setTimestamp(1, start);
+            ps.setTimestamp(2, end);
+
+            if (search != null && !search.isEmpty()) {
+                ps.setString(3, "%" + search + "%");
+                ps.setString(4, "%" + search + "%");
+            }
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                HoaDon hd = new HoaDon();
+                hd.setMaHD(rs.getInt("MaHD"));
+                hd.setMaBan(rs.getString("MaBan"));
+                hd.setNgayTao(rs.getTimestamp("NgayTao"));
+                hd.setTongTien(rs.getDouble("TongTien"));
+                hd.setTrangThai(rs.getInt("TrangThai"));
+                hd.setSdtKhach(rs.getString("SDT_Khach"));
+                hd.setMaNV(rs.getString("MaNV"));
+                list.add(hd);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

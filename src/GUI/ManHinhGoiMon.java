@@ -224,8 +224,8 @@ public class ManHinhGoiMon extends JFrame {
         if (icon != null) {
             lblImage.setIcon(icon);
         } else {
-            lblImage.setText("🍝");
-            lblImage.setFont(new Font("Segoe UI", Font.PLAIN, 40));
+            lblImage.setText("IMAGE");
+            lblImage.setFont(new Font("Segoe UI", Font.BOLD, 18));
         }
         card.add(lblImage, BorderLayout.NORTH);
 

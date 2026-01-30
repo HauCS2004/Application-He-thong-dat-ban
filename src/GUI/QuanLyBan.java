@@ -24,7 +24,7 @@ public class QuanLyBan extends JPanel {
     private JLabel lblTenBan, lblTrangThai;
     private JButton btnDatBan, btnGoiMon, btnThanhToan, btnChuyenBan, btnGhepBan;
     private JPanel pnlRight;
-    // Khai báo trên đầu class QuanLyBan
+    // Khai báo biến
     private JTable tblOrder;
     private javax.swing.table.DefaultTableModel modelOrder;
     private JLabel lblTongTienTam; // Để hiện tổng tiền bên dưới
@@ -49,10 +49,10 @@ public class QuanLyBan extends JPanel {
         setupRightPanel();
         add(pnlRight, BorderLayout.EAST);
 
-        // 3. EVENTS
+        // 3. Xử lý sự kiện
         initEvents();
 
-        // 4. TIMER (60s update 1 lần)
+        // 4. Timer cập nhật (60s)
         timerUpdate = new Timer(60000, e -> {
             banDAO.capNhatTrangThaiDatBan();
             if (banDangChon == null)
@@ -528,25 +528,18 @@ public class QuanLyBan extends JPanel {
             if (!checkSucChua(banDangChon, soKhach))
                 return;
 
-            // --- [ĐOẠN CODE SỬA LỖI Ở ĐÂY] ---
-            // Kiểm tra khách hàng đã có trong hệ thống chưa? Nếu chưa thì thêm vào.
+            // Kiểm tra khách hàng, nếu chưa có thì thêm mới
             DAO.KhachHangDAO khDAO = new DAO.KhachHangDAO();
             if (sdtKhach != null && !sdtKhach.isEmpty()) {
                 if (!khDAO.checkTonTai(sdtKhach)) {
-                    // Chưa có -> Tự động thêm khách mới vào bảng KhachHang
                     khDAO.themKhachMoi(sdtKhach, tenKhach);
                 }
             }
-            // ---------------------------------
 
-            // Giờ mới tạo hóa đơn (Lúc này SĐT đã chắc chắn có trong bảng KhachHang rồi)
-            HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, sdtKhach, "Khách đặt: " + tenKhach, null); // TODO:
-                                                                                                               // Thêm
-                                                                                                               // MaNV
-                                                                                                               // khi có
-                                                                                                               // login
+            // Tạo hóa đơn
+            HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, sdtKhach, "Khách đặt: " + tenKhach, null);
 
-            int maHD = hdDAO.insert(hd); // <-- Dòng này sẽ hết lỗi
+            int maHD = hdDAO.insert(hd);
             if (maHD != -1) {
                 banDAO.updateTrangThai(banDangChon.getMaBan(), "Có Khách");
 
@@ -576,8 +569,7 @@ public class QuanLyBan extends JPanel {
         if (!checkSucChua(banDangChon, soKhach))
             return;
 
-        HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "Khách vãng lai", null); // TODO: Thêm MaNV khi có
-                                                                                               // login
+        HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "Khách vãng lai", null);
         int maHD = hdDAO.insert(hd);
 
         if (maHD != -1) {

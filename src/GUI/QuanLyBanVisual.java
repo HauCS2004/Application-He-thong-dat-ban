@@ -4,7 +4,6 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import GUI.components.TableFloorPanel;
-import GUI.components.TableCard;
 import Entity.Ban;
 
 /**
@@ -14,7 +13,6 @@ import Entity.Ban;
 public class QuanLyBanVisual extends JPanel {
 
     private JTabbedPane tabFloors;
-    private TableFloorPanel currentFloorPanel;
     private JPanel pnlDetails;
     private JLabel lblSelectedTable;
     private JLabel lblStatus;
@@ -22,6 +20,9 @@ public class QuanLyBanVisual extends JPanel {
     private JLabel lblZone; // Add zone label
     private JButton btnAction1, btnAction2, btnRefresh;
     private Ban selectedTable;
+
+    // DAO
+    private DAO.BanDAO banDAO = new DAO.BanDAO();
 
     public QuanLyBanVisual() {
         initUI();
@@ -32,15 +33,15 @@ public class QuanLyBanVisual extends JPanel {
         setBackground(new Color(249, 250, 251));
         setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        // Top: Header with title and refresh button
+        // Top: Header với tiêu đề và nút làm mới
         JPanel pnlHeader = createHeader();
         add(pnlHeader, BorderLayout.NORTH);
 
-        // Center: Tabbed floor panels
+        // Center: Tab khu vực bàn (Tầng)
         tabFloors = new JTabbedPane();
         tabFloors.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        // Add floor tabs
+        // Thêm các tab tầng
         addFloorTab("Tầng G", "KV01");
         addFloorTab("Tầng 1", "KV02");
         addFloorTab("VIP Room", "KV03");
@@ -48,7 +49,7 @@ public class QuanLyBanVisual extends JPanel {
 
         add(tabFloors, BorderLayout.CENTER);
 
-        // Right: Details panel
+        // Right: Panel chi tiết
         pnlDetails = createDetailsPanel();
         add(pnlDetails, BorderLayout.EAST);
     }
@@ -58,17 +59,32 @@ public class QuanLyBanVisual extends JPanel {
         pnl.setOpaque(false);
         pnl.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        JLabel lblTitle = new JLabel("📍 Quản Lý Bàn");
+        JLabel lblTitle = new JLabel("Quản Lý Bàn");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitle.setForeground(new Color(31, 41, 55));
 
-        btnRefresh = new JButton("🔄 Làm mới");
+        JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlBtns.setOpaque(false);
+
+        JButton btnAdd = new JButton("Thêm Bàn");
+        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnAdd.setBackground(new Color(16, 185, 129)); // Green
+        btnAdd.setForeground(Color.WHITE);
+        btnAdd.setFocusPainted(false);
+        btnAdd.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/add.png")); // New Icon
+        btnAdd.addActionListener(e -> handleAddTable());
+
+        btnRefresh = new JButton("Làm mới");
         btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btnRefresh.setFocusPainted(false);
+        btnRefresh.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/refresh.png")); // New Icon
         btnRefresh.addActionListener(e -> refreshCurrentFloor());
 
+        pnlBtns.add(btnAdd);
+        pnlBtns.add(btnRefresh);
+
         pnl.add(lblTitle, BorderLayout.WEST);
-        pnl.add(btnRefresh, BorderLayout.EAST);
+        pnl.add(pnlBtns, BorderLayout.EAST);
 
         return pnl;
     }
@@ -139,8 +155,11 @@ public class QuanLyBanVisual extends JPanel {
         pnlActions.setOpaque(false);
         pnlActions.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        btnAction1 = createActionButton("✏ Chỉnh Sửa", new Color(59, 130, 246));
-        btnAction2 = createActionButton("🗑 Xóa Bàn", new Color(239, 68, 68));
+        btnAction1 = createActionButton("Chỉnh Sửa", new Color(59, 130, 246));
+        btnAction1.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/edit.png"));
+
+        btnAction2 = createActionButton("Xóa Bàn", new Color(239, 68, 68));
+        btnAction2.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/delete.png"));
 
         btnAction1.setVisible(false);
         btnAction2.setVisible(false);
@@ -174,28 +193,28 @@ public class QuanLyBanVisual extends JPanel {
     private void handleTableSelected(Ban table) {
         this.selectedTable = table;
 
-        // Deselect all cards in current floor
-        int selectedTab = tabFloors.getSelectedIndex();
-        TableFloorPanel panel = (TableFloorPanel) tabFloors.getComponentAt(selectedTab);
-        panel.deselectAllCards();
+        // Deselect all cards in current floor (Visual only)
+        // Note: Ideally refresh logic handles this, but here we just update Right Panel
 
         // Update details panel with table info
         lblSelectedTable.setText(table.getTenBan());
         lblStatus.setText("Trạng thái: " + table.getTrangThai());
         lblInfo.setText("Sức chứa: " + table.getSoGhe() + " người");
-        lblZone.setText("Khu vực: " + table.getMaKV()); // Fixed: getMaKV() not getMaKhuVuc()
+        lblZone.setText("Khu vực: " + table.getMaKV());
 
         // Show CRUD buttons
         btnAction1.setVisible(true);
         btnAction2.setVisible(true);
     }
 
+    // CRUD Handlers
+    private void handleAddTable() {
+        showTableDialog(null);
+    }
+
     private void handleEditTable() {
         if (selectedTable != null) {
-            JOptionPane.showMessageDialog(this,
-                    "Chức năng Chỉnh Sửa bàn " + selectedTable.getTenBan() + "\n(Sẽ được implement)",
-                    "Chỉnh Sửa Bàn",
-                    JOptionPane.INFORMATION_MESSAGE);
+            showTableDialog(selectedTable);
         }
     }
 
@@ -208,12 +227,90 @@ public class QuanLyBanVisual extends JPanel {
                     JOptionPane.WARNING_MESSAGE);
 
             if (confirm == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(this,
-                        "Đã xóa bàn " + selectedTable.getTenBan() + " (demo)",
-                        "Thành Công",
-                        JOptionPane.INFORMATION_MESSAGE);
+                if (banDAO.delete(selectedTable.getMaBan())) {
+                    JOptionPane.showMessageDialog(this, "Đã xóa bàn thành công!");
+                    refreshCurrentFloor();
+                    selectedTable = null;
+                    btnAction1.setVisible(false);
+                    btnAction2.setVisible(false);
+                    lblSelectedTable.setText("Chưa chọn bàn");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi xóa! (Có thể bàn đang có hóa đơn)");
+                }
             }
         }
+    }
+
+    // Helper Dialog
+    private void showTableDialog(Ban ban) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+                ban == null ? "Thêm Bàn Mới" : "Sửa Bàn", true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setSize(400, 300);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel pnlCenter = new JPanel(new GridLayout(4, 2, 10, 10));
+        pnlCenter.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JTextField txtMa = new JTextField(ban != null ? ban.getMaBan() : "");
+        JTextField txtTen = new JTextField(ban != null ? ban.getTenBan() : "");
+        JTextField txtGhe = new JTextField(ban != null ? String.valueOf(ban.getSoGhe()) : "4");
+        String[] khuVucs = { "KV01", "KV02", "KV03", "KV04" };
+        JComboBox<String> cboKV = new JComboBox<>(khuVucs);
+        if (ban != null)
+            cboKV.setSelectedItem(ban.getMaKV());
+
+        pnlCenter.add(new JLabel("Mã Bàn:"));
+        pnlCenter.add(txtMa);
+        pnlCenter.add(new JLabel("Tên Bàn:"));
+        pnlCenter.add(txtTen);
+        pnlCenter.add(new JLabel("Khu Vực:"));
+        pnlCenter.add(cboKV);
+        pnlCenter.add(new JLabel("Số Ghế:"));
+        pnlCenter.add(txtGhe);
+
+        if (ban != null)
+            txtMa.setEditable(false);
+
+        JButton btnSave = new JButton("Lưu");
+        btnSave.addActionListener(e -> {
+            String ma = txtMa.getText().trim();
+            String ten = txtTen.getText().trim();
+            String kv = cboKV.getSelectedItem().toString();
+            int ghe = 4;
+            try {
+                ghe = Integer.parseInt(txtGhe.getText());
+            } catch (Exception ex) {
+            }
+
+            if (ma.isEmpty() || ten.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng nhập đủ thông tin!");
+                return;
+            }
+
+            Ban newBan = new Ban(ma, ten, "Trống", kv, ghe, null);
+            boolean result;
+            if (ban == null) {
+                result = banDAO.insert(newBan);
+            } else {
+                result = banDAO.updateInfo(newBan);
+            }
+
+            if (result) {
+                JOptionPane.showMessageDialog(dialog, "Lưu thành công!");
+                dialog.dispose();
+                refreshCurrentFloor();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Lỗi khi lưu (Trùng mã?)!");
+            }
+        });
+
+        JPanel pnlBottom = new JPanel();
+        pnlBottom.add(btnSave);
+
+        dialog.add(pnlCenter, BorderLayout.CENTER);
+        dialog.add(pnlBottom, BorderLayout.SOUTH);
+        dialog.setVisible(true);
     }
 
     private void refreshCurrentFloor() {
@@ -221,7 +318,6 @@ public class QuanLyBanVisual extends JPanel {
         if (selectedTab >= 0) {
             TableFloorPanel panel = (TableFloorPanel) tabFloors.getComponentAt(selectedTab);
             panel.refreshTables();
-            JOptionPane.showMessageDialog(this, "Đã làm mới!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 }
