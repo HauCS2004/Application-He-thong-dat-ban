@@ -209,15 +209,13 @@ public class ManHinhGoiMon extends JFrame {
         // Load Image
         ImageIcon icon = null;
         if (m.getHinhAnh() != null && !m.getHinhAnh().isEmpty()) {
-            try {
-                String path = "view/image/" + m.getHinhAnh();
-                File f = new File(path);
-                if (f.exists()) {
-                    ImageIcon raw = new ImageIcon(path);
-                    Image img = raw.getImage().getScaledInstance(180, 140, Image.SCALE_SMOOTH);
-                    icon = new ImageIcon(img);
-                }
-            } catch (Exception e) {
+            // Use IconHelper to load (supports src/ fallback)
+            icon = GUI.utils.IconHelper.loadIcon("view/image/" + m.getHinhAnh());
+
+            if (icon != null) {
+                // Resize
+                Image img = icon.getImage().getScaledInstance(180, 140, Image.SCALE_SMOOTH);
+                icon = new ImageIcon(img);
             }
         }
 
