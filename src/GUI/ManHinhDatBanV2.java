@@ -525,47 +525,82 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         JPanel pnl = new JPanel(new BorderLayout());
         pnl.setBackground(new Color(249, 250, 251));
 
-        // --- NEW: Map Availability Filter ---
-        JPanel pnlMapFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        pnlMapFilter.setBackground(new Color(240, 240, 240));
-        pnlMapFilter.setBorder(new EmptyBorder(5, 10, 5, 10));
+        // --- NEW: Split Filter Design ---
+        JPanel pnlFilterContainer = new JPanel(new BorderLayout());
+        pnlFilterContainer.setBackground(new Color(240, 240, 240));
+        pnlFilterContainer.setBorder(new EmptyBorder(5, 10, 5, 10));
 
-        JLabel lblMapFilter = new JLabel("Kiểm tra bàn trống lúc:");
-        lblMapFilter.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        // ROW 1: Date Overview (Simple)
+        JPanel pnlDateRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        pnlDateRow.setOpaque(false);
 
-        JDateChooser dateMap = new JDateChooser(new Date());
+        JLabel lblDate = new JLabel("Ngày xem:");
+        lblDate.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
+        dateMap = new JDateChooser(new Date());
         dateMap.setDateFormatString("dd/MM/yyyy");
-        dateMap.setPreferredSize(new Dimension(110, 30));
+        dateMap.setPreferredSize(new Dimension(130, 30));
 
-        JComboBox<String> cboMapGio = new JComboBox<>();
+        JButton btnViewDate = new JButton("Xem Lịch Ngày");
+        btnViewDate.setBackground(new Color(34, 197, 94));
+        btnViewDate.setForeground(Color.WHITE);
+        btnViewDate.setFocusPainted(false);
+
+        JCheckBox chkAdvanced = new JCheckBox("Tìm  bàn trống theo thời gian");
+        chkAdvanced.setOpaque(false);
+        chkAdvanced.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+
+        pnlDateRow.add(lblDate);
+        pnlDateRow.add(dateMap);
+        pnlDateRow.add(btnViewDate);
+        pnlDateRow.add(Box.createHorizontalStrut(5));
+
+        // Refresh Button (F5)
+        JButton btnRefresh = new JButton("Làm mới");
+        btnRefresh.setToolTipText("Quay về thời gian thực (F5)");
+        btnRefresh.setBackground(new Color(107, 114, 128)); // Gray
+        btnRefresh.setForeground(Color.WHITE);
+        btnRefresh.setFocusPainted(false);
+        pnlDateRow.add(btnRefresh);
+
+        pnlDateRow.add(Box.createHorizontalStrut(20));
+        pnlDateRow.add(chkAdvanced);
+
+        // ROW 2: Time Filter (Hidden by default)
+        JPanel pnlTimeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        pnlTimeRow.setOpaque(false);
+        pnlTimeRow.setVisible(false); // Hidden initially
+
+        JLabel lblTime = new JLabel("Kiểm tra trống lúc:");
+        lblTime.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
+        cboMapGio = new JComboBox<>();
         for (int h = 7; h <= 22; h++)
             cboMapGio.addItem(String.format("%02d", h));
-        cboMapGio.setSelectedItem("18"); // Default 18h
+        cboMapGio.setSelectedItem("18");
 
-        JComboBox<String> cboMapPhut = new JComboBox<>();
+        cboMapPhut = new JComboBox<>();
         cboMapPhut.addItem("00");
         cboMapPhut.addItem("30");
 
-        JButton btnCheckMap = new JButton("Xem Trạng Thái");
+        btnCheckMap = new JButton("Kiểm tra");
         btnCheckMap.setBackground(new Color(59, 130, 246));
         btnCheckMap.setForeground(Color.WHITE);
         btnCheckMap.setFocusPainted(false);
 
-        JButton btnResetMap = new JButton("Reset");
-        btnResetMap.setFocusPainted(false);
+        pnlTimeRow.add(lblTime);
+        pnlTimeRow.add(cboMapGio);
+        pnlTimeRow.add(new JLabel(":"));
+        pnlTimeRow.add(cboMapPhut);
+        pnlTimeRow.add(btnCheckMap);
 
-        pnlMapFilter.add(lblMapFilter);
-        pnlMapFilter.add(dateMap);
-        pnlMapFilter.add(cboMapGio);
-        pnlMapFilter.add(new JLabel(":"));
-        pnlMapFilter.add(cboMapPhut);
-        pnlMapFilter.add(btnCheckMap);
-        pnlMapFilter.add(btnResetMap);
+        // Assemble Filter
+        pnlFilterContainer.add(pnlDateRow, BorderLayout.NORTH);
+        pnlFilterContainer.add(pnlTimeRow, BorderLayout.CENTER);
 
-        pnl.add(pnlMapFilter, BorderLayout.NORTH);
-        // ------------------------------------
+        pnl.add(pnlFilterContainer, BorderLayout.NORTH);
 
-        // Tabs: ALL + individual floors
+        // Tabs & Split Pane
         tabFloors = new JTabbedPane();
         tabFloors.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
@@ -575,55 +610,140 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         addFloorTab("VIP Room", "KV03");
         addFloorTab("Ngoài trời", "KV04");
 
-        // --- SPLIT PANE ---
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabFloors, createDetailPanel());
-        splitPane.setResizeWeight(0.85); // Map takes 85%
+        splitPane.setResizeWeight(0.85);
         splitPane.setDividerSize(5);
         pnl.add(splitPane, BorderLayout.CENTER);
 
-        // --- Event Handling ---
+        // --- Logic ---
+
+        // Toggle Advanced Mode
+        chkAdvanced.addActionListener(e -> {
+            boolean advanced = chkAdvanced.isSelected();
+            pnlTimeRow.setVisible(advanced);
+            btnViewDate.setEnabled(!advanced); // Disable Date Button if Advanced is on? Or keep both?
+            // User request: "trước hoặc sau đó 30p"
+
+            // If Advanced OFF -> "Date Mode" (Overview)
+            // If Advanced ON -> "Time Mode" (Strict)
+            if (!advanced) {
+                // Revert to Date Overview immediately?
+                checkMapOverview(dateMap.getDate());
+            }
+        });
+
+        // "Xem Lịch Ngày" Action
+        btnViewDate.addActionListener(e -> {
+            checkMapOverview(dateMap.getDate());
+        });
+
+        // "Kiểm Tra" Action (Time)
         btnCheckMap.addActionListener(e -> {
             checkMapAvailability(dateMap.getDate(),
                     Integer.parseInt(cboMapGio.getSelectedItem().toString()),
                     Integer.parseInt(cboMapPhut.getSelectedItem().toString()));
         });
 
-        btnResetMap.addActionListener(e -> {
-            for (int i = 0; i < tabFloors.getTabCount(); i++) {
-                Component c = tabFloors.getComponentAt(i);
-                if (c instanceof TableFloorPanel) {
-                    ((TableFloorPanel) c).restoreOriginalStatuses();
-                }
+        // "Refresh" Action
+        ActionListener refreshAction = e -> {
+            // Reset Inputs
+            dateMap.setDate(new Date());
+            chkAdvanced.setSelected(false);
+            pnlTimeRow.setVisible(false);
+            btnViewDate.setEnabled(true);
+
+            // Reset Logic
+            isFilterActive = false;
+            filterDate = null;
+            filterHour = -1;
+
+            // Reload Real-time
+            loadBookings(); // Loads recent/today
+
+            // Restore Real-time Statuses
+            restoreAllOriginalStatuses();
+        };
+
+        btnRefresh.addActionListener(refreshAction);
+
+        // Add F5 Global Shortcut
+        InputMap inputMap = pnl.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = pnl.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "refresh_map");
+        actionMap.put("refresh_map", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                refreshAction.actionPerformed(e);
             }
         });
 
         return pnl;
     }
 
-    private void checkMapAvailability(Date date, int hour, int minute) {
+    /**
+     * Mode 1: Date Overview
+     * Shows ALL bookings for the day. Tables with ANY valid booking are marked
+     * Yellow (Đã Đặt).
+     */
+    private void checkMapOverview(Date date) {
         if (date == null)
             return;
 
-        // 1. Calculate Target Time
         this.isFilterActive = true;
         this.filterDate = date;
-        this.filterHour = hour;
-        this.filterMinute = minute;
+        // Reset Time filters to avoid confusion
+        this.filterHour = -1;
 
+        // 1. Load Bookings for Date (Fix: Full Day Range)
         java.util.Calendar cal = java.util.Calendar.getInstance();
-        cal.setTime(date); // Sets YMD and Time from date object
-        cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
-        cal.set(java.util.Calendar.MINUTE, minute);
+        cal.setTime(date);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
         cal.set(java.util.Calendar.SECOND, 0);
         cal.set(java.util.Calendar.MILLISECOND, 0);
-        Date targetTime = cal.getTime();
+        Date start = cal.getTime();
 
-        // System.out.println("DEBUG: Check Availability for " + targetTime);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        cal.set(java.util.Calendar.MINUTE, 59);
+        cal.set(java.util.Calendar.SECOND, 59);
+        Date end = cal.getTime();
 
-        this.dailyBookings = datBanDAO.getDanhSachDatBan(date, date);
+        this.dailyBookings = datBanDAO.getDanhSachDatBan(start, end);
 
-        // 2b. FORCE RELOAD TABLE STATUSES FROM DB (To fix stale "Có Khách" after
-        // payment)
+        // 2. Refresh Panels (Clear old statuses)
+        restoreAllOriginalStatuses();
+
+        // Check if viewing Today
+        java.util.Calendar calNow = java.util.Calendar.getInstance();
+        java.util.Calendar calView = java.util.Calendar.getInstance();
+        calView.setTime(date);
+        boolean isToday = (calNow.get(java.util.Calendar.YEAR) == calView.get(java.util.Calendar.YEAR) &&
+                calNow.get(java.util.Calendar.DAY_OF_YEAR) == calView.get(java.util.Calendar.DAY_OF_YEAR));
+
+        // 3. Map Tables
+        java.util.Map<String, Entity.DatBan> bookingMap = new java.util.HashMap<>();
+
+        for (DatBan db : this.dailyBookings) {
+            String status = db.getTrangThai().toLowerCase();
+            if (status.startsWith("đã hủy") || status.contains("hoàn thành") || status.contains("hoàn tất")
+                    || status.contains("thanh toán"))
+                continue;
+
+            // In Overview Mode, we map the booking to the table if it exists.
+            bookingMap.put(db.getMaBan(), db);
+        }
+
+        // 4. Update UI
+        for (int i = 0; i < tabFloors.getTabCount(); i++) {
+            Component c = tabFloors.getComponentAt(i);
+            if (c instanceof TableFloorPanel) {
+                ((TableFloorPanel) c).updateOverviewMode(bookingMap, isToday);
+            }
+        }
+    }
+
+    private void restoreAllOriginalStatuses() {
         ArrayList<Ban> currentTables = banDAO.getAllBan();
         for (int i = 0; i < tabFloors.getTabCount(); i++) {
             Component c = tabFloors.getComponentAt(i);
@@ -631,28 +751,54 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 ((TableFloorPanel) c).refreshTableData(currentTables);
             }
         }
+    }
 
-        ArrayList<DatBan> listBooking = this.dailyBookings;
+    /**
+     * Mode 2: Strict Time Availability
+     */
+    private void checkMapAvailability(Date date, int hour, int minute) {
+        if (date == null)
+            return;
 
-        // 3. Identify Occupied Tables and Map to Booking
+        this.isFilterActive = true;
+        this.filterDate = date;
+        this.filterHour = hour;
+        this.filterMinute = minute;
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+        cal.set(java.util.Calendar.MINUTE, minute);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        Date targetTime = cal.getTime();
+
+        // Fix: Query Full Day for Filtering
+        java.util.Calendar calRange = java.util.Calendar.getInstance();
+        calRange.setTime(date);
+        calRange.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        calRange.set(java.util.Calendar.MINUTE, 0);
+        calRange.set(java.util.Calendar.SECOND, 0);
+        Date start = calRange.getTime();
+
+        calRange.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        calRange.set(java.util.Calendar.MINUTE, 59);
+        calRange.set(java.util.Calendar.SECOND, 59);
+        Date end = calRange.getTime();
+
+        this.dailyBookings = datBanDAO.getDanhSachDatBan(start, end);
+        restoreAllOriginalStatuses();
+
         java.util.Map<String, Entity.DatBan> bookingMap = new java.util.HashMap<>();
 
-        for (DatBan db : listBooking) {
-            // Skip canceled
-            // Skip canceled or completed (History)
-            // Skip canceled or completed (History)
+        for (DatBan db : this.dailyBookings) {
             String status = db.getTrangThai() != null ? db.getTrangThai().trim() : "";
-            // System.out.println("DEBUG: Checking Booking " + db.getMaDat() + " Status=[" +
-            // status + "]");
-
             if (status.toLowerCase().startsWith("đã hủy")
                     || status.toLowerCase().contains("hoàn thành")
                     || status.toLowerCase().contains("hoàn tất")
                     || status.toLowerCase().contains("thanh toán"))
                 continue;
 
-            // Check overlaps: Start <= Target < End
-            // NORMALIZE TO MINUTES to avoid second-mismatch issues
             java.util.Calendar calB = java.util.Calendar.getInstance();
             calB.setTime(db.getThoiGianBatDau());
             calB.set(java.util.Calendar.SECOND, 0);
@@ -668,24 +814,14 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
             if (startMillis <= targetMillis && targetMillis < endMillis) {
                 bookingMap.put(db.getMaBan(), db);
-                // System.out.println("DEBUG: Table " + db.getMaBan() + " OCCUPIED at " +
-                // targetTime);
-            } else {
-                // System.out.println("DEBUG: Table " + db.getMaBan() + " FREE at " + targetTime
-                // + " (Start: " + db.getThoiGianBatDau() + ", End: " + db.getThoiGianKetThuc()
-                // + ")");
             }
         }
 
         // 4. Update UI
-        // Apply to Panels
         for (int i = 0; i < tabFloors.getTabCount(); i++) {
             Component c = tabFloors.getComponentAt(i);
             if (c instanceof TableFloorPanel) {
-                TableFloorPanel tfp = (TableFloorPanel) c;
-                tfp.updateTableStatuses(bookingMap);
-                tfp.revalidate();
-                tfp.repaint();
+                ((TableFloorPanel) c).updateTableStatuses(bookingMap);
             }
         }
     }
@@ -713,30 +849,43 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         datBanDAO.autoCancelOverdueBookings();
         datBanDAO.syncTableStatus();
 
-        // 2. Load Data
+        // 2. Load Data for List Tab
         modelBookings.setRowCount(0);
 
         ArrayList<DatBan> bookings;
 
-        // --- NEW: Toggle Logic ---
+        // Logic for List Tab Filter
         if (chkEnableDateFilter != null && chkEnableDateFilter.isSelected()) {
             Date selectedDate = dateChooser.getDate();
             bookings = datBanDAO.getDanhSachDatBan(selectedDate, selectedDate);
         } else {
-            // Fetch ALL Recent (Limit 100)
             bookings = datBanDAO.getDanhSachDatBanGanDay(100);
-
-            // For Detail Panel consistency in "Today" view (default), maybe fetching Today
-            // is better?
-            // Or just use what we have. If we have recent bookings, filter by today might
-            // be empty if we rely on "bookings" list.
-            // BETTER: Explicitly load today's bookings for the Detail Panel if filter is
-            // OFF.
-            this.dailyBookings = datBanDAO.getDanhSachDatBan(new Date(), new Date());
         }
 
+        // 3. Update Daily Bookings for Map Tab (Corrected Logic)
+        // 3. Update Daily Bookings for Map Tab (Corrected Logic)
+        Date targetDateForMap = (isFilterActive && filterDate != null) ? filterDate : new Date();
+
+        java.util.Calendar calMap = java.util.Calendar.getInstance();
+        calMap.setTime(targetDateForMap);
+        calMap.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        calMap.set(java.util.Calendar.MINUTE, 0);
+        calMap.set(java.util.Calendar.SECOND, 0);
+        calMap.set(java.util.Calendar.MILLISECOND, 0);
+        Date startMap = calMap.getTime();
+
+        calMap.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        calMap.set(java.util.Calendar.MINUTE, 59);
+        calMap.set(java.util.Calendar.SECOND, 59);
+        Date endMap = calMap.getTime();
+
+        this.dailyBookings = datBanDAO.getDanhSachDatBan(startMap, endMap);
+
         if (chkEnableDateFilter != null && chkEnableDateFilter.isSelected()) {
-            this.dailyBookings = bookings;
+            // If List filter is active, sync dailyBookings to it?
+            // Maybe better to keep them separate, but for simplicity let's stick to Map
+            // Priority
+            // If user is focused on Map, isFilterActive should be true.
         }
 
         // 3. Update Notifications
@@ -1094,7 +1243,13 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         boolean hasBooking = false;
         if (dailyBookings != null) {
             for (Entity.DatBan db : dailyBookings) {
-                if (db.getMaBan().equals(table.getMaBan()) && !db.getTrangThai().startsWith("Đã hủy")) {
+                // Filter: Same Table AND Active Status (Not Canceled, Not Completed)
+                String st = db.getTrangThai().toLowerCase();
+                if (db.getMaBan().equals(table.getMaBan())
+                        && !st.startsWith("đã hủy")
+                        && !st.contains("hoàn tất")
+                        && !st.contains("hoàn thành")) {
+
                     hasBooking = true;
                     // Format: [HH:mm] - Name (Status)
                     String time = new java.text.SimpleDateFormat("HH:mm").format(db.getThoiGianBatDau());
@@ -1154,93 +1309,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         });
         pnlDetailContent.add(btnBook);
 
-        // Show Check-in ONLY if status is "Đã Đặt" (Confirmed booking exists now)
-        if ("Đã Đặt".equals(table.getTrangThai())) {
-            pnlDetailContent.add(Box.createVerticalStrut(10));
-            JButton btnCheckIn = new JButton("Check-in (Nhận bàn)");
-            btnCheckIn.setAlignmentX(Component.LEFT_ALIGNMENT);
-            btnCheckIn.setMaximumSize(new Dimension(280, 35));
-
-            btnCheckIn.addActionListener(e -> {
-                // Logic to find THE booking to check in
-                if (dailyBookings != null) {
-                    for (Entity.DatBan db : dailyBookings) {
-                        if (db.getMaBan().equals(table.getMaBan()) && "Đã xác nhận".equals(db.getTrangThai())) {
-                            performCheckIn(db);
-                            return;
-                        }
-                    }
-                }
-                JOptionPane.showMessageDialog(this, "Không tìm thấy đơn đặt 'Đã xác nhận' nào để check-in.");
-            });
-            pnlDetailContent.add(btnCheckIn);
-        }
-
         pnlDetailContent.add(Box.createVerticalGlue());
         pnlDetailContent.revalidate();
         pnlDetailContent.repaint();
     }
 
-    private JPanel createInfoRow(String label, String value) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        p.setBackground(Color.WHITE);
-        p.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(300, 25));
-        JLabel l = new JLabel(label + " ");
-        l.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        JLabel v = new JLabel(value);
-        v.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        p.add(l);
-        p.add(v);
-        return p;
-    }
-
-    private void performCheckIn(Entity.DatBan booking) {
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Xác nhận KHÁCH ĐÃ ĐẾN (Check-in) - Bàn " + booking.getMaBan() + "?",
-                "Check-in", JOptionPane.YES_NO_OPTION);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            // 1. Create/Verify Customer
-            DAO.KhachHangDAO khDAO = new DAO.KhachHangDAO();
-            if (!khDAO.checkTonTai(booking.getSdt())) {
-                boolean createdKhach = khDAO.themKhachMoi(booking.getSdt(), booking.getTenKhach());
-                if (!createdKhach) {
-                    JOptionPane.showMessageDialog(this,
-                            "Lỗi: Không thể tạo thông tin khách hàng mới!\nVui lòng kiểm tra lại SĐT và Tên.",
-                            "Lỗi Check-in", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-            }
-
-            // 2. Create Invoice
-            HoaDon hd = new HoaDon(booking.getMaBan(), booking.getSoLuongKhach(), booking.getSdt(),
-                    "Khách đặt: " + booking.getTenKhach(), null);
-            int maHD = hoaDonDAO.insert(hd);
-
-            if (maHD == -1) {
-                JOptionPane.showMessageDialog(this, "Lỗi: Không thể tạo hóa đơn! (Có thể do lỗi dữ liệu khách hàng)",
-                        "Lỗi Check-in", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // 3. Update Statuses ONLY if Invoice created
-            banDAO.updateTrangThai(booking.getMaBan(), "Có Khách");
-            boolean updatedBooking = datBanDAO.capNhatTrangThai(booking.getMaDat(), "Đã nhận bàn");
-
-            if (updatedBooking) {
-                JOptionPane.showMessageDialog(this, "Check-in thành công! Hóa đơn #" + maHD + " đã được tạo.");
-                loadBookings(); // Refresh List
-                refreshAllFloors(); // Refresh Map
-
-                // Update detail if showing same table
-                updateDetailPanel(new Entity.Ban(booking.getMaBan(), "Bàn " + booking.getMaBan(), "Có Khách", "",
-                        booking.getSoLuongKhach()));
-                // Note: The Ban object here is temporary, better to let refreshAllFloors handle
-                // it or re-fetch.
-            } else {
-                JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật trạng thái đặt bàn!");
-            }
-        }
-    }
 }

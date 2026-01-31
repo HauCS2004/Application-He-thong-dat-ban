@@ -104,7 +104,7 @@ CREATE TABLE DatBan (
     ThoiGianBatDau DATETIME NOT NULL,
     ThoiGianKetThuc DATETIME NOT NULL,
     SoLuongKhach INT DEFAULT 1,
-    TrangThai NVARCHAR(20) DEFAULT N'Chờ xác nhận', -- Chờ xác nhận, Đã xác nhận, Đã hủy, Hoàn thành
+    TrangThai NVARCHAR(20) DEFAULT N'Chờ xác nhận', -- Chờ xác nhận, Đã nhận bàn, Đã hủy, Hoàn thành
     TienCoc FLOAT DEFAULT 0,
     GhiChu NVARCHAR(200),
     NgayTao DATETIME DEFAULT GETDATE(),
@@ -224,7 +224,7 @@ BEGIN
         TrangThai = N'Hoàn thành'
     FROM DatBan db
     INNER JOIN inserted i ON db.MaBan = i.MaBan
-    WHERE db.TrangThai = N'Đã xác nhận'
+    WHERE db.TrangThai = N'Đã nhận bàn'
         AND GETDATE() BETWEEN db.ThoiGianBatDau AND db.ThoiGianKetThuc
 END
 GO
@@ -265,7 +265,7 @@ BEGIN
     FROM DatBan
     WHERE MaBan = @MaBan
         AND (@MaDatHienTai IS NULL OR MaDat != @MaDatHienTai)
-        AND TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận')
+        AND TrangThai IN (N'Chờ xác nhận', N'Đã nhận bàn')
         AND (
             (@ThoiGianBatDau BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
             OR (@ThoiGianKetThuc BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
@@ -296,7 +296,7 @@ BEGIN
         AND b.MaBan NOT IN (
             -- Loại bỏ bàn đã được đặt trong khung giờ này
             SELECT MaBan FROM DatBan
-            WHERE TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận')
+            WHERE TrangThai IN (N'Chờ xác nhận', N'Đã nhận bàn')
                 AND (
                     (@ThoiGianBatDau BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
                     OR (@ThoiGianKetThuc BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
@@ -378,7 +378,7 @@ BEGIN
     SELECT @SoXungDot = COUNT(*)
     FROM DatBan
     WHERE MaBan = @MaBan
-        AND TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận')
+        AND TrangThai IN (N'Chờ xác nhận', N'Đã nhận bàn')
         AND (
             (@ThoiGianBatDau BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
             OR (@ThoiGianKetThuc BETWEEN ThoiGianBatDau AND ThoiGianKetThuc)
@@ -473,16 +473,16 @@ SELECT
     db.TrangThai AS TrangThaiDatBan,
     CASE 
         WHEN b.TrangThai = N'Có Khách' THEN N'Đang phục vụ'
-        WHEN db.TrangThai = N'Đã xác nhận' AND GETDATE() < db.ThoiGianBatDau 
-            THEN N'Đã đặt (chưa đến giờ)'
-        WHEN db.TrangThai = N'Đã xác nhận' AND GETDATE() BETWEEN db.ThoiGianBatDau AND db.ThoiGianKetThuc 
+        WHEN db.TrangThai = N'Đã nhận bàn' AND GETDATE() < db.ThoiGianBatDau 
+            THEN N'Đã nhận (chưa đến giờ)'
+        WHEN db.TrangThai = N'Đã nhận bàn' AND GETDATE() BETWEEN db.ThoiGianBatDau AND db.ThoiGianKetThuc 
             THEN N'Đang trong giờ đặt'
         ELSE N'Trống'
     END AS TrangThaiChiTiet
 FROM Ban b
 JOIN KhuVuc kv ON b.MaKV = kv.MaKV
 LEFT JOIN DatBan db ON b.MaBan = db.MaBan 
-    AND db.TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận')
+    AND db.TrangThai IN (N'Chờ xác nhận', N'Đã nhận bàn')
     AND GETDATE() BETWEEN DATEADD(HOUR, -1, db.ThoiGianBatDau) AND db.ThoiGianKetThuc
 GO
 
@@ -540,21 +540,21 @@ INSERT INTO LoaiMon VALUES
 
 -- 5. Món ăn
 INSERT INTO MonAn (MaMon, TenMon, DonViTinh, DonGia, HinhAnh, MaLoai, TrangThai) VALUES 
-('M01', N'Khoai tây chiên', N'Dĩa', 45000, 'khoai_tay.png', 'L01', N'Còn món'),
-('M02', N'Gỏi ngó sen tôm thịt', N'Dĩa', 85000, 'goi_sen.png', 'L01', N'Còn món'),
-('M03', N'Salad trộn', N'Dĩa', 55000, 'salad.png', 'L01', N'Còn món'),
-('M04', N'Cơm chiên hải sản', N'Dĩa', 120000, 'com_chien.png', 'L02', N'Còn món'),
-('M05', N'Lẩu Thái Lan', N'Nồi', 250000, 'lau_thai.png', 'L02', N'Còn món'),
-('M06', N'Bò bít tết', N'Phần', 150000, 'bo_bit_tet.png', 'L02', N'Còn món'),
-('M07', N'Gà nướng mật ong', N'Con', 200000, 'ga_nuong.png', 'L02', N'Còn món'),
-('M08', N'Cá hồi nướng', N'Phần', 180000, 'ca_hoi.png', 'L02', N'Còn món'),
-('M09', N'Pepsi tươi', N'Ly', 20000, 'pepsi.png', 'L03', N'Còn món'),
-('M10', N'Coca Cola', N'Lon', 15000, 'coca.png', 'L03', N'Còn món'),
-('M11', N'Trà đào cam sả', N'Ly', 45000, 'tra_dao.png', 'L03', N'Còn món'),
-('M12', N'Nước cam ép', N'Ly', 35000, 'nuoc_cam.png', 'L03', N'Còn món'),
-('M13', N'Trái cây thập cẩm', N'Dĩa', 60000, 'trai_cay.png', 'L04', N'Còn món'),
-('M14', N'Kem tươi', N'Ly', 40000, 'kem.png', 'L04', N'Còn món'),
-('M15', N'Bánh flan', N'Phần', 30000, 'flan.png', 'L04', N'Còn món')
+('M01', N'Khoai tây chiên', N'Dĩa', 45000, 'khoaitaychien.jpg', 'L01', N'Còn món'),
+('M02', N'Gỏi ngó sen tôm thịt', N'Dĩa', 85000, 'ngosentomthit.jpg', 'L01', N'Còn món'),
+('M03', N'Salad trộn', N'Dĩa', 55000, 'salad.jpg', 'L01', N'Còn món'),
+('M04', N'Cơm chiên hải sản', N'Dĩa', 120000, 'comchienhs.jpg', 'L02', N'Còn món'),
+('M05', N'Lẩu Thái Lan', N'Nồi', 250000, 'lauthai.jpg', 'L02', N'Còn món'),
+('M06', N'Bò bít tết', N'Phần', 150000, 'bobittet.jpg', 'L02', N'Còn món'),
+('M07', N'Gà nướng mật ong', N'Con', 200000, 'ganuongmatong.jpg', 'L02', N'Còn món'),
+('M08', N'Hàu nướng', N'Phần', 180000, 'haunuong.jpg', 'L02', N'Còn món'),
+('M09', N'Tiger Beer', N'Lon', 20000, 'tiger.jpg', 'L03', N'Còn món'),
+('M10', N'Coca Cola', N'Lon', 15000, 'cocacola.jpg', 'L03', N'Còn món'),
+('M11', N'Trà đào cam sả', N'Ly', 45000, 'tradao.jpg', 'L03', N'Còn món'),
+('M12', N'Nước cam ép', N'Ly', 35000, 'nuoccam.jpg', 'L03', N'Còn món'),
+('M13', N'Trái cây thập cẩm', N'Dĩa', 60000, 'traicay.jpg', 'L04', N'Còn món'),
+('M14', N'Kem tươi', N'Ly', 40000, 'kem.jpg', 'L04', N'Còn món'),
+('M15', N'Bánh flan', N'Phần', 30000, 'flan.jpg', 'L04', N'Còn món')
 
 -- 6. Khách hàng (Test đa dạng hạng VIP)
 INSERT INTO KhachHang (SoDienThoai, TenKhach, Email, NgaySinh, DiemTichLuy, TongChiTieu) VALUES 
@@ -582,25 +582,8 @@ INSERT INTO KhuyenMai VALUES
 -- Đặt bàn cho hôm nay
 DECLARE @HomNay DATETIME = CAST(CAST(GETDATE() AS DATE) AS DATETIME)
 
-INSERT INTO DatBan (MaBan, TenKhachDat, SDT, ThoiGianBatDau, ThoiGianKetThuc, SoLuongKhach, TrangThai, TienCoc) VALUES 
--- Buổi trưa
-(N'B03', N'Nguyễn Văn A', '0909123456', 
- DATEADD(HOUR, 12, @HomNay), DATEADD(HOUR, 14, @HomNay), 
- 4, N'Đã xác nhận', 100000),
- 
--- Buổi tối
-(N'VIP01', N'Công ty ABC', '0912345678', 
- DATEADD(HOUR, 18, @HomNay), DATEADD(HOUR, 21, @HomNay), 
- 12, N'Đã xác nhận', 500000),
- 
-(N'B06', N'Trần Thị B', '0923456789', 
- DATEADD(HOUR, 19, @HomNay), DATEADD(HOUR, 21, @HomNay), 
- 6, N'Chờ xác nhận', 0),
-
--- Ngày mai
-(N'B08', N'Gia đình Lê', '0934567890', 
- DATEADD(DAY, 1, DATEADD(HOUR, 12, @HomNay)), DATEADD(DAY, 1, DATEADD(HOUR, 14, @HomNay)), 
- 8, N'Đã xác nhận', 200000)
+-- 8. Đặt bàn mẫu (Test khung giờ)
+-- (Đã xóa theo yêu cầu - Data sẽ được tạo từ ứng dụng)
 
 
 GO

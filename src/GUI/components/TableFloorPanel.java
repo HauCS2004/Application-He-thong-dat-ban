@@ -180,6 +180,47 @@ public class TableFloorPanel extends JPanel {
     // --- NEW: Update statuses for availability check ---
     // --- NEW: Update statuses for availability check ---
     // --- NEW: Update statuses for availability check ---
+    public void updateOverviewMode(java.util.Map<String, Entity.DatBan> bookingMap, boolean isToday) {
+        pnlTableGrid.removeAll(); // Reset Grid
+
+        for (TableCard card : tableCards) {
+            String id = card.getTable().getMaBan();
+
+            if (bookingMap.containsKey(id)) {
+                // Table has booking -> Yellow
+                Entity.DatBan db = bookingMap.get(id);
+                // Can pass booking info if needed
+                card.setBookingInfo(
+                        new java.text.SimpleDateFormat("HH:mm").format(db.getThoiGianBatDau()),
+                        getInitials(db.getTenKhach()),
+                        db.getSdt());
+                card.setTemporaryStatus("Đã Đặt");
+            } else {
+                // No booking
+                if (isToday) {
+                    // today: keep real real-time status (Red if Occupied)
+                    card.restoreStatus();
+                } else {
+                    // future: assume free
+                    card.setTemporaryStatus("Trống");
+                }
+            }
+            card.setVisible(true);
+            pnlTableGrid.add(card);
+        }
+        pnlTableGrid.revalidate();
+        pnlTableGrid.repaint();
+    }
+
+    private String getInitials(String name) {
+        if (name == null || name.isEmpty())
+            return "";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 0)
+            return "";
+        return parts[parts.length - 1]; // Last name
+    }
+
     public void updateTableStatuses(java.util.Map<String, Entity.DatBan> bookingMap) {
         pnlTableGrid.removeAll(); // Reset Grid
 

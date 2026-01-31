@@ -43,17 +43,56 @@ public class DatBanDAO {
             System.out.println("Kết quả đặt bàn: " + thongBao);
 
             if (ketQua == 1) {
-                // Cập nhật trạng thái bàn
-                String sqlUpdate = "UPDATE Ban SET TrangThai = N'Đã Đặt' WHERE MaBan = ?";
-                PreparedStatement psUp = con.prepareStatement(sqlUpdate);
-                psUp.setString(1, db.getMaBan());
-                psUp.executeUpdate();
+                // FIXED: Do NOT hardcode "Đã Đặt" immediately.
+                // Let syncTableStatus handle it based on time.
+                syncTableStatus();
                 return true;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Lấy đơn đặt bàn sắp tới gần nhất của một bàn (trong tương lai)
+     * Để cảnh báo khi xếp khách vãng lai.
+     */
+    public DatBan getDatBanSapToi(String maBan) {
+        DatBan db = null;
+        try {
+            Connection con = ConnectDB.getConnection();
+            // Lấy đơn đặt có thời gian bắt đầu > hiện tại, sắp xếp gần nhất
+            // Chỉ lấy đơn Chờ xác nhận hoặc Đã xác nhận
+            String sql = "SELECT TOP 1 * FROM DatBan " +
+                    "WHERE MaBan = ? " +
+                    "AND ThoiGianBatDau > GETDATE() " +
+                    "AND TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận') " +
+                    "ORDER BY ThoiGianBatDau ASC";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maBan);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                db = new DatBan(
+                        rs.getInt("MaDat"),
+                        rs.getString("MaBan"),
+                        rs.getString("TenKhachDat"),
+                        rs.getString("SDT"),
+                        rs.getTimestamp("ThoiGianBatDau"),
+                        rs.getTimestamp("ThoiGianKetThuc"),
+                        rs.getInt("SoLuongKhach"),
+                        rs.getString("TrangThai"),
+                        rs.getDouble("TienCoc"),
+                        rs.getString("GhiChu"),
+                        rs.getTimestamp("NgayTao"),
+                        (Integer) rs.getObject("MaHD"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return db;
     }
 
     /**
@@ -64,11 +103,11 @@ public class DatBanDAO {
         try {
             Connection con = ConnectDB.getConnection();
 
-            // Query theo schema mới
+            // Query theo schema mới (FIXED: ASC to get nearest future booking)
             String sql = "SELECT TOP 1 * FROM DatBan " +
                     "WHERE MaBan = ? " +
                     "AND TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận') " +
-                    "ORDER BY ThoiGianBatDau DESC";
+                    "ORDER BY ThoiGianBatDau ASC";
 
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maBan);
@@ -99,19 +138,24 @@ public class DatBanDAO {
     /**
      * Lấy danh sách đặt bàn trong khoảng thời gian
      */
+    /**
+     * Lấy danh sách đặt bàn trong khoảng thời gian (Sử dụng TIMESTAMP để filter
+     * chính xác)
+     */
     public ArrayList<DatBan> getDanhSachDatBan(java.util.Date tuNgay, java.util.Date denNgay) {
         ArrayList<DatBan> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
 
-            // Query theo schema mới
+            // Filter exact Range using Timestamp
             String sql = "SELECT * FROM DatBan " +
-                    "WHERE CAST(ThoiGianBatDau AS DATE) BETWEEN ? AND ? " +
-                    "ORDER BY ThoiGianBatDau DESC";
+                    "WHERE ThoiGianBatDau BETWEEN ? AND ? " +
+                    "AND TrangThai NOT IN (N'Đã hủy') " +
+                    "ORDER BY ThoiGianBatDau ASC";
 
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setDate(1, new java.sql.Date(tuNgay.getTime()));
-            ps.setDate(2, new java.sql.Date(denNgay.getTime()));
+            ps.setTimestamp(1, new java.sql.Timestamp(tuNgay.getTime()));
+            ps.setTimestamp(2, new java.sql.Timestamp(denNgay.getTime()));
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {

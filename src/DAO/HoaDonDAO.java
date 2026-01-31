@@ -94,13 +94,14 @@ public class HoaDonDAO {
         PreparedStatement ps = null;
         try {
             con = ConnectDB.getConnection();
-            // Try Full Insert First
-            String sql = "INSERT INTO HoaDon(MaBan, MaNV, NgayTao, TrangThai, SoLuongKhach, SDT_Khach) VALUES(?, ?, GETDATE(), 0, ?, ?)";
+            // Try Full Insert First (Added GhiChu)
+            String sql = "INSERT INTO HoaDon(MaBan, MaNV, NgayTao, TrangThai, SoLuongKhach, SDT_Khach, GhiChu) VALUES(?, ?, GETDATE(), 0, ?, ?, ?)";
             ps = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, hd.getMaBan());
             ps.setString(2, hd.getMaNV());
             ps.setInt(3, hd.getSoLuongKhach());
             ps.setString(4, hd.getSdtKhach());
+            ps.setString(5, hd.getGhiChu());
 
             ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();

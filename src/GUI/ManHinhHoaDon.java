@@ -60,6 +60,23 @@ public class ManHinhHoaDon extends JPanel {
     private JDateChooser dateTo;
     private JTextField txtSearchHistory;
 
+    // API: Switch to active table
+    public void selectActiveTable(String maBan) {
+        tabs.setSelectedIndex(0); // Switch to Payment Tab
+        loadTableList(); // specific load might be needed
+        // Ideally loop through pnlTableList buttons to find and simulate click
+        // Or refactor loadTableList to auto-select if selectedMaBan is set
+        for (Component c : pnlTableList.getComponents()) {
+            if (c instanceof JButton) {
+                JButton btn = (JButton) c;
+                if (btn.getText().contains(maBan)) { // Simplistic check (Text usually contains Ma or Ten)
+                    btn.doClick();
+                    break;
+                }
+            }
+        }
+    }
+
     public ManHinhHoaDon() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -68,7 +85,8 @@ public class ManHinhHoaDon extends JPanel {
         tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         tabs.addTab("Lập Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/payment.png"), createPaymentTab());
-        tabs.addTab("Lịch Sử Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/order-history.png"), createHistoryTab());
+        tabs.addTab("Lịch Sử Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/order-history.png"),
+                createHistoryTab());
 
         add(tabs, BorderLayout.CENTER);
 

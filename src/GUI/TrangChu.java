@@ -76,6 +76,19 @@ public class TrangChu extends JFrame {
         add(pnlContent, BorderLayout.CENTER);
     }
 
+    // --- NAVIGATION HELPERS ---
+    public void showScreen(String screenName) {
+        cardLayout.show(pnlContent, screenName);
+    }
+
+    public ManHinhHoaDon getPnlHoaDon() {
+        return pnlHoaDon;
+    }
+
+    public ManHinhPhucVu getPnlPhucVu() {
+        return pnlPhucVu;
+    }
+
     public static void main(String[] args) {
         // ✅ PHASE 1: Require login trước
         SwingUtilities.invokeLater(() -> {

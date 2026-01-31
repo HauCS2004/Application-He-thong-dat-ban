@@ -272,6 +272,12 @@ public class BookingFormDialog extends JDialog {
         calStart.set(Calendar.SECOND, 0);
         calStart.set(Calendar.MILLISECOND, 0);
 
+        // Validation: Check if time is in the past
+        if (calStart.getTime().before(new Date())) {
+            JOptionPane.showMessageDialog(this, "Thời gian không hợp lệ");
+            return;
+        }
+
         int durationHours = cboThoiLuong.getSelectedIndex() + 1;
         Calendar calEnd = (Calendar) calStart.clone();
         calEnd.add(Calendar.HOUR_OF_DAY, durationHours);
