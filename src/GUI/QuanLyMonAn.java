@@ -216,9 +216,17 @@ public class QuanLyMonAn extends JPanel {
 
         btnXoa.addActionListener(e -> {
             if (JOptionPane.showConfirmDialog(this, "Xóa món này?") == 0) {
-                if (dao.delete(txtMa.getText())) {
+                String maMon = txtMa.getText();
+                // Lấy tên ảnh trước khi xóa DB để còn xóa file
+                // Cần query lại DB để lấy tên ảnh chính xác, hoặc dùng tenFileAnh từ fillForm
+                // Vì tenFileAnh update khi click table, nên dùng tenFileAnh là ok.
+                if (dao.delete(maMon)) {
+                    // Option A: Xóa luôn ảnh
+                    XImage.delete(tenFileAnh);
+
                     loadDataGrid();
                     clearForm();
+                    JOptionPane.showMessageDialog(this, "Xóa thành công!");
                 }
             }
         });

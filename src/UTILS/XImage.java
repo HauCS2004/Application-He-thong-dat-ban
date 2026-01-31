@@ -2,50 +2,87 @@ package UTILS;
 
 import java.awt.Image;
 import java.io.File;
-import java.net.URL;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-
 import javax.swing.ImageIcon;
 
 public class XImage {
 
-    // Hàm này giúp lấy icon từ gói VIEW cực nhanh
-    public static ImageIcon getIcon(String tenFile) {
-        // Cách lấy đường dẫn tương đối từ thư mục src
-        // Dấu "/" đầu tiên nghĩa là bắt đầu tìm từ thư mục gốc (src)
-        URL url = XImage.class.getResource("/view/" + tenFile);
+    // Đường dẫn thư mục lưu ảnh bên ngoài (Cùng cấp với project/file jar)
+    private static final String IMAGE_DIR = "images";
 
-        if (url != null) {
-            return new ImageIcon(url);
-        } else {
-            System.err.println("Không tìm thấy ảnh: " + tenFile);
+    static {
+        // Tạo thư mục images nếu chưa có
+        File dir = new File(IMAGE_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+    }
+
+    /**
+     * Lưu file ảnh vào thư mục images bên ngoài dự án
+     * 
+     * @param src File ảnh nguồn được chọn
+     * @return boolean thành công hay thất bại
+     */
+    public static boolean save(File src) {
+        File dst = new File(IMAGE_DIR, src.getName());
+        try {
+            Path from = Paths.get(src.getAbsolutePath());
+            Path to = Paths.get(dst.getAbsolutePath());
+            // Copy file vào thư mục images (ghi đè nếu có)
+            Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Đọc ảnh từ thư mục images bên ngoài.
+     * Nếu không có, thử tìm trong classpath (như cũ).
+     * 
+     * @param fileName Tên file ảnh (vd: ga.png)
+     * @return ImageIcon hoặc null nếu không tìm thấy
+     */
+    public static ImageIcon read(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return null;
+        }
+
+        // 1. Ưu tiên tìm trong thư mục images bên ngoài
+        File externalFile = new File(IMAGE_DIR, fileName);
+        if (externalFile.exists()) {
+            return new ImageIcon(externalFile.getAbsolutePath());
+        }
+
+        // 2. Nếu không có, tìm trong Resource (classpath) - Hỗ trợ ảnh mặc định của app
+        // Lưu ý: Đường dẫn trong code cũ là "/view/image/"
+        try {
+            return GUI.utils.IconHelper.loadIcon("/view/image/" + fileName);
+        } catch (Exception e) {
             return null;
         }
     }
 
-    // HÀM LƯU ẢNH (BẠN ĐANG THIẾU CÁI NÀY)
-    public static void save(File src) {
-        File dst = new File("src/view/image", src.getName());
-        if (!dst.getParentFile().exists()) {
-            dst.getParentFile().mkdirs();
+    /**
+     * Xóa ảnh trong thư mục images bên ngoài
+     * 
+     * @param fileName Tên file cần xóa
+     */
+    public static void delete(String fileName) {
+        if (fileName == null || fileName.isEmpty() || fileName.equals("default.png")) {
+            return;
         }
-        try {
-            Path from = Paths.get(src.getAbsolutePath());
-            Path to = Paths.get(dst.getAbsolutePath());
-            // Copy file vào thư mục dự án
-            Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
-    // HÀM ĐỌC ẢNH
-    public static ImageIcon read(String fileName) {
-        // Try use IconHelper for consistency or local file
-        return GUI.utils.IconHelper.loadIcon("view/image/" + fileName);
+        File file = new File(IMAGE_DIR, fileName);
+        if (file.exists()) {
+            file.delete();
+        }
     }
 
     public static ImageIcon resize(ImageIcon icon, int width, int height) {
