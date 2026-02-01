@@ -409,7 +409,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             int soKhach = Integer.parseInt(modelBookings.getValueAt(row, 4).toString());
             String sdt = modelBookings.getValueAt(row, 3).toString();
 
-            HoaDon hd = new HoaDon(maBan, soKhach, sdt, "Khách đặt: " + tenKhach, null);
+            String maNV = connectDB.SessionManager.getCurrentUser() != null
+                    ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                    : null;
+            HoaDon hd = new HoaDon(maBan, soKhach, sdt, "Khách đặt: " + tenKhach, maNV);
             maHD = hoaDonDAO.insert(hd);
             // Update table status just in case
             banDAO.updateTrangThai(maBan, "Có Khách");
@@ -475,8 +478,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             }
 
             // 2. Create Invoice
+            String maNV = connectDB.SessionManager.getCurrentUser() != null
+                    ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                    : null;
             HoaDon hd = new HoaDon(maBan, Integer.parseInt(modelBookings.getValueAt(row, 4).toString()), sdt,
-                    "Khách đặt: " + tenKhach, null);
+                    "Khách đặt: " + tenKhach, maNV);
             int maHD = hoaDonDAO.insert(hd);
 
             if (maHD == -1) {

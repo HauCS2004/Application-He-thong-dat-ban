@@ -109,15 +109,18 @@ public class HoaDonDAO {
                 maHD = rs.getInt(1);
             }
         } catch (Exception e) {
-            System.err.println("Full Insert failed, trying fallback: " + e.getMessage());
-            // Fallback: Minimal Insert with Phone
+            System.err.println("❌ ERROR: Full Insert HoaDon failed!");
+            System.err.println("Reason: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: Minimal Insert with Phone AND MaNV
             try {
-                String sqlFallback = "INSERT INTO HoaDon(MaBan, NgayTao, TrangThai, SDT_Khach) VALUES(?, GETDATE(), 0, ?)";
+                String sqlFallback = "INSERT INTO HoaDon(MaBan, NgayTao, TrangThai, SDT_Khach, MaNV) VALUES(?, GETDATE(), 0, ?, ?)";
                 if (ps != null)
                     ps.close();
                 ps = con.prepareStatement(sqlFallback, PreparedStatement.RETURN_GENERATED_KEYS);
                 ps.setString(1, hd.getMaBan());
                 ps.setString(2, hd.getSdtKhach());
+                ps.setString(3, hd.getMaNV());
 
                 ps.executeUpdate();
                 ResultSet rs = ps.getGeneratedKeys();

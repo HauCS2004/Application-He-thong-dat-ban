@@ -18,7 +18,6 @@ import Entity.HoaDon;
 import DAO.KhachHangDAO;
 
 public class QuanLyBan extends JPanel {
-
     // --- COMPONENT ---
     private JTabbedPane tabKhuVuc;
     private JLabel lblTenBan, lblTrangThai;
@@ -38,7 +37,6 @@ public class QuanLyBan extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
-
         // 1. LEFT: SƠ ĐỒ BÀN
         tabKhuVuc = new JTabbedPane();
         tabKhuVuc.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -537,7 +535,10 @@ public class QuanLyBan extends JPanel {
             }
 
             // Tạo hóa đơn
-            HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, sdtKhach, "Khách đặt: " + tenKhach, null);
+            String maNV = connectDB.SessionManager.getCurrentUser() != null
+                    ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                    : null;
+            HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, sdtKhach, "Khách đặt: " + tenKhach, maNV);
 
             int maHD = hdDAO.insert(hd);
             if (maHD != -1) {
@@ -569,7 +570,17 @@ public class QuanLyBan extends JPanel {
         if (!checkSucChua(banDangChon, soKhach))
             return;
 
-        HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "Khách vãng lai", null);
+        String maNV = connectDB.SessionManager.getCurrentUser() != null
+                ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                : null;
+
+        if (maNV == null) {
+            JOptionPane.showMessageDialog(this,
+                    "CẢNH BÁO: Hệ thống không nhận diện được nhân viên đang đăng nhập!\nHóa đơn sẽ được lưu nhưng không có tên thu ngân.",
+                    "Lỗi Session", JOptionPane.WARNING_MESSAGE);
+        }
+
+        HoaDon hd = new HoaDon(banDangChon.getMaBan(), soKhach, null, "Khách vãng lai", maNV);
         int maHD = hdDAO.insert(hd);
 
         if (maHD != -1) {

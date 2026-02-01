@@ -447,7 +447,16 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                     return;
                 }
 
-                HoaDon hd = new HoaDon(table.getMaBan(), soLuongKhach, null, "Khách vãng lai", null);
+                String maNV = connectDB.SessionManager.getCurrentUser() != null
+                        ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                        : null;
+                if (maNV == null) {
+                    JOptionPane.showMessageDialog(this,
+                            "CẢNH BÁO: Không xác định được nhân viên! Hóa đơn sẽ không có tên thu ngân.",
+                            "Lỗi Session", JOptionPane.WARNING_MESSAGE);
+                }
+
+                HoaDon hd = new HoaDon(table.getMaBan(), soLuongKhach, null, "Khách vãng lai", maNV);
                 int maHD = hoaDonDAO.insert(hd);
 
                 if (maHD != -1) {
@@ -484,7 +493,10 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                 banDAO.updateTrangThai(table.getMaBan(), "Có Khách");
 
                 // Pass Name (as Note) and Phone to Invoice
-                HoaDon hd = new HoaDon(table.getMaBan(), db.getSoLuongKhach(), db.getSdt(), db.getTenKhach(), null);
+                String maNV = connectDB.SessionManager.getCurrentUser() != null
+                        ? connectDB.SessionManager.getCurrentUser().getMaNV()
+                        : null;
+                HoaDon hd = new HoaDon(table.getMaBan(), db.getSoLuongKhach(), db.getSdt(), db.getTenKhach(), maNV);
                 int maHD = hoaDonDAO.insert(hd);
 
                 refreshAllFloors();

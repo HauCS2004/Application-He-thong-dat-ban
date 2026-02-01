@@ -17,6 +17,7 @@ import DAO.KhachHangDAO;
 import Entity.Ban;
 import Entity.HoaDon;
 import Entity.KhuyenMai;
+import Entity.NhanVien;
 
 public class ManHinhHoaDon extends JPanel {
 
@@ -24,6 +25,7 @@ public class ManHinhHoaDon extends JPanel {
     private HoaDonDAO hdDAO = new HoaDonDAO();
     private KhuyenMaiDAO kmDAO = new KhuyenMaiDAO();
     private KhachHangDAO khDAO = new KhachHangDAO();
+    private DAO.NhanVienDAO nvDAO = new DAO.NhanVienDAO();
 
     // TABS
     private JTabbedPane tabs;
@@ -351,6 +353,18 @@ public class ManHinhHoaDon extends JPanel {
         };
 
         tblHistory = new JTable(modelHistory);
+        tblHistory.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = tblHistory.getSelectedRow();
+                    if (row != -1) {
+                        int maHD = Integer.parseInt(tblHistory.getValueAt(row, 0).toString());
+                        showInvoiceDetailDialog(maHD);
+                    }
+                }
+            }
+        });
         tblHistory.setRowHeight(30);
         tblHistory.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         tblHistory.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -559,5 +573,76 @@ public class ManHinhHoaDon extends JPanel {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private void showInvoiceDetailDialog(int maHD) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi Tiết Hóa Đơn #" + maHD, true);
+        dialog.setSize(600, 500);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
+        if (hd == null)
+            return;
+
+        // Header Info
+        JPanel pnlInfo = new JPanel(new GridLayout(4, 2, 10, 10));
+        pnlInfo.setBorder(new EmptyBorder(10, 10, 10, 10));
+        pnlInfo.setBackground(Color.WHITE);
+
+        pnlInfo.add(new JLabel("Mã Hóa Đơn: " + hd.getMaHD()));
+        pnlInfo.add(
+                new JLabel("Ngày tạo: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
+        pnlInfo.add(new JLabel("Bàn: " + hd.getMaBan()));
+
+        String tenNV = "---";
+        if (hd.getMaNV() != null) {
+            NhanVien nv = nvDAO.getByMaNV(hd.getMaNV());
+            if (nv != null)
+                tenNV = nv.getTenNV();
+            else
+                tenNV = hd.getMaNV();
+        }
+        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
+
+        String sdt = hd.getSdtKhach();
+        String tenKhach = "Khách lẻ";
+        if (sdt != null && !sdt.isEmpty()) {
+            String name = khDAO.getTenKhachHang(sdt);
+            if (name != null)
+                tenKhach = name + " (" + sdt + ")";
+            else
+                tenKhach = sdt;
+        }
+        pnlInfo.add(new JLabel("Khách hàng: " + tenKhach));
+        pnlInfo.add(new JLabel("Tổng tiền: " + formatMoney(hd.getTongTien()) + " VNĐ"));
+
+        dialog.add(pnlInfo, BorderLayout.NORTH);
+
+        // Details Table
+        String[] headers = { "Món Ăn", "Số Lượng", "Đơn Giá", "Thành Tiền" };
+        DefaultTableModel model = new DefaultTableModel(headers, 0);
+        JTable table = new JTable(model);
+        table.setRowHeight(25);
+
+        ArrayList<String[]> details = hdDAO.getChiTietHoaDon(maHD);
+        for (String[] row : details) {
+            String ten = row[0];
+            double sl = Double.parseDouble(row[1]);
+            double gia = Double.parseDouble(row[2]);
+            double thanhTien = Double.parseDouble(row[3]);
+            model.addRow(new Object[] { ten, (int) sl, formatMoney(gia), formatMoney(thanhTien) });
+        }
+
+        dialog.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // Close Button
+        JButton btnClose = new JButton("Đóng");
+        btnClose.addActionListener(e -> dialog.dispose());
+        JPanel pnlBot = new JPanel();
+        pnlBot.add(btnClose);
+        dialog.add(pnlBot, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
     }
 }
