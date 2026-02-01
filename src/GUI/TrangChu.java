@@ -25,6 +25,7 @@ public class TrangChu extends JFrame {
     private ThongKeDoanhThu pnlThongKe;
     private QuanLyBanVisual pnlQuanLyBanVisual;
     private ManHinhPhucVu pnlPhucVu; // NEW
+    private ManHinhNhanVien pnlNhanVien; // NEW: Employee Management
 
     public TrangChu() {
         ConnectDB.getInstance().connect();
@@ -54,6 +55,7 @@ public class TrangChu extends JFrame {
         pnlThongKe = new ThongKeDoanhThu();
         pnlQuanLyBanVisual = new QuanLyBanVisual(); // NEW: Visual table system
         pnlPhucVu = new ManHinhPhucVu(); // NEW: Service Screen
+        pnlNhanVien = new ManHinhNhanVien(); // NEW: Employee Screen
 
         // Add vào CardLayout
         pnlContent.add(pnlTrangChu, "home");
@@ -67,6 +69,7 @@ public class TrangChu extends JFrame {
         pnlContent.add(pnlBan, "quan_ly_ban"); // Alias cho quản lý bàn
         pnlContent.add(pnlQuanLyBanVisual, "quan_ly_ban_visual"); // Giao diện quản lý bàn (Visual)
         pnlContent.add(pnlQuanLyMonAn, "mon_an");
+        pnlContent.add(pnlNhanVien, "nhan_vien");
         pnlContent.add(pnlThongKe, "thong_ke");
 
         // Sidebar
