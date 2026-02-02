@@ -61,8 +61,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         this.hoaDonDAO = new HoaDonDAO();
 
         initUI();
+
         initTablePopupMenu();
+
         loadBookings();
+
     }
 
     private void initUI() {
@@ -1319,5 +1322,4 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlDetailContent.revalidate();
         pnlDetailContent.repaint();
     }
-
 }

@@ -503,6 +503,14 @@ public class ManHinhHoaDon extends JPanel {
             double finalTotal = parseMoney(lblThanhTien.getText());
             boolean success = hdDAO.thanhToan(currentMaHD, finalTotal);
             if (success) {
+                // Tích điểm cho khách hàng
+                HoaDon hd = hdDAO.getThongTinHoaDon(currentMaHD);
+                if (hd != null && hd.getSdtKhach() != null && !hd.getSdtKhach().isEmpty()) {
+                    System.out.println(
+                            "DEBUG: ManHinhHoaDon Tich Diem - SDT: " + hd.getSdtKhach() + " Total: " + finalTotal);
+                    khDAO.tichDiem(hd.getSdtKhach(), finalTotal);
+                }
+
                 banDAO.updateTrangThai(selectedMaBan, "Trống");
                 new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
                 JOptionPane.showMessageDialog(this, "Thanh toán thành công!");

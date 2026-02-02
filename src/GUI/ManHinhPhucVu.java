@@ -17,6 +17,7 @@ import Entity.HoaDon;
 import DAO.BanDAO;
 import DAO.HoaDonDAO;
 import DAO.DatBanDAO;
+import DAO.KhachHangDAO;
 
 public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener {
 
@@ -39,6 +40,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     private BanDAO banDAO;
     private HoaDonDAO hoaDonDAO;
     private DatBanDAO datBanDAO;
+    private KhachHangDAO khachHangDAO;
 
     // Currently selected table
     private Ban selectedTable;
@@ -47,6 +49,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         this.banDAO = new BanDAO();
         this.hoaDonDAO = new HoaDonDAO();
         this.datBanDAO = new DatBanDAO(); // Initialize
+        this.khachHangDAO = new KhachHangDAO();
 
         initUI();
 
@@ -403,6 +406,13 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
 
             pnlActionButtons.add(actionBtn);
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
+
+            // Button: Gán Khách
+            JButton btnAssign = createStyledButton("GÁN KHÁCH (Thành viên)", new Color(13, 148, 136)); // Teal
+            btnAssign.addActionListener(e -> assignCustomer(table.getMaBan()));
+            pnlActionButtons.add(btnAssign);
+            pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
+
             pnlActionButtons.add(btnPay);
         }
 
@@ -528,5 +538,66 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             }
         });
         screen.setVisible(true);
+
+    }
+
+    private void assignCustomer(String maBan) {
+        int maHD = hoaDonDAO.getMaHDByBan(maBan);
+        if (maHD == -1) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn!");
+            return;
+        }
+
+        // Show current info
+        String curName = "Vãng lai";
+        String curSDT = "";
+        HoaDon hd = hoaDonDAO.getThongTinHoaDon(maHD);
+        if (hd != null && hd.getSdtKhach() != null) {
+            curSDT = hd.getSdtKhach();
+            String n = khachHangDAO.getTenKhachHang(curSDT);
+            if (n != null)
+                curName = n;
+        }
+
+        String message = "Khách hiện tại: " + curName + (curSDT.isEmpty() ? "" : " (" + curSDT + ")") +
+                "\n\nNhập số điện thoại khách hàng mới:";
+
+        String sdt = JOptionPane.showInputDialog(this, message, "Gán Khách Hàng", JOptionPane.QUESTION_MESSAGE);
+        if (sdt == null || sdt.trim().isEmpty())
+            return;
+
+        sdt = sdt.trim();
+        String ten = khachHangDAO.getTenKhachHang(sdt);
+
+        if (ten == null) {
+            // New Customer
+            int confirm = JOptionPane.showConfirmDialog(this, "Khách hàng mới! Bạn có muốn tạo mới?", "Khách Mới",
+                    JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                String newName = JOptionPane.showInputDialog(this, "Nhập tên khách hàng:", "Tạo Khách Mới",
+                        JOptionPane.PLAIN_MESSAGE);
+                if (newName != null && !newName.trim().isEmpty()) {
+                    if (khachHangDAO.themKhachMoi(sdt, newName.trim())) {
+                        ten = newName.trim();
+                        JOptionPane.showMessageDialog(this, "Đã tạo khách hàng mới!");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Lỗi khi tạo khách hàng!");
+                        return;
+                    }
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+
+        // Update Invoice
+        if (hoaDonDAO.updateSdtKhach(maHD, sdt)) {
+            JOptionPane.showMessageDialog(this, "Đã cập nhật: " + ten + " (" + sdt + ")");
+            // Refresh logic if needed?
+        } else {
+            JOptionPane.showMessageDialog(this, "Lỗi cập nhật hóa đơn!");
+        }
     }
 }

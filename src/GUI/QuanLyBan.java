@@ -21,7 +21,7 @@ public class QuanLyBan extends JPanel {
     // --- COMPONENT ---
     private JTabbedPane tabKhuVuc;
     private JLabel lblTenBan, lblTrangThai;
-    private JButton btnDatBan, btnGoiMon, btnThanhToan, btnChuyenBan, btnGhepBan;
+    private JButton btnDatBan, btnGoiMon, btnThanhToan, btnChuyenBan, btnGhepBan, btnGanKhach;
     private JPanel pnlRight;
     // Khai báo biến
     private JTable tblOrder;
@@ -112,12 +112,14 @@ public class QuanLyBan extends JPanel {
         btnThanhToan = createButton("THANH TOÁN", new Color(231, 76, 60));
         btnChuyenBan = createButton("CHUYỂN BÀN", new Color(52, 152, 219));
         btnGhepBan = createButton("GHÉP BÀN", new Color(155, 89, 182)); // Tím
+        btnGanKhach = createButton("GÁN KHÁCH", new Color(0, 150, 136)); // Teal
 
         pnlAction.add(btnGoiMon);
         pnlAction.add(btnThanhToan);
         pnlAction.add(btnChuyenBan);
         pnlAction.add(btnGhepBan);
         pnlAction.add(btnDatBan);
+        pnlAction.add(btnGanKhach);
 
         pnlRight.add(pnlAction, BorderLayout.SOUTH);
 
@@ -167,6 +169,15 @@ public class QuanLyBan extends JPanel {
                 return;
             }
             showDialogDatBan();
+        });
+
+        // GÁN KHÁCH
+        btnGanKhach.addActionListener(e -> {
+            if (banDangChon == null || !banDangChon.getTrangThai().equals("Có Khách")) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn đang phục vụ (Có Khách)!");
+                return;
+            }
+            assignCustomer(banDangChon.getMaBan());
         });
 
         // CHUYỂN BÀN
@@ -288,6 +299,7 @@ public class QuanLyBan extends JPanel {
                     hdDAO.thanhToan(maHD, tongThanhToan);
 
                     if (sdt != null && !sdt.isEmpty()) {
+                        System.out.println("DEBUG: Goi ham tichDiem cho SDT: " + sdt + ", Tong tien: " + tongThanhToan);
                         new DAO.KhachHangDAO().tichDiem(sdt, tongThanhToan); // [QUAN TRỌNG] Cộng điểm
                     }
 
@@ -622,5 +634,65 @@ public class QuanLyBan extends JPanel {
         // Cập nhật Label tổng tiền
         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
         lblTongTienTam.setText("Tổng: " + df.format(tongTien) + " VNĐ");
+    }
+
+    private void assignCustomer(String maBan) {
+        int maHD = hdDAO.getMaHDByBan(maBan);
+        if (maHD == -1) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn!");
+            return;
+        }
+
+        // Show current info
+        String curName = "Vãng lai";
+        String curSDT = "";
+        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
+        if (hd != null && hd.getSdtKhach() != null) {
+            curSDT = hd.getSdtKhach();
+            String n = new KhachHangDAO().getTenKhachHang(curSDT);
+            if (n != null)
+                curName = n;
+        }
+
+        String message = "Khách hiện tại: " + curName + (curSDT.isEmpty() ? "" : " (" + curSDT + ")") +
+                "\n\nNhập số điện thoại khách hàng mới:";
+
+        String sdt = JOptionPane.showInputDialog(this, message, "Gán Khách Hàng", JOptionPane.QUESTION_MESSAGE);
+        if (sdt == null || sdt.trim().isEmpty())
+            return;
+
+        sdt = sdt.trim();
+        KhachHangDAO khDAO = new KhachHangDAO();
+        String ten = khDAO.getTenKhachHang(sdt);
+
+        if (ten == null) {
+            // New Customer
+            int confirm = JOptionPane.showConfirmDialog(this, "Khách hàng mới! Bạn có muốn tạo mới?", "Khách Mới",
+                    JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                String newName = JOptionPane.showInputDialog(this, "Nhập tên khách hàng:", "Tạo Khách Mới",
+                        JOptionPane.PLAIN_MESSAGE);
+                if (newName != null && !newName.trim().isEmpty()) {
+                    if (khDAO.themKhachMoi(sdt, newName.trim())) {
+                        ten = newName.trim();
+                        JOptionPane.showMessageDialog(this, "Đã tạo khách hàng mới!");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Lỗi khi tạo khách hàng!");
+                        return;
+                    }
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+
+        // Update Invoice
+        if (hdDAO.updateSdtKhach(maHD, sdt)) {
+            JOptionPane.showMessageDialog(this, "Đã cập nhật: " + ten + " (" + sdt + ")");
+        } else {
+            JOptionPane.showMessageDialog(this, "Lỗi cập nhật hóa đơn!");
+        }
     }
 }

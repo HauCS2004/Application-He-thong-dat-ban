@@ -73,6 +73,10 @@ public class ManHinhGoiMon extends JFrame {
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
         pnlHeader.add(lblTitle, BorderLayout.WEST);
 
+        pnlHeader.add(lblTitle, BorderLayout.WEST);
+
+        add(pnlHeader, BorderLayout.NORTH);
+
         add(pnlHeader, BorderLayout.NORTH);
 
         // --- CONTENT SPLIT PANE ---
@@ -374,15 +378,23 @@ public class ManHinhGoiMon extends JFrame {
 
         pnl.add(new JScrollPane(tblOrder), BorderLayout.CENTER);
 
+        // Footer (Customer + Total + Actions)
         // Footer (Total + Actions)
         JPanel pnlFooter = new JPanel(new BorderLayout());
         pnlFooter.setOpaque(false);
+        pnlFooter.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        // 2. Total
+        JPanel pnlTotal = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        pnlTotal.setOpaque(false);
 
         lblTongTien = new JLabel("Tổng tiền: 0 VNĐ");
         lblTongTien.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTongTien.setForeground(new Color(220, 38, 38));
-        lblTongTien.setHorizontalAlignment(SwingConstants.RIGHT);
 
+        pnlTotal.add(lblTongTien);
+
+        // 3. Actions
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         pnlActions.setOpaque(false);
 
@@ -402,8 +414,8 @@ public class ManHinhGoiMon extends JFrame {
         pnlActions.add(btnClearAll);
         pnlActions.add(btnConfirm);
 
-        pnlFooter.add(lblTongTien, BorderLayout.NORTH);
-        pnlFooter.add(pnlActions, BorderLayout.SOUTH);
+        pnlFooter.add(pnlTotal);
+        pnlFooter.add(pnlActions);
 
         pnl.add(pnlFooter, BorderLayout.SOUTH);
 

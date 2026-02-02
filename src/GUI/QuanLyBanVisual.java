@@ -52,6 +52,18 @@ public class QuanLyBanVisual extends JPanel {
         // Right: Panel chi tiết
         pnlDetails = createDetailsPanel();
         add(pnlDetails, BorderLayout.EAST);
+
+        // Tự động làm mới khi chuyển tab
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                for (int i = 0; i < tabFloors.getTabCount(); i++) {
+                    Component c = tabFloors.getComponentAt(i);
+                    if (c instanceof TableFloorPanel) {
+                        ((TableFloorPanel) c).refreshTables();
+                    }
+                }
+            }
+        });
     }
 
     private JPanel createHeader() {

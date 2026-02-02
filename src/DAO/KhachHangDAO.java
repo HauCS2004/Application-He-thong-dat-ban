@@ -119,15 +119,20 @@ public class KhachHangDAO {
     }
 
     // 8. Tích điểm (1 điểm = 10,000đ)
+    // 8. Tích điểm (1 điểm = 10,000đ)
     public void tichDiem(String sdt, double tongTien) {
         try {
             int diemThem = (int) (tongTien / 10000);
+            System.out.println("DEBUG: Tich diem - SDT: " + sdt + " - Tien: " + tongTien + " - Diem them: " + diemThem);
+
             Connection con = ConnectDB.getConnection();
-            String sql = "UPDATE KhachHang SET DiemTichLuy = DiemTichLuy + ? WHERE SoDienThoai = ?";
+            // Sử dụng ISNULL để xử lý trường hợp DiemTichLuy ban đầu là NULL
+            String sql = "UPDATE KhachHang SET DiemTichLuy = ISNULL(DiemTichLuy, 0) + ? WHERE SoDienThoai = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, diemThem);
             ps.setString(2, sdt);
-            ps.executeUpdate();
+            int rows = ps.executeUpdate();
+            System.out.println("DEBUG: Updated rows: " + rows);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -172,5 +177,26 @@ public class KhachHangDAO {
             e.printStackTrace();
         }
         return null;
+    }
+
+    // 11. Tính lại toàn bộ điểm từ lịch sử hóa đơn
+    public boolean resetVaTinhLaiDiem() {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sqlCalc = "UPDATE KhachHang " +
+                    "SET DiemTichLuy = ( " +
+                    "    SELECT ISNULL(SUM(TongTien), 0) / 10000 " +
+                    "    FROM HoaDon " +
+                    "    WHERE HoaDon.SDT_Khach = KhachHang.SoDienThoai " +
+                    "    AND HoaDon.TrangThai = 1 " + // Chỉ tính đã thanh toán
+                    ")";
+
+            int rows = con.createStatement().executeUpdate(sqlCalc);
+            System.out.println("DEBUG: Recalculated points for " + rows + " customers.");
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

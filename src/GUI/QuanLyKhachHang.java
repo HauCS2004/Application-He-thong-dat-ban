@@ -133,11 +133,13 @@ public class QuanLyKhachHang extends JPanel {
         btnSua.setForeground(Color.BLACK);
         JButton btnXoa = createButton("XÓA", new Color(220, 53, 69)); // Red
         JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125)); // Grey
+        JButton btnTinhLai = createButton("TÍNH LẠI ĐIỂM", new Color(100, 50, 150)); // Purple
 
         pnlBottom.add(btnThem);
         pnlBottom.add(btnSua);
         pnlBottom.add(btnXoa);
         pnlBottom.add(btnMoi);
+        pnlBottom.add(btnTinhLai);
 
         add(pnlBottom, BorderLayout.SOUTH);
 
@@ -204,6 +206,22 @@ public class QuanLyKhachHang extends JPanel {
         // Nút Làm mới
         btnMoi.addActionListener(e -> clearForm());
 
+        // Nút Tính Lại Điểm
+        btnTinhLai.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Bạn có chắc chắn muốn tính lại điểm cho TẤT CẢ khách hàng dựa trên lịch sử hóa đơn?\nThao tác này sẽ ghi đè điểm hiện tại.",
+                    "Xác nhận tính lại điểm", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (dao.resetVaTinhLaiDiem()) {
+                    JOptionPane.showMessageDialog(this, "Đã tính lại điểm thành công!");
+                    loadData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi tính lại điểm!");
+                }
+            }
+        });
+
         // Tìm kiếm (Live Search)
         txtTim.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) {
@@ -212,6 +230,13 @@ public class QuanLyKhachHang extends JPanel {
         });
 
         btnTim.addActionListener(e -> loadDataTimKiem(txtTim.getText()));
+
+        // Tự động làm mới khi chuyển tab
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadData();
+            }
+        });
     }
 
     // ================== HÀM HỖ TRỢ ==================
