@@ -179,6 +179,30 @@ public class KhachHangDAO {
         return null;
     }
 
+    // 12. Lấy thông tin khách hàng đầy đủ theo SĐT
+    public KhachHang getBySDT(String sdt) {
+        KhachHang kh = null;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM KhachHang WHERE SoDienThoai = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                kh = new KhachHang();
+                kh.setSoDienThoai(rs.getString("SoDienThoai"));
+                kh.setTenKhach(rs.getString("TenKhach"));
+                kh.setEmail(rs.getString("Email"));
+                kh.setDiemTichLuy(rs.getInt("DiemTichLuy"));
+                kh.setHangVIP(rs.getString("HangVIP")); // Quan trọng
+                // Có thể map thêm các trường khác nếu cần
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return kh;
+    }
+
     // 11. Tính lại toàn bộ điểm từ lịch sử hóa đơn
     public boolean resetVaTinhLaiDiem() {
         try {

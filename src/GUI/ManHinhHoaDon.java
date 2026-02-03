@@ -43,8 +43,10 @@ public class ManHinhHoaDon extends JPanel {
     private JTable tblChiTiet;
     private DefaultTableModel modelChiTiet;
 
-    private JComboBox<KhuyenMai> cboKhuyenMai;
+    private JLabel lblRankName; // New: Instead of Combo
     private JLabel lblTongTienHang;
+    private JLabel lblTienGiam;
+    private JTextField txtVoucher;
     private JLabel lblThanhTien;
 
     private JButton btnThanhToan;
@@ -54,6 +56,7 @@ public class ManHinhHoaDon extends JPanel {
     private String selectedMaBan = null;
     private int currentMaHD = -1;
     private double currentTongTienHang = 0;
+    private Entity.KhachHang currentKhachHang = null; // New: Store current customer
 
     // --- TAB 2 COMPONENTS (HISTORY) ---
     private JTable tblHistory;
@@ -246,27 +249,58 @@ public class ManHinhHoaDon extends JPanel {
         pnlFooter.setBorder(new EmptyBorder(20, 0, 0, 0));
 
         // Calculation Area
-        JPanel pnlCalc = new JPanel(new GridLayout(3, 2, 10, 10));
+        JPanel pnlCalc = new JPanel(new GridLayout(4, 2, 10, 10)); // 4 Rows
         pnlCalc.setBackground(Color.WHITE);
 
+        // ROW 1: Tổng tiền hàng
         pnlCalc.add(new JLabel("Tổng tiền hàng:", SwingConstants.RIGHT));
         lblTongTienHang = new JLabel("0 VNĐ", SwingConstants.RIGHT);
         lblTongTienHang.setFont(new Font("Segoe UI", Font.BOLD, 14));
         pnlCalc.add(lblTongTienHang);
 
-        pnlCalc.add(new JLabel("Khuyến Mãi:", SwingConstants.RIGHT));
-        cboKhuyenMai = new JComboBox<>();
-        cboKhuyenMai.addItem(null); // Default no promo
+        // ROW 2: Khuyến mãi thành viên
+        // Left: Label
+        pnlCalc.add(new JLabel("Giảm giá thành viên:", SwingConstants.RIGHT));
 
-        // Load promotions
-        ArrayList<KhuyenMai> promos = kmDAO.getKhuyenMaiDangHoatDong();
-        for (KhuyenMai km : promos)
-            cboKhuyenMai.addItem(km);
+        // Right: Panel containing Rank Name + Amount Label
+        JPanel pnlMemberDiscount = new JPanel(new BorderLayout(5, 0));
+        pnlMemberDiscount.setBackground(Color.WHITE);
 
-        cboKhuyenMai.addActionListener(e -> updateFinalTotal());
-        pnlCalc.add(cboKhuyenMai);
+        lblRankName = new JLabel("Khách lẻ (0%)");
+        lblRankName.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblRankName.setForeground(new Color(31, 41, 55));
 
-        JLabel lblTotalTitle = new JLabel("THANH TOÁN:", SwingConstants.RIGHT);
+        lblTienGiam = new JLabel("- 0 VNĐ", SwingConstants.RIGHT);
+        lblTienGiam.setForeground(new Color(22, 163, 74)); // Green
+        lblTienGiam.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+
+        pnlMemberDiscount.add(lblRankName, BorderLayout.CENTER);
+        pnlMemberDiscount.add(lblTienGiam, BorderLayout.EAST);
+
+        pnlCalc.add(pnlMemberDiscount);
+
+        // ROW 3: Mã Voucher (Placeholder)
+        pnlCalc.add(new JLabel("Mã Voucher:", SwingConstants.RIGHT));
+
+        JPanel pnlVoucher = new JPanel(new BorderLayout(5, 0));
+        pnlVoucher.setBackground(Color.WHITE);
+
+        txtVoucher = new JTextField();
+        txtVoucher.putClientProperty("JTextField.placeholderText", "Nhập mã...");
+
+        JButton btnCheckVoucher = new JButton("Áp dụng");
+        btnCheckVoucher.setBackground(new Color(243, 244, 246));
+        btnCheckVoucher.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Chức năng Voucher đang phát triển!");
+        });
+
+        pnlVoucher.add(txtVoucher, BorderLayout.CENTER);
+        pnlVoucher.add(btnCheckVoucher, BorderLayout.EAST);
+
+        pnlCalc.add(pnlVoucher);
+
+        // ROW 4: Tổng thanh toán
+        JLabel lblTotalTitle = new JLabel("TỔNG THANH TOÁN:", SwingConstants.RIGHT);
         lblTotalTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTotalTitle.setForeground(new Color(220, 38, 38));
 
@@ -450,10 +484,12 @@ public class ManHinhHoaDon extends JPanel {
 
         String sdt = hd.getSdtKhach();
         String displayKhach = "Khách lẻ";
+        this.currentKhachHang = null; // Reset
+
         if (sdt != null && !sdt.isEmpty()) {
-            String tenKhach = khDAO.getTenKhachHang(sdt); // Use localized DAO
-            if (tenKhach != null) {
-                displayKhach = tenKhach + " (" + sdt + ")";
+            this.currentKhachHang = khDAO.getBySDT(sdt); // Fetch full info
+            if (this.currentKhachHang != null) {
+                displayKhach = this.currentKhachHang.getTenKhach() + " (" + sdt + ")";
             } else {
                 displayKhach = sdt;
             }
@@ -474,15 +510,30 @@ public class ManHinhHoaDon extends JPanel {
         }
 
         currentTongTienHang = total;
+
         updateFinalTotal();
     }
 
     private void updateFinalTotal() {
         double discount = 0;
-        KhuyenMai selectedKM = (KhuyenMai) cboKhuyenMai.getSelectedItem();
-        if (selectedKM != null) {
-            discount = selectedKM.tinhGiamGia(currentTongTienHang);
+
+        // Logic: Calculate based on VIP Rank
+        if (currentKhachHang != null) {
+            int percent = currentKhachHang.getPhanTramGiam();
+            discount = currentTongTienHang * percent / 100.0;
+
+            // Update Rank Label Text dynamically
+            String rank = currentKhachHang.getHangThanhVien();
+            if (rank == null)
+                rank = "Thành viên";
+            lblRankName.setText(rank + " (" + percent + "%)");
+        } else {
+            lblRankName.setText("Khách lẻ (0%)");
         }
+
+        // Update Discount Label
+        lblTienGiam.setText("- " + formatMoney(discount) + " VNĐ");
+
         double finalTotal = currentTongTienHang - discount;
         if (finalTotal < 0)
             finalTotal = 0;
@@ -534,9 +585,15 @@ public class ManHinhHoaDon extends JPanel {
         modelChiTiet.setRowCount(0);
         lblTongTienHang.setText("0 VNĐ");
         lblThanhTien.setText("0 VNĐ");
+        // New fields
+        lblRankName.setText("Khách lẻ (0%)");
+        lblTienGiam.setText("- 0 VNĐ");
+        txtVoucher.setText("");
+
         this.currentMaHD = -1;
         this.selectedMaBan = null;
         this.currentTongTienHang = 0;
+        this.currentKhachHang = null;
     }
 
     private void loadHistoryData() {
