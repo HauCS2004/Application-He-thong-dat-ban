@@ -69,6 +69,7 @@ public class TrangChu extends JFrame {
         pnlContent.add(pnlBan, "quan_ly_ban"); // Alias cho quản lý bàn
         pnlContent.add(pnlQuanLyBanVisual, "quan_ly_ban_visual"); // Giao diện quản lý bàn (Visual)
         pnlContent.add(pnlQuanLyMonAn, "mon_an");
+        pnlContent.add(new ManHinhKhuyenMai(), "khuyen_mai"); // NEW: Promotion Screen
         pnlContent.add(pnlNhanVien, "nhan_vien");
         pnlContent.add(pnlThongKe, "thong_ke");
 

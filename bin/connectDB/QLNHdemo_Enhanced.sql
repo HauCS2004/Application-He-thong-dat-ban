@@ -558,10 +558,10 @@ INSERT INTO MonAn (MaMon, TenMon, DonViTinh, DonGia, HinhAnh, MaLoai, TrangThai)
 
 -- 6. Khách hàng (Test đa dạng hạng VIP)
 INSERT INTO KhachHang (SoDienThoai, TenKhach, Email, NgaySinh, DiemTichLuy, TongChiTieu) VALUES 
-('0909123456', N'Đại Gia Kim Cương', 'daiga@email.com', '1985-05-15', 1200, 12000000),
+('0909123456', N'Khách Hạng Kim Cương', 'kimcuong@email.com', '1985-05-15', 1200, 12000000),
 ('0912345678', N'Khách Hạng Vàng', 'vang@email.com', '1990-08-20', 650, 6500000),
 ('0923456789', N'Khách Hạng Bạc', 'bac@email.com', '1995-03-10', 300, 3000000),
-('0934567890', N'Khách Mới Đồng', NULL, '2000-12-25', 50, 500000),
+('0934567890', N'Khách Hạng Đồng', NULL, '2000-12-25', 50, 500000),
 ('0945678901', N'Nguyễn Văn Test', 'test@email.com', NULL, 0, 0)
 
 -- Update trigger sẽ tự động set hạng VIP

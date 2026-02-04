@@ -57,6 +57,7 @@ public class ManHinhHoaDon extends JPanel {
     private int currentMaHD = -1;
     private double currentTongTienHang = 0;
     private Entity.KhachHang currentKhachHang = null; // New: Store current customer
+    private Entity.KhuyenMai currentVoucher = null; // New: Store applied voucher
 
     // --- TAB 2 COMPONENTS (HISTORY) ---
     private JTable tblHistory;
@@ -290,9 +291,7 @@ public class ManHinhHoaDon extends JPanel {
 
         JButton btnCheckVoucher = new JButton("Áp dụng");
         btnCheckVoucher.setBackground(new Color(243, 244, 246));
-        btnCheckVoucher.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Chức năng Voucher đang phát triển!");
-        });
+        btnCheckVoucher.addActionListener(e -> applyVoucher());
 
         pnlVoucher.add(txtVoucher, BorderLayout.CENTER);
         pnlVoucher.add(btnCheckVoucher, BorderLayout.EAST);
@@ -515,31 +514,85 @@ public class ManHinhHoaDon extends JPanel {
     }
 
     private void updateFinalTotal() {
-        double discount = 0;
+        double currentDiscountVIP = 0;
+        double currentDiscountVoucher = 0;
 
-        // Logic: Calculate based on VIP Rank
+        // 1. VIP Discount
         if (currentKhachHang != null) {
             int percent = currentKhachHang.getPhanTramGiam();
-            discount = currentTongTienHang * percent / 100.0;
+            currentDiscountVIP = currentTongTienHang * percent / 100.0;
 
-            // Update Rank Label Text dynamically
             String rank = currentKhachHang.getHangThanhVien();
             if (rank == null)
                 rank = "Thành viên";
-            lblRankName.setText(rank + " (" + percent + "%)");
+            lblRankName.setText(rank + " (" + percent + "%) - Giảm: " + formatMoney(currentDiscountVIP));
         } else {
             lblRankName.setText("Khách lẻ (0%)");
         }
 
-        // Update Discount Label
-        lblTienGiam.setText("- " + formatMoney(discount) + " VNĐ");
+        // 2. Voucher Discount
+        if (currentVoucher != null) {
+            currentDiscountVoucher = currentVoucher.tinhGiamGia(currentTongTienHang);
+        }
 
-        double finalTotal = currentTongTienHang - discount;
+        double totalDiscount = currentDiscountVIP + currentDiscountVoucher;
+
+        // Update Label Text to show details if voucher applied
+        if (currentVoucher != null) {
+            lblTienGiam.setText("<html>VIP: -" + formatMoney(currentDiscountVIP) + "<br>Voucher: -"
+                    + formatMoney(currentDiscountVoucher) + "</html>");
+        } else {
+            lblTienGiam.setText("- " + formatMoney(currentDiscountVIP) + " VNĐ");
+        }
+
+        double finalTotal = currentTongTienHang - totalDiscount;
         if (finalTotal < 0)
             finalTotal = 0;
 
         lblTongTienHang.setText(formatMoney(currentTongTienHang) + " VNĐ");
         lblThanhTien.setText(formatMoney(finalTotal) + " VNĐ");
+    }
+
+    private void applyVoucher() {
+        String code = txtVoucher.getText().trim();
+        if (code.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã Voucher!");
+            return;
+        }
+
+        KhuyenMai km = kmDAO.getByCode(code);
+        if (km == null) {
+            JOptionPane.showMessageDialog(this, "Mã Voucher không tồn tại!");
+            currentVoucher = null;
+            updateFinalTotal();
+            return;
+        }
+
+        // Validation
+        if (!km.isHoatDong()) {
+            JOptionPane.showMessageDialog(this, "Mã Voucher đã hết hạn hoặc ngưng hoạt động!");
+            return;
+        }
+
+        if (currentTongTienHang < km.getDieuKienToiThieu()) {
+            JOptionPane.showMessageDialog(this,
+                    "Đơn hàng chưa đạt giá trị tối thiểu: " + formatMoney(km.getDieuKienToiThieu()));
+            return;
+        }
+
+        // VIP Constraint
+        if (km.getHangVIPApDung() != null && !km.getHangVIPApDung().isEmpty()) {
+            if (currentKhachHang == null || !km.apDungChoHang(currentKhachHang.getHangThanhVien())) {
+                JOptionPane.showMessageDialog(this,
+                        "Voucher chỉ áp dụng cho hạng thành viên: " + km.getHangVIPApDung());
+                return;
+            }
+        }
+
+        // Success
+        this.currentVoucher = km;
+        JOptionPane.showMessageDialog(this, "Áp dụng Voucher thành công: " + km.getTenKM());
+        updateFinalTotal();
     }
 
     private void processPayment() {
@@ -594,6 +647,7 @@ public class ManHinhHoaDon extends JPanel {
         this.selectedMaBan = null;
         this.currentTongTienHang = 0;
         this.currentKhachHang = null;
+        this.currentVoucher = null;
     }
 
     private void loadHistoryData() {
