@@ -319,6 +319,13 @@ public class ManHinhHoaDon extends JPanel {
         btnInHoaDon = new JButton("In Hóa Đơn");
         btnInHoaDon.setPreferredSize(new Dimension(120, 40));
 
+        JButton btnThanhToanQR = new JButton("THANH TOÁN QR");
+        btnThanhToanQR.setBackground(new Color(109, 40, 217)); // Purple
+        btnThanhToanQR.setForeground(Color.WHITE);
+        btnThanhToanQR.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnThanhToanQR.setPreferredSize(new Dimension(160, 40));
+        btnThanhToanQR.addActionListener(e -> showQRCodeDialog());
+
         btnThanhToan = new JButton("THANH TOÁN & ĐÓNG BÀN");
         btnThanhToan.setBackground(new Color(16, 185, 129));
         btnThanhToan.setForeground(Color.WHITE);
@@ -327,6 +334,7 @@ public class ManHinhHoaDon extends JPanel {
         btnThanhToan.addActionListener(e -> processPayment());
 
         pnlButtons.add(btnInHoaDon);
+        pnlButtons.add(btnThanhToanQR);
         pnlButtons.add(btnThanhToan);
 
         pnlFooter.add(pnlButtons, BorderLayout.SOUTH);
@@ -593,6 +601,90 @@ public class ManHinhHoaDon extends JPanel {
         this.currentVoucher = km;
         JOptionPane.showMessageDialog(this, "Áp dụng Voucher thành công: " + km.getTenKM());
         updateFinalTotal();
+    }
+
+    private void showQRCodeDialog() {
+        if (currentMaHD == -1) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn hóa đơn để thanh toán!");
+            return;
+        }
+
+        // Logic show QR Dialog
+        try {
+            double amount = parseMoney(lblThanhTien.getText());
+            String addInfo = "THANH TOAN HD " + currentMaHD;
+
+            // DEMO BANK INFO: MB Bank
+            String tkNganHang = "88810102004888";
+            String maNganHang = "MB";
+            String tenChuTk = "CAO TRONG NGUYEN";
+
+            String url = String.format(
+                    "https://img.vietqr.io/image/%s-%s-compact.png?amount=%.0f&addInfo=%s&accountName=%s",
+                    maNganHang, tkNganHang, amount, addInfo.replace(" ", "%20"), tenChuTk.replace(" ", "%20"));
+
+            JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Quét Mã Thanh Toán QR", true);
+            dialog.setSize(400, 550);
+            dialog.setLocationRelativeTo(this);
+            dialog.setLayout(new BorderLayout());
+
+            // Image Label
+            JLabel lblQR = new JLabel("Đang tải mã QR...", SwingConstants.CENTER);
+            lblQR.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+
+            // Load Image Async
+            new SwingWorker<ImageIcon, Void>() {
+                @Override
+                protected ImageIcon doInBackground() throws Exception {
+                    java.net.URL qrUrl = new java.net.URL(url);
+                    java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(qrUrl);
+                    return new ImageIcon(image.getScaledInstance(350, 350, Image.SCALE_SMOOTH));
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        lblQR.setText("");
+                        lblQR.setIcon(get());
+                    } catch (Exception ex) {
+                        lblQR.setText("Lỗi tải mã QR");
+                        ex.printStackTrace();
+                    }
+                }
+            }.execute();
+
+            dialog.add(lblQR, BorderLayout.CENTER);
+
+            // Button Panel
+            JPanel pnlAction = new JPanel(new GridLayout(2, 1, 5, 5));
+            pnlAction.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+            JLabel lblInfo = new JLabel(
+                    "<html><center>Số tiền: <font color='red'>" + formatMoney(amount) + " VNĐ</font><br>"
+                            + "Nội dung: " + addInfo + "</center></html>",
+                    SwingConstants.CENTER);
+            lblInfo.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+            JButton btnConfirm = new JButton("XÁC NHẬN ĐÃ THANH TOÁN XONG");
+            btnConfirm.setBackground(new Color(22, 163, 74));
+            btnConfirm.setForeground(Color.WHITE);
+            btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            btnConfirm.setPreferredSize(new Dimension(200, 40));
+            btnConfirm.addActionListener(e -> {
+                dialog.dispose();
+                processPayment(); // Call existing payment logic
+            });
+
+            pnlAction.add(lblInfo);
+            pnlAction.add(btnConfirm);
+
+            dialog.add(pnlAction, BorderLayout.SOUTH);
+            dialog.setVisible(true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi tạo mã QR: " + e.getMessage());
+        }
     }
 
     private void processPayment() {

@@ -94,6 +94,17 @@ public class TrangChu extends JFrame {
     }
 
     public static void main(String[] args) {
+        // Setup FlatLaf theme
+        try {
+            // Use Reflection to avoid "Cannot resolve" compile validation if not in
+            // classpath yet
+            Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
+            javax.swing.UIManager.put("Button.arc", 10);
+            javax.swing.UIManager.put("Component.arc", 10);
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize FlatLaf");
+        }
+
         // ✅ PHASE 1: Require login trước
         SwingUtilities.invokeLater(() -> {
             new ManHinhDangNhap().setVisible(true);

@@ -237,6 +237,13 @@ public class ManHinhDangNhap extends JFrame {
 
     // Test main
     public static void main(String[] args) {
+        try {
+            // Use Reflection to avoid "Cannot resolve" compile validation if not in
+            // classpath yet
+            Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize FlatLaf");
+        }
         SwingUtilities.invokeLater(() -> {
             new ManHinhDangNhap().setVisible(true);
         });
