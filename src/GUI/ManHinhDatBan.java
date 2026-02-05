@@ -376,7 +376,7 @@ public class ManHinhDatBan extends JPanel {
             return;
         }
 
-        DatBan db = datBanDAO.getDatBanGanNhat(tblBookings.getValueAt(row, 3).toString());
+        DatBan db = DatBanDAO.getDatBanGanNhat(tblBookings.getValueAt(row, 3).toString());
 
         if (db != null) {
             String info = String.format(

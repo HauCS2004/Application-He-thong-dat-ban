@@ -133,4 +133,96 @@ public class ThongKeDAO {
         }
         return list;
     }
+
+    // 6. Thống kê theo khung giờ (Golden Hour)
+    public ArrayList<Object[]> getDoanhThuTheoKhungGio(Date from, Date to) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT DATEPART(HOUR, NgayTao) as Gio, COUNT(*) as SoDon, SUM(TongTien) as DoanhThu " +
+                    "FROM HoaDon " +
+                    "WHERE TrangThai = 1 AND NgayTao BETWEEN ? AND ? " +
+                    "GROUP BY DATEPART(HOUR, NgayTao) " +
+                    "ORDER BY Gio";
+
+            // Adjust Date Range using Calendar
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(from);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.setTime(to);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setTimestamp(1, start);
+            ps.setTimestamp(2, end);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[] { rs.getInt("Gio"), rs.getInt("SoDon"), rs.getDouble("DoanhThu") });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // 7. Thống kê hiệu suất nhân viên
+    public ArrayList<Object[]> getHieuSuatNhanVien(Date from, Date to) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            // Left Join để lấy cả nhân viên không bán được?
+            // Tạm thời Inner Join để lấy người có doanh thu
+            // Cần bảng NhanVien để lấy tên. Nếu mã NV null (admin/system) thì xử lý sau.
+            String sql = "SELECT hd.MaNV, nv.TenNV, COUNT(hd.MaHD) as SoDon, SUM(hd.TongTien) as DoanhThu " +
+                    "FROM HoaDon hd " +
+                    "LEFT JOIN NhanVien nv ON hd.MaNV = nv.MaNV " +
+                    "WHERE hd.TrangThai = 1 AND hd.NgayTao BETWEEN ? AND ? " +
+                    "GROUP BY hd.MaNV, nv.TenNV " +
+                    "ORDER BY DoanhThu DESC";
+
+            // Adjust Date Range using Calendar
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(from);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.setTime(to);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setTimestamp(1, start);
+            ps.setTimestamp(2, end);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String maNV = rs.getString("MaNV");
+                String tenNV = rs.getString("TenNV");
+                if (maNV == null) {
+                    maNV = "N/A";
+                    tenNV = "System/Undefined";
+                }
+                list.add(new Object[] { maNV, tenNV, rs.getInt("SoDon"), rs.getDouble("DoanhThu") });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

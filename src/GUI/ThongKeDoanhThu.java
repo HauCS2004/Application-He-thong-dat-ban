@@ -52,6 +52,8 @@ public class ThongKeDoanhThu extends JPanel {
 
         tabs.addTab("Chi Tiết Doanh Thu", createRevenueTab());
         tabs.addTab("Món Ăn Bán Chạy", createFoodTab());
+        tabs.addTab("Khung Giờ Vàng", createGoldenHourTab());
+        tabs.addTab("Hiệu Suất Nhân Viên", createEmployeePerformanceTab());
 
         add(tabs, BorderLayout.CENTER);
 
@@ -214,6 +216,198 @@ public class ThongKeDoanhThu extends JPanel {
                         formatMoney((Double) row[2]) // Price
                 });
             }
+        }
+    }
+
+    // --- TAB 3: GOLDEN HOUR ---
+    private JDateChooser dateFromGolden, dateToGolden;
+    private JTable tblGoldenHour;
+    private DefaultTableModel modelGoldenHour;
+
+    private JPanel createGoldenHourTab() {
+        JPanel pnl = new JPanel(new BorderLayout(10, 10));
+        pnl.setBackground(Color.WHITE);
+        pnl.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Filter
+        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        pnlFilter.setBackground(Color.WHITE);
+
+        dateFromGolden = new JDateChooser(new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000));
+        dateFromGolden.setPreferredSize(new Dimension(150, 30));
+        dateToGolden = new JDateChooser(new Date());
+        dateToGolden.setPreferredSize(new Dimension(150, 30));
+
+        JButton btnFilter = new JButton("Thống kê");
+        btnFilter.setBackground(new Color(245, 158, 11)); // Orange
+        btnFilter.setForeground(Color.WHITE);
+        btnFilter.addActionListener(e -> loadGoldenHourData());
+
+        pnlFilter.add(new JLabel("Từ:"));
+        pnlFilter.add(dateFromGolden);
+        pnlFilter.add(new JLabel("Đến:"));
+        pnlFilter.add(dateToGolden);
+        pnlFilter.add(btnFilter);
+
+        pnl.add(pnlFilter, BorderLayout.NORTH);
+
+        // Table (Heatmap Style)
+        String[] cols = { "Khung Giờ", "Số Đơn", "Doanh Thu", "Mức Độ" };
+        modelGoldenHour = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        tblGoldenHour = new JTable(modelGoldenHour);
+        tblGoldenHour.setRowHeight(30);
+        tblGoldenHour.getColumnModel().getColumn(3).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, "", isSelected, hasFocus, row, column);
+                if (value instanceof Integer) {
+                    int intensity = (int) value;
+                    int alpha = Math.min(255, Math.max(0, intensity * 25)); // Scale intensity
+                    setBackground(new Color(255, 165, 0, alpha));
+                    setText(intensity + "/10");
+                    setHorizontalAlignment(SwingConstants.CENTER);
+                }
+                return this;
+            }
+        });
+
+        pnl.add(new JScrollPane(tblGoldenHour), BorderLayout.CENTER);
+
+        return pnl;
+    }
+
+    private void loadGoldenHourData() {
+        modelGoldenHour.setRowCount(0);
+        Date from = dateFromGolden.getDate();
+        Date to = dateToGolden.getDate();
+        if (from == null || to == null)
+            return;
+
+        ArrayList<Object[]> list = tkDAO.getDoanhThuTheoKhungGio(from, to);
+
+        // Find max for scaling
+        double maxRevenue = 0;
+        for (Object[] row : list) {
+            maxRevenue = Math.max(maxRevenue, (double) row[2]);
+        }
+
+        for (Object[] row : list) {
+            int hour = (int) row[0];
+            int count = (int) row[1];
+            double revenue = (double) row[2];
+
+            // Calculate intensity 1-10
+            int intensity = maxRevenue > 0 ? (int) ((revenue / maxRevenue) * 10) : 0;
+
+            modelGoldenHour.addRow(new Object[] {
+                    String.format("%02d:00 - %02d:00", hour, hour + 1),
+                    count,
+                    formatMoney(revenue),
+                    intensity
+            });
+        }
+    }
+
+    // --- TAB 4: EMPLOYEE PERFORMANCE ---
+    private JDateChooser dateFromEmp, dateToEmp;
+    private JTable tblEmployee;
+    private DefaultTableModel modelEmployee;
+
+    private JPanel createEmployeePerformanceTab() {
+        JPanel pnl = new JPanel(new BorderLayout(10, 10));
+        pnl.setBackground(Color.WHITE);
+        pnl.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Filter
+        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        pnlFilter.setBackground(Color.WHITE);
+
+        dateFromEmp = new JDateChooser(new Date(System.currentTimeMillis() - 30L * 24 * 3600 * 1000)); // 30 days
+        dateFromEmp.setPreferredSize(new Dimension(150, 30));
+        dateToEmp = new JDateChooser(new Date());
+        dateToEmp.setPreferredSize(new Dimension(150, 30));
+
+        JButton btnFilter = new JButton("Thống kê");
+        btnFilter.setBackground(new Color(59, 130, 246)); // Blue
+        btnFilter.setForeground(Color.WHITE);
+        btnFilter.addActionListener(e -> loadEmployeeData());
+
+        pnlFilter.add(new JLabel("Từ:"));
+        pnlFilter.add(dateFromEmp);
+        pnlFilter.add(new JLabel("Đến:"));
+        pnlFilter.add(dateToEmp);
+        pnlFilter.add(btnFilter);
+
+        pnl.add(pnlFilter, BorderLayout.NORTH);
+
+        // Table
+        String[] cols = { "Mã NV", "Tên Nhân Viên", "Số Hóa Đơn", "Tổng Doanh Thu", "TB/Đơn" };
+        modelEmployee = new DefaultTableModel(cols, 0) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 2)
+                    return Integer.class;
+                if (columnIndex == 3 || columnIndex == 4)
+                    return Double.class; // For sorting
+                return String.class;
+            }
+        };
+
+        tblEmployee = new JTable(modelEmployee);
+        tblEmployee.setRowHeight(30);
+        tblEmployee.setAutoCreateRowSorter(true);
+        tblEmployee.getColumnModel().getColumn(3).setCellRenderer(new CurrencyRenderer());
+        tblEmployee.getColumnModel().getColumn(4).setCellRenderer(new CurrencyRenderer());
+
+        pnl.add(new JScrollPane(tblEmployee), BorderLayout.CENTER);
+
+        return pnl;
+    }
+
+    private void loadEmployeeData() {
+        modelEmployee.setRowCount(0);
+        Date from = dateFromEmp.getDate();
+        Date to = dateToEmp.getDate();
+        if (from == null || to == null)
+            return;
+
+        ArrayList<Object[]> list = tkDAO.getHieuSuatNhanVien(from, to);
+
+        for (Object[] row : list) {
+            String id = (String) row[0];
+            String name = (String) row[1];
+            int count = (int) row[2];
+            double revenue = (double) row[3];
+            double avg = count > 0 ? revenue / count : 0;
+
+            modelEmployee.addRow(new Object[] {
+                    id,
+                    name,
+                    count,
+                    revenue, // Pass Double
+                    avg // Pass Double
+            });
+        }
+    }
+
+    // --- RENDERER FOR CURRENCY ---
+    private class CurrencyRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof Double) {
+                setText(formatMoney((Double) value));
+                setHorizontalAlignment(SwingConstants.RIGHT);
+            }
+            return this;
         }
     }
 
