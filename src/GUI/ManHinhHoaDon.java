@@ -636,7 +636,7 @@ public class ManHinhHoaDon extends JPanel {
             new SwingWorker<ImageIcon, Void>() {
                 @Override
                 protected ImageIcon doInBackground() throws Exception {
-                    java.net.URL qrUrl = new java.net.URL(url);
+                    java.net.URL qrUrl = java.net.URI.create(url).toURL();
                     java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(qrUrl);
                     return new ImageIcon(image.getScaledInstance(350, 350, Image.SCALE_SMOOTH));
                 }

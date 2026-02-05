@@ -31,14 +31,21 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     private JTable tblBookings;
     private DefaultTableModel modelBookings;
     private JTabbedPane tabFloors;
-    private JPanel pnlStatusTabs;
+    private JPanel pnlFloorTabs;
+    private JPanel pnlTables;
     private String selectedStatus = "Tất cả";
     private JPopupMenu popupTableAction;
+
+    // Components - Actions
+    private JButton btnDatBan;
+    private JButton btnHuyBan;
+    private JButton btnChuyenBan;
+    private JButton btnGoiMon;
 
     // Giao diện bộ lọc bản đồ
     private JDateChooser dateMap;
     private JComboBox<String> cboMapGio, cboMapPhut;
-    private JButton btnCheckMap, btnResetMap;
+    private JButton btnCheckMap;
 
     // Panel chi tiết
     private JPanel pnlDetailContainer;
@@ -266,7 +273,6 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             JButton btn = createStatusTabButton(status, label); // Pass value and label
             pnl.add(btn);
         }
-
         return pnl;
     }
 
@@ -304,11 +310,6 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         });
 
         return btn;
-    }
-
-    // Overload for backward compatibility
-    private JButton createStatusTabButton(String status) {
-        return createStatusTabButton(status, status);
     }
 
     private JPanel createBookingTableSection() {

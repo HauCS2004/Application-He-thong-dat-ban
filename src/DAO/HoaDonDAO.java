@@ -234,16 +234,22 @@ public class HoaDonDAO {
 
             PreparedStatement ps = con.prepareStatement(sql);
             // Convert start date to 00:00:00
-            java.sql.Timestamp start = new java.sql.Timestamp(fromDate.getTime());
-            start.setHours(0);
-            start.setMinutes(0);
-            start.setSeconds(0);
+            // Convert start date to 00:00:00 using Calendar
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(fromDate);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
 
-            // Convert end date to 23:59:59
-            java.sql.Timestamp end = new java.sql.Timestamp(toDate.getTime());
-            end.setHours(23);
-            end.setMinutes(59);
-            end.setSeconds(59);
+            // Convert end date to 23:59:59 using Calendar
+            cal.setTime(toDate);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
 
             ps.setTimestamp(1, start);
             ps.setTimestamp(2, end);

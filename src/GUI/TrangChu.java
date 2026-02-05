@@ -105,7 +105,6 @@ public class TrangChu extends JFrame {
             System.err.println("Failed to initialize FlatLaf");
         }
 
-        // ✅ PHASE 1: Require login trước
         SwingUtilities.invokeLater(() -> {
             new ManHinhDangNhap().setVisible(true);
         });

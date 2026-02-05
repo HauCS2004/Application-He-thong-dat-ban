@@ -7,7 +7,7 @@ import java.util.Date;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
+
 import com.toedter.calendar.JDateChooser;
 
 import DAO.ThongKeDAO;

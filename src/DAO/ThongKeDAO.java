@@ -104,14 +104,21 @@ public class ThongKeDAO {
                     "ORDER BY SL DESC";
 
             // Adjust Date Range
-            java.sql.Timestamp start = new java.sql.Timestamp(from.getTime());
-            start.setHours(0);
-            start.setMinutes(0);
-            start.setSeconds(0);
-            java.sql.Timestamp end = new java.sql.Timestamp(to.getTime());
-            end.setHours(23);
-            end.setMinutes(59);
-            end.setSeconds(59);
+            // Adjust Date Range using Calendar
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(from);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.setTime(to);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
 
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setTimestamp(1, start);

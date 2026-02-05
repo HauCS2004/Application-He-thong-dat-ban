@@ -290,8 +290,6 @@ public class TableFloorPanel extends JPanel {
                 int nmembers = getComponentCount();
                 int x = 0, y = 0;
                 int rowHeight = 0;
-                int maxRowWidth = 0;
-                int startX = 0;
 
                 FlowLayout fl = (FlowLayout) getLayout();
                 int hgap = fl.getHgap();

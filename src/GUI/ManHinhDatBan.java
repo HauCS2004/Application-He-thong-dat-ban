@@ -4,15 +4,15 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
+
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 
 import DAO.DatBanDAO;
-import DAO.BanDAO;
+
 import Entity.DatBan;
-import Entity.Ban;
+
 import com.toedter.calendar.JDateChooser;
 
 /**
@@ -43,13 +43,11 @@ public class ManHinhDatBan extends JPanel {
     private JButton btnSearch;
 
     private DatBanDAO datBanDAO;
-    private BanDAO banDAO;
     private SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
     private SimpleDateFormat sdfDate = new SimpleDateFormat("dd/MM/yyyy");
 
     public ManHinhDatBan() {
         datBanDAO = new DatBanDAO();
-        banDAO = new BanDAO();
 
         initGUI();
         loadBookingToday();
