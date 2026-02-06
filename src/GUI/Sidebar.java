@@ -126,7 +126,7 @@ public class Sidebar extends JPanel {
             addSeparator("QUẢN TRỊ");
             addMenuItem("table.png", "Phòng Bàn", "quan_ly_ban_visual");
             addMenuItem("menu.png", "Thực Đơn", "mon_an");
-            addMenuItem("list.png", "Khuyến Mãi", "khuyen_mai"); // New Promotion Management
+            addMenuItem("voucher.png", "Khuyến Mãi", "khuyen_mai"); // New Promotion Management
             addMenuItem("employee.png", "Nhân Viên", "nhan_vien"); // New Employee Management
 
             // 3. NHÓM BÁO CÁO

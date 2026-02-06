@@ -209,7 +209,7 @@ public class KhachHangDAO {
             Connection con = ConnectDB.getConnection();
             String sqlCalc = "UPDATE KhachHang " +
                     "SET DiemTichLuy = ( " +
-                    "    SELECT ISNULL(SUM(TongTien), 0) / 10000 " +
+                    "    SELECT ISNULL(SUM(CAST(TongTien / 10000 AS INT)), 0) " +
                     "    FROM HoaDon " +
                     "    WHERE HoaDon.SDT_Khach = KhachHang.SoDienThoai " +
                     "    AND HoaDon.TrangThai = 1 " + // Chỉ tính đã thanh toán

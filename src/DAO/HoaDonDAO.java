@@ -109,7 +109,7 @@ public class HoaDonDAO {
                 maHD = rs.getInt(1);
             }
         } catch (Exception e) {
-            System.err.println("❌ ERROR: Full Insert HoaDon failed!");
+            System.err.println("ERROR: Full Insert HoaDon failed!");
             System.err.println("Reason: " + e.getMessage());
             e.printStackTrace();
             // Fallback: Minimal Insert with Phone AND MaNV

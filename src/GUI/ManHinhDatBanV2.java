@@ -157,9 +157,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setOpaque(false);
 
-        btnNotify = new JButton("🔔");
+        btnNotify = new JButton(GUI.utils.IconHelper.loadIcon("view/icons/bell.png"));
         btnNotify.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnNotify.setForeground(new Color(234, 179, 8)); // Yellow/Gold
         btnNotify.setBackground(Color.WHITE);
         btnNotify.setFocusPainted(false);
         btnNotify.setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 1));
@@ -1042,12 +1041,16 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         int total = upcoming.size() + overdue.size();
 
         if (total > 0) {
-            btnNotify.setText("🔔 " + total);
-            btnNotify.setForeground(new Color(220, 38, 38)); // Red
-            btnNotify.setBackground(new Color(254, 226, 226)); // Light Red
+            // Warning State
+            btnNotify.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/bell_warning.png"));
+            btnNotify.setText(String.valueOf(total)); // Show count
+            btnNotify.setForeground(new Color(220, 38, 38)); // Red Text
+            btnNotify.setBackground(new Color(254, 226, 226)); // Light Red BG
         } else {
-            btnNotify.setText("🔔");
-            btnNotify.setForeground(new Color(234, 179, 8)); // Gold
+            // Normal State
+            btnNotify.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/bell.png"));
+            btnNotify.setText(""); // Hide count
+            btnNotify.setForeground(new Color(234, 179, 8)); // Restore default (though not used for icon)
             btnNotify.setBackground(Color.WHITE);
         }
     }

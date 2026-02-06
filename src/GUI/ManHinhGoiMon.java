@@ -337,7 +337,16 @@ public class ManHinhGoiMon extends JFrame {
                 lbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
                 if (column == 6) { // Xóa
-                    lbl.setForeground(Color.RED);
+                    // lbl.setForeground(Color.RED);
+                    ImageIcon icon = GUI.utils.IconHelper.loadIcon("view/icons/delete.png");
+                    if (icon != null) {
+                        // Resize if needed
+                        Image img = icon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+                        lbl.setIcon(new ImageIcon(img));
+                    } else {
+                        lbl.setText("X"); // Fallback
+                        lbl.setForeground(Color.RED);
+                    }
                 } else if (column == 1 || column == 3) { // - or +
                     lbl.setForeground(new Color(31, 41, 55));
                     lbl.setBackground(new Color(229, 231, 235));
@@ -470,7 +479,7 @@ public class ManHinhGoiMon extends JFrame {
                     "+",
                     formatMoney(donGia),
                     formatMoney(thanhTien),
-                    "❌",
+                    "", // Icon renderer
                     maMon
             });
             total += thanhTien;
