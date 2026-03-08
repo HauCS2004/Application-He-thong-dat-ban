@@ -47,13 +47,55 @@ public class IconHelper {
     }
 
     /**
-     * Resizes an icon to specific width/height
+     * Resizes an icon to specific width/height, utilizing High-DPI (HiDPI)
+     * crispness.
+     * By overriding paintIcon, the original high-res image is drawn directly to the
+     * scaled Graphics context.
      */
     public static ImageIcon resize(ImageIcon icon, int width, int height) {
         if (icon == null)
             return null;
-        Image img = icon.getImage();
-        Image newImg = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-        return new ImageIcon(newImg);
+        return new ScalableImageIcon(icon.getImage(), width, height);
+    }
+
+    /**
+     * Custom ImageIcon that draws its underlying high-resolution image
+     * into the logical bounds, ensuring maximum sharpness on scaled displays (125%,
+     * 150%, etc).
+     */
+    public static class ScalableImageIcon extends ImageIcon {
+        private int logicalWidth;
+        private int logicalHeight;
+
+        public ScalableImageIcon(Image image, int logicalWidth, int logicalHeight) {
+            super(image);
+            this.logicalWidth = logicalWidth;
+            this.logicalHeight = logicalHeight;
+        }
+
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            // Bật thuật toán nén ảnh tốt nhất Bicubic / Khử răng cưa
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // Vẽ ảnh gốc to trực tiếp lên tọa độ logic, Java sẽ tự động scale cho màn hình
+            // HD phân giải cao
+            g2.drawImage(getImage(), x, y, logicalWidth, logicalHeight, null);
+            g2.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return logicalWidth;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return logicalHeight;
+        }
     }
 }

@@ -31,16 +31,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     private JTable tblBookings;
     private DefaultTableModel modelBookings;
     private JTabbedPane tabFloors;
-    private JPanel pnlFloorTabs;
-    private JPanel pnlTables;
+    // private JPanel pnlFloorTabs;
+    // private JPanel pnlTables;
     private String selectedStatus = "Tất cả";
     private JPopupMenu popupTableAction;
-
-    // Components - Actions
-    private JButton btnDatBan;
-    private JButton btnHuyBan;
-    private JButton btnChuyenBan;
-    private JButton btnGoiMon;
 
     // Giao diện bộ lọc bản đồ
     private JDateChooser dateMap;
@@ -168,7 +162,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         btnNotify.addActionListener(e -> showNotificationDialog());
         pnlActions.add(btnNotify);
 
-        JButton btnCreate = new JButton("+ Thêm đặt bàn mới");
+        JButton btnCreate = new JButton("Thêm đặt bàn mới");
+        btnCreate.setIcon(
+                GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));
         btnCreate.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnCreate.setForeground(Color.WHITE);
         btnCreate.setBackground(new Color(34, 197, 94));
@@ -319,8 +315,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 new EmptyBorder(10, 10, 10, 10)));
 
         // Table
-        String[] columns = { "MaDat", "", "Tên khách hàng", "Số điện thoại", "SL", "Ngày đặt", "Giờ", "Số bàn",
-                "Trạng thái", "MaBan" };
+        String[] columns = { "MaDat", "", "Tên khách hàng", "Số điện thoại", "SL",
+                "Ngày đặt", "Giờ", "Số bàn", "Trạng thái", "MaBan" };
         modelBookings = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -387,11 +383,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         JPopupMenu popup = new JPopupMenu();
 
         if ("Chờ xác nhận".equals(status) || "Đã xác nhận".equals(status)) {
-            JMenuItem itemCheckIn = new JMenuItem("✅ Nhận Bàn (Check-in)");
+            JMenuItem itemCheckIn = new JMenuItem("Nhận Bàn (Check-in)");
             itemCheckIn.addActionListener(ev -> checkInBookingFromTable(row));
             popup.add(itemCheckIn);
 
-            JMenuItem itemCancel = new JMenuItem("❌ Hủy Đặt");
+            JMenuItem itemCancel = new JMenuItem("Hủy Đặt");
             itemCancel.addActionListener(ev -> cancelBookingFromTable(row));
             popup.add(itemCancel);
         }
@@ -1067,7 +1063,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         JPanel pnlUpcoming = new JPanel(new BorderLayout());
         ArrayList<Entity.DatBan> upcoming = datBanDAO.getUpcomingBookings(30);
         if (upcoming.isEmpty()) {
-            pnlUpcoming.add(new JLabel("Không có đặt bàn nào sắp đến giờ (30p)", SwingConstants.CENTER));
+            pnlUpcoming.add(new JLabel("Không có đặt bàn nào sắp đến giờ (~30p)", SwingConstants.CENTER));
         } else {
             String[] cols = { "Mã", "Bàn", "Khách", "SĐT", "Giờ đến" };
             DefaultTableModel model = new DefaultTableModel(cols, 0);
@@ -1295,7 +1291,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
         // 3. Actions
         // "Đặt Bàn Mới" - Always visible
-        JButton btnBook = new JButton("Đặt Bàn Mới");
+        JButton btnBook = new JButton(" Đặt Bàn Mới");
+        btnBook.setIcon(
+                GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));
+        btnBook.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnBook.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnBook.setAlignmentX(Component.LEFT_ALIGNMENT);
         btnBook.setBackground(new Color(34, 197, 94));
         btnBook.setForeground(Color.WHITE);

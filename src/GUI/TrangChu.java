@@ -19,7 +19,6 @@ public class TrangChu extends JFrame {
     private ManHinhTrangChu pnlTrangChu;
     private ManHinhDatBanV2 pnlDatBan; // NEW: Redesigned booking screen
     private QuanLyMonAn pnlQuanLyMonAn;
-    private QuanLyBan pnlBan;
     private ManHinhHoaDon pnlHoaDon;
     private QuanLyKhachHang pnlKhachHang;
     private ThongKeDoanhThu pnlThongKe;
@@ -49,7 +48,6 @@ public class TrangChu extends JFrame {
         pnlTrangChu = new ManHinhTrangChu();
         pnlDatBan = new ManHinhDatBanV2(); // NEW: Redesigned
         pnlQuanLyMonAn = new QuanLyMonAn();
-        pnlBan = new QuanLyBan();
         pnlHoaDon = new ManHinhHoaDon();
         pnlKhachHang = new QuanLyKhachHang();
         pnlThongKe = new ThongKeDoanhThu();
@@ -60,13 +58,11 @@ public class TrangChu extends JFrame {
         // Add vào CardLayout
         pnlContent.add(pnlTrangChu, "home");
         pnlContent.add(pnlDatBan, "dat_ban");
-        pnlContent.add(pnlBan, "ban");
         pnlContent.add(pnlPhucVu, "phuc_vu"); // NEW
         pnlContent.add(pnlHoaDon, "hoa_don");
         pnlContent.add(pnlKhachHang, "khach_hang");
 
         // Menu chỉ dành cho quản lý (card names match sidebar)
-        pnlContent.add(pnlBan, "quan_ly_ban"); // Alias cho quản lý bàn
         pnlContent.add(pnlQuanLyBanVisual, "quan_ly_ban_visual"); // Giao diện quản lý bàn (Visual)
         pnlContent.add(pnlQuanLyMonAn, "mon_an");
         pnlContent.add(new ManHinhKhuyenMai(), "khuyen_mai"); // NEW: Promotion Screen
