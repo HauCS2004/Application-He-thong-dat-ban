@@ -162,7 +162,26 @@ public class BanDAO {
                 int maHDNguon = hdDAO.getMaHDByBan(maBanNguon);
 
                 // Chuyển món
+                // Bước 1: Cộng gộp số lượng của các món ăn bị trùng giữa bàn nguồn và bàn đích
                 if (maHDNguon != -1) {
+                    String sqlMergeDupe = "UPDATE t SET t.SoLuong = t.SoLuong + s.SoLuong " +
+                                          "FROM ChiTietHoaDon t INNER JOIN ChiTietHoaDon s ON t.MaMon = s.MaMon " +
+                                          "WHERE t.MaHD = ? AND s.MaHD = ?";
+                    PreparedStatement psMerge = con.prepareStatement(sqlMergeDupe);
+                    psMerge.setInt(1, maHDDich);
+                    psMerge.setInt(2, maHDNguon);
+                    psMerge.executeUpdate();
+
+                    // Bước 2: Xóa những record trùng lặp từ hóa đơn nguồn (vì đã cộng dồn sang đích rồi)
+                    String sqlDeleteDupe = "DELETE s " +
+                                           "FROM ChiTietHoaDon s INNER JOIN ChiTietHoaDon t ON s.MaMon = t.MaMon " +
+                                           "WHERE t.MaHD = ? AND s.MaHD = ?";
+                    PreparedStatement psDelDupe = con.prepareStatement(sqlDeleteDupe);
+                    psDelDupe.setInt(1, maHDDich);
+                    psDelDupe.setInt(2, maHDNguon);
+                    psDelDupe.executeUpdate();
+
+                    // Bước 3: Chuyển toàn bộ món KHÔNG TRÙNG còn lại từ nguồn sang đích
                     String sqlMove = "UPDATE ChiTietHoaDon SET MaHD = ? WHERE MaHD = ?";
                     PreparedStatement ps = con.prepareStatement(sqlMove);
                     ps.setInt(1, maHDDich);
@@ -182,6 +201,13 @@ public class BanDAO {
                 psUp.setString(1, maBanDich);
                 psUp.setString(2, maBanNguon);
                 psUp.executeUpdate();
+
+                // Lưu thông tin ghép vào Ghi Chú của Hóa đơn đích
+                String sqlAppend = "UPDATE HoaDon SET GhiChu = ISNULL(GhiChu, '') + ? WHERE MaHD = ?";
+                PreparedStatement psAppend = con.prepareStatement(sqlAppend);
+                psAppend.setString(1, " [Ghép từ bàn " + maBanNguon + "]");
+                psAppend.setInt(2, maHDDich);
+                psAppend.executeUpdate();
             }
 
             con.commit();

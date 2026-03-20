@@ -5,37 +5,35 @@ import java.util.Date;
 public class NhanVien {
     private String maNV;
     private String tenNV;
-    private String matKhau;
-    private String chucVu;
     private String soDienThoai;
     private String email;
-    private Date ngayVaoLam;
+    private java.util.Date ngayVaoLam;
+    // Tham chiếu tới TaiKhoan (load khi cần, có thể null)
+    private TaiKhoan taiKhoan;
 
     // Constructor mặc định
     public NhanVien() {
     }
 
-    // Constructor cho login (chỉ cần mã NV và mật khẩu)
-    public NhanVien(String maNV, String matKhau) {
-        this.maNV = maNV;
-        this.matKhau = matKhau;
-    }
-
-    // Constructor đầy đủ
-    public NhanVien(String maNV, String tenNV, String matKhau, String chucVu,
-            String soDienThoai, String email, Date ngayVaoLam) {
+    // Constructor cho login (dùng TaiKhoan riêng)
+    public NhanVien(String maNV, String tenNV) {
         this.maNV = maNV;
         this.tenNV = tenNV;
-        this.matKhau = matKhau;
-        this.chucVu = chucVu;
+    }
+
+    // Constructor đầy đủ (cho SELECT từ database)
+    public NhanVien(String maNV, String tenNV, String soDienThoai,
+            String email, java.util.Date ngayVaoLam) {
+        this.maNV = maNV;
+        this.tenNV = tenNV;
         this.soDienThoai = soDienThoai;
         this.email = email;
         this.ngayVaoLam = ngayVaoLam;
     }
 
-    // Helper methods
+    /** Tiện ích: kiểm tra vai trò qua TaiKhoan đính kèm */
     public boolean isQuanLy() {
-        return chucVu != null && chucVu.equals("Quản lý");
+        return taiKhoan != null && taiKhoan.isQuanLy();
     }
 
     // --- GETTERS & SETTERS ---
@@ -55,28 +53,12 @@ public class NhanVien {
         this.tenNV = tenNV;
     }
 
-    public String getMatKhau() {
-        return matKhau;
-    }
-
-    public void setMatKhau(String matKhau) {
-        this.matKhau = matKhau;
-    }
-
-    public String getChucVu() {
-        return chucVu;
-    }
-
-    public void setChucVu(String chucVu) {
-        this.chucVu = chucVu;
-    }
-
     public String getSoDienThoai() {
         return soDienThoai;
     }
 
-    public void setSoDienThoai(String soDienThoai) {
-        this.soDienThoai = soDienThoai;
+    public void setSoDienThoai(String s) {
+        this.soDienThoai = s;
     }
 
     public String getEmail() {
@@ -87,16 +69,25 @@ public class NhanVien {
         this.email = email;
     }
 
-    public Date getNgayVaoLam() {
+    public java.util.Date getNgayVaoLam() {
         return ngayVaoLam;
     }
 
-    public void setNgayVaoLam(Date ngayVaoLam) {
-        this.ngayVaoLam = ngayVaoLam;
+    public void setNgayVaoLam(java.util.Date d) {
+        this.ngayVaoLam = d;
+    }
+
+    public TaiKhoan getTaiKhoan() {
+        return taiKhoan;
+    }
+
+    public void setTaiKhoan(TaiKhoan tk) {
+        this.taiKhoan = tk;
     }
 
     @Override
     public String toString() {
-        return tenNV + " (" + chucVu + ")";
+        String vaiTro = (taiKhoan != null) ? taiKhoan.getVaiTro() : "Nhân viên";
+        return tenNV + " (" + vaiTro + ")";
     }
 }

@@ -30,6 +30,7 @@ import javax.swing.table.DefaultTableModel;
 
 import DAO.NhanVienDAO;
 import Entity.NhanVien;
+import Entity.TaiKhoan;
 import connectDB.SessionManager;
 
 public class ManHinhNhanVien extends JPanel {
@@ -78,8 +79,8 @@ public class ManHinhNhanVien extends JPanel {
         txtMatKhau = createTextField();
         pnlInputs.add(txtMatKhau);
 
-        pnlInputs.add(createLabel("Chức vụ:"));
-        cboChucVu = new JComboBox<>(new String[] { "Nhân viên", "Quản lý", "Thu ngân", "Phục vụ", "Bếp" });
+        pnlInputs.add(createLabel("Chức vụ / Vai trò:"));
+        cboChucVu = new JComboBox<>(new String[] { "Nhân viên", "Quản lý" });
         cboChucVu.setFont(fontInput);
         cboChucVu.setBackground(Color.WHITE);
         pnlInputs.add(cboChucVu);
@@ -270,10 +271,11 @@ public class ManHinhNhanVien extends JPanel {
     }
 
     void addModel(NhanVien nv) {
+        String vaiTro = (nv.getTaiKhoan() != null) ? nv.getTaiKhoan().getVaiTro() : "Nhân viên";
         model.addRow(new Object[] {
                 nv.getMaNV(),
                 nv.getTenNV(),
-                nv.getChucVu(),
+                vaiTro,
                 nv.getSoDienThoai(),
                 nv.getEmail(),
                 nv.getNgayVaoLam() != null ? sdf.format(nv.getNgayVaoLam()) : ""
@@ -286,31 +288,36 @@ public class ManHinhNhanVien extends JPanel {
         if (nv != null) {
             txtMaNV.setText(nv.getMaNV());
             txtTen.setText(nv.getTenNV());
-            txtMatKhau.setText(nv.getMatKhau());
-            cboChucVu.setSelectedItem(nv.getChucVu());
+            // Hiển thị mật khẩu từ TaiKhoan
+            if (nv.getTaiKhoan() != null) {
+                txtMatKhau.setText(nv.getTaiKhoan().getMatKhau());
+                cboChucVu.setSelectedItem(nv.getTaiKhoan().getVaiTro());
+            }
             txtSDT.setText(nv.getSoDienThoai());
             txtEmail.setText(nv.getEmail());
             spinNgayVaoLam.setValue(nv.getNgayVaoLam() != null ? nv.getNgayVaoLam() : new Date());
-
             txtMaNV.setEditable(false);
         }
     }
 
     NhanVien getForm() {
-        String maNV = txtMaNV.getText().trim();
-        String ten = txtTen.getText().trim();
+        String maNV    = txtMaNV.getText().trim();
+        String ten     = txtTen.getText().trim();
         String matKhau = txtMatKhau.getText().trim();
-        String sdt = txtSDT.getText().trim();
-        String email = txtEmail.getText().trim();
-        String chucVu = cboChucVu.getSelectedItem().toString();
-        Date ngayVaoLam = (Date) spinNgayVaoLam.getValue();
+        String sdt     = txtSDT.getText().trim();
+        String email   = txtEmail.getText().trim();
+        String vaiTro  = cboChucVu.getSelectedItem().toString();
+        Date   ngayVaoLam = (Date) spinNgayVaoLam.getValue();
 
         if (maNV.isEmpty() || ten.isEmpty() || matKhau.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đủ: Mã, Tên, Mật khẩu!");
             return null;
         }
 
-        return new NhanVien(maNV, ten, matKhau, chucVu, sdt, email, ngayVaoLam);
+        // Tạo NhanVien + TaiKhoan liên kết
+        NhanVien nv = new NhanVien(maNV, ten, sdt, email, ngayVaoLam);
+        nv.setTaiKhoan(new TaiKhoan(maNV, matKhau, vaiTro));
+        return nv;
     }
 
     void clearForm() {

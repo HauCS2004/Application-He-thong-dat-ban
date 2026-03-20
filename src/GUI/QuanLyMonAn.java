@@ -14,6 +14,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import com.toedter.calendar.JDateChooser;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerDateModel;
+import javax.swing.SpinnerNumberModel;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -24,14 +28,20 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
 
+import DAO.BangGiaDAO;
 import DAO.LoaiMonDAO;
 import DAO.MonAnDAO;
+import Entity.BangGia;
 import Entity.LoaiMon;
 import Entity.MonAn;
 import UTILS.XImage;
@@ -54,15 +64,43 @@ public class QuanLyMonAn extends JPanel {
 
     private MonAnDAO dao = new MonAnDAO();
     private LoaiMonDAO daoLoai = new LoaiMonDAO();
+    private BangGiaDAO bangGiaDAO = new BangGiaDAO();
     private String tenFileAnh = "default.png";
 
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 16);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 16);
 
+    // --- GĐ3: Bảng Giá Tab ---
+    private JTable tblBangGia;
+    private DefaultTableModel modelBangGia;
+    private JComboBox<MonAn> cboBangGiaMon;
+    private JTextField txtBangGiaDonGia;
+    private JDateChooser txtBangGiaTuNgay, txtBangGiaDenNgay;
+    private JSpinner txtBangGiaGioBatDau, txtBangGiaGioKetThuc;
+    private JSpinner txtBangGiaUuTien;
+    private JTextField txtBangGiaGhiChu;
+    private int selectedMaGia = -1;
+
     public QuanLyMonAn() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // ==> TABBED PANE CHÍNH <==
+        JTabbedPane mainTabs = new JTabbedPane();
+        mainTabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        mainTabs.addTab("Danh sách Món Ăn", createMonAnTab());
+        mainTabs.addTab("Quản lý Bảng Giá", createBangGiaTab());
+
+        add(mainTabs, BorderLayout.CENTER);
+    }
+
+    // ==================== TAB 1: DANH SÁCH MÓN ĂN ====================
+    private JPanel createMonAnTab() {
+        JPanel tabPanel = new JPanel(new BorderLayout(10, 10));
+        tabPanel.setBackground(Color.WHITE);
+        tabPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         // ================= PHẦN 1: FORM NHẬP LIỆU (TOP) =================
         JPanel pnlTop = new JPanel(new BorderLayout(10, 0));
@@ -141,42 +179,36 @@ public class QuanLyMonAn extends JPanel {
         pnlButtons.add(btnMoi);
 
         pnlTop.add(pnlButtons, BorderLayout.SOUTH);
-        add(pnlTop, BorderLayout.NORTH);
+        tabPanel.add(pnlTop, BorderLayout.NORTH);
 
-        // ================= PHẦN 2: THANH CÔNG CỤ & DANH SÁCH (CENTER)
-        // =================
-
-        // Tạo một Panel chứa cả Thanh tìm kiếm và Grid để add vào CENTER
+        // ================= PHẦN 2: THANH CÔNG CỤ & DANH SÁCH (CENTER) =================
         JPanel pnlCenter = new JPanel(new BorderLayout(0, 10));
         pnlCenter.setBackground(Color.WHITE);
 
         // >> THANH TÌM KIẾM & LỌC <<
         JPanel pnlCongCu = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        pnlCongCu.setBackground(new Color(240, 248, 255)); // Màu nền xanh nhạt cho nổi bật
+        pnlCongCu.setBackground(new Color(240, 248, 255));
         pnlCongCu.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
-        // 1. Ô tìm kiếm
         pnlCongCu.add(createLabel("Tìm tên:"));
         txtTimKiem = new JTextField(15);
         txtTimKiem.setFont(fontInput);
         pnlCongCu.add(txtTimKiem);
 
-        // 2. Nút tìm
         btnTim = new JButton("Tìm");
         btnTim.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnTim.setBackground(new Color(46, 204, 113)); // Màu xanh lá
+        btnTim.setBackground(new Color(46, 204, 113));
         btnTim.setForeground(Color.WHITE);
         pnlCongCu.add(btnTim);
 
-        // 3. ComboBox Lọc Loại
-        pnlCongCu.add(new JLabel("   |   Lọc theo loại:")); // Dấu gạch đứng phân cách
+        pnlCongCu.add(new JLabel("   |   Lọc theo loại:"));
         cboLocLoai = new JComboBox<>();
         cboLocLoai.setFont(fontInput);
         cboLocLoai.setBackground(Color.WHITE);
         cboLocLoai.setPreferredSize(new Dimension(150, 30));
         pnlCongCu.add(cboLocLoai);
 
-        pnlCenter.add(pnlCongCu, BorderLayout.NORTH); // Add thanh công cụ lên đầu phần Center
+        pnlCenter.add(pnlCongCu, BorderLayout.NORTH);
 
         // >> DANH SÁCH GRID <<
         pnlDanhSach = new JPanel(new GridLayout(0, 4, 20, 20));
@@ -187,14 +219,12 @@ public class QuanLyMonAn extends JPanel {
         scroll.setBorder(BorderFactory.createTitledBorder("DANH SÁCH MÓN ĂN"));
 
         pnlCenter.add(scroll, BorderLayout.CENTER);
-
-        // Add toàn bộ phần Center vào giao diện chính
-        add(pnlCenter, BorderLayout.CENTER);
+        tabPanel.add(pnlCenter, BorderLayout.CENTER);
 
         // ================= KHỞI TẠO DỮ LIỆU =================
-        loadComboboxLoai(); // Load cho form nhập
-        loadComboboxLoc(); // Load cho thanh lọc
-        loadDataGrid(); // Load toàn bộ món ăn
+        loadComboboxLoai();
+        loadComboboxLoc();
+        loadDataGrid();
 
         // ================= SỰ KIỆN NÚT BẤM CƠ BẢN =================
         btnThem.addActionListener(e -> {
@@ -217,13 +247,8 @@ public class QuanLyMonAn extends JPanel {
         btnXoa.addActionListener(e -> {
             if (JOptionPane.showConfirmDialog(this, "Xóa món này?") == 0) {
                 String maMon = txtMa.getText();
-                // Lấy tên ảnh trước khi xóa DB để còn xóa file
-                // Cần query lại DB để lấy tên ảnh chính xác, hoặc dùng tenFileAnh từ fillForm
-                // Vì tenFileAnh update khi click table, nên dùng tenFileAnh là ok.
                 if (dao.delete(maMon)) {
-                    // Option A: Xóa luôn ảnh
                     XImage.delete(tenFileAnh);
-
                     loadDataGrid();
                     clearForm();
                     JOptionPane.showMessageDialog(this, "Xóa thành công!");
@@ -233,43 +258,317 @@ public class QuanLyMonAn extends JPanel {
 
         btnMoi.addActionListener(e -> clearForm());
 
-        // ================= SỰ KIỆN TÌM KIẾM & LỌC (QUAN TRỌNG) =================
-
-        // 1. Sự kiện bấm nút Tìm
+        // ================= SỰ KIỆN TÌM KIẾM & LỌC =================
         btnTim.addActionListener(e -> xuLyTimKiem());
-
-        // 2. Sự kiện gõ phím trong ô tìm kiếm (Gõ đến đâu tìm đến đó)
         txtTimKiem.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
                 xuLyTimKiem();
             }
         });
-
-        // 3. Sự kiện chọn ComboBox Lọc
         cboLocLoai.addActionListener(e -> xuLyTimKiem());
+
+        return tabPanel;
+    }
+
+    // ==================== TAB 2: QUẢN LÝ BẢNG GIÁ (GĐ3) ====================
+    private JPanel createBangGiaTab() {
+        JPanel tab = new JPanel(new BorderLayout(10, 10));
+        tab.setBackground(Color.WHITE);
+        tab.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // --- FORM NHẬP ---
+        JPanel pnlForm = new JPanel(new GridLayout(4, 4, 10, 10));
+        pnlForm.setBackground(Color.WHITE);
+        pnlForm.setBorder(new TitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                "THÊM / SỬA MỨC GIÁ", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION,
+                new Font("Segoe UI", Font.BOLD, 16), new Color(124, 58, 237)));
+
+        // Row 1
+        pnlForm.add(createLabel("Món ăn (nhập lọc):"));
+        JPanel pnlMon = new JPanel(new BorderLayout(5, 0)); // Thêm khoảng cách ngang 5px
+        JTextField txtLocMon = createTextField();
+        txtLocMon.setPreferredSize(new java.awt.Dimension(80, 0)); // Cố định chiều rộng cho ô text
+        cboBangGiaMon = new JComboBox<>();
+        cboBangGiaMon.setFont(fontInput);
+        pnlMon.add(txtLocMon, BorderLayout.WEST); // Đặt nằm ngang hàng
+        pnlMon.add(cboBangGiaMon, BorderLayout.CENTER);
+        pnlForm.add(pnlMon);
+
+        txtLocMon.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                String keyword = txtLocMon.getText().toLowerCase();
+                cboBangGiaMon.removeAllItems();
+                for (MonAn m : dao.getAll()) {
+                    if (m.getTenMon().toLowerCase().contains(keyword)) {
+                        cboBangGiaMon.addItem(m);
+                    }
+                }
+            }
+        });
+
+        cboBangGiaMon.addItemListener(e -> {
+            if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+                MonAn selectedMon = (MonAn) cboBangGiaMon.getSelectedItem();
+                if (selectedMon != null && txtBangGiaDonGia.getText().trim().isEmpty()) {
+                    txtBangGiaDonGia.setText(new DecimalFormat("#.##").format(selectedMon.getDonGia()).replace(",", ""));
+                }
+            }
+        });
+
+        pnlForm.add(createLabel("Đơn giá:"));
+        txtBangGiaDonGia = createTextField();
+        pnlForm.add(txtBangGiaDonGia);
+
+        // Row 2
+        pnlForm.add(createLabel("Từ ngày:"));
+        txtBangGiaTuNgay = new JDateChooser();
+        txtBangGiaTuNgay.setDateFormatString("yyyy-MM-dd");
+        pnlForm.add(txtBangGiaTuNgay);
+
+        pnlForm.add(createLabel("Đến ngày:"));
+        txtBangGiaDenNgay = new JDateChooser();
+        txtBangGiaDenNgay.setDateFormatString("yyyy-MM-dd");
+        pnlForm.add(txtBangGiaDenNgay);
+
+        // Row 3
+        pnlForm.add(createLabel("Giờ bắt đầu (HH:mm):"));
+        txtBangGiaGioBatDau = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor timeEditorBD = new JSpinner.DateEditor(txtBangGiaGioBatDau, "HH:mm");
+        txtBangGiaGioBatDau.setEditor(timeEditorBD);
+        pnlForm.add(txtBangGiaGioBatDau);
+
+        pnlForm.add(createLabel("Giờ kết thúc (HH:mm):"));
+        txtBangGiaGioKetThuc = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor timeEditorKT = new JSpinner.DateEditor(txtBangGiaGioKetThuc, "HH:mm");
+        txtBangGiaGioKetThuc.setEditor(timeEditorKT);
+        pnlForm.add(txtBangGiaGioKetThuc);
+
+        // Row 4
+        pnlForm.add(createLabel("Ưu tiên (0-10):"));
+        txtBangGiaUuTien = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
+        pnlForm.add(txtBangGiaUuTien);
+
+        pnlForm.add(createLabel("Ghi chú:"));
+        txtBangGiaGhiChu = createTextField();
+        pnlForm.add(txtBangGiaGhiChu);
+
+        tab.add(pnlForm, BorderLayout.NORTH);
+
+        // --- BUTTONS ---
+        JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+        pnlBtns.setBackground(Color.WHITE);
+
+        JButton btnThemGia = createButton("THÊM GIÁ");
+        btnThemGia.setBackground(new Color(22, 163, 74));
+        JButton btnSuaGia = createButton("SỬA GIÁ");
+        btnSuaGia.setBackground(new Color(234, 88, 12));
+        JButton btnXoaGia = createButton("XÓA GIÁ");
+        btnXoaGia.setBackground(new Color(220, 38, 38));
+        JButton btnLamMoiGia = createButton("LÀM MỚI");
+
+        pnlBtns.add(btnThemGia);
+        pnlBtns.add(btnSuaGia);
+        pnlBtns.add(btnXoaGia);
+        pnlBtns.add(btnLamMoiGia);
+
+        // --- TABLE ---
+        String[] headers = { "Mã Giá", "Mã Món", "Tên Món", "Đơn Giá", "Từ Ngày", "Đến Ngày",
+                "Giờ BĐ", "Giờ KT", "Ưu Tiên", "Ghi Chú" };
+        modelBangGia = new DefaultTableModel(headers, 0) {
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
+        tblBangGia = new JTable(modelBangGia);
+        tblBangGia.setRowHeight(30);
+        tblBangGia.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tblBangGia.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        tblBangGia.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = tblBangGia.getSelectedRow();
+                if (row >= 0) fillBangGiaForm(row);
+            }
+        });
+
+        JPanel pnlCenter = new JPanel(new BorderLayout());
+        pnlCenter.add(pnlBtns, BorderLayout.NORTH);
+        pnlCenter.add(new JScrollPane(tblBangGia), BorderLayout.CENTER);
+        tab.add(pnlCenter, BorderLayout.CENTER);
+
+        // Load Data
+        loadCboBangGiaMon();
+        loadBangGiaData();
+
+        // Events
+        btnThemGia.addActionListener(e -> {
+            BangGia bg = getBangGiaForm();
+            if (bg == null) return;
+            if (bangGiaDAO.insert(bg)) {
+                JOptionPane.showMessageDialog(this, "Thêm mức giá thành công!");
+                loadBangGiaData();
+                loadDataGrid(); // Refresh cards to show new price
+                clearBangGiaForm();
+            } else {
+                JOptionPane.showMessageDialog(this, "Lỗi thêm mức giá!");
+            }
+        });
+
+        btnSuaGia.addActionListener(e -> {
+            if (selectedMaGia == -1) {
+                JOptionPane.showMessageDialog(this, "Chọn mức giá cần sửa!");
+                return;
+            }
+            BangGia bg = getBangGiaForm();
+            if (bg == null) return;
+            bg.setMaGia(selectedMaGia);
+            if (bangGiaDAO.update(bg)) {
+                JOptionPane.showMessageDialog(this, "Sửa mức giá thành công!");
+                loadBangGiaData();
+                loadDataGrid(); // Refresh cards to show new price
+                clearBangGiaForm();
+            } else {
+                JOptionPane.showMessageDialog(this, "Lỗi sửa mức giá!");
+            }
+        });
+
+        btnXoaGia.addActionListener(e -> {
+            if (selectedMaGia == -1) {
+                JOptionPane.showMessageDialog(this, "Chọn mức giá cần xóa!");
+                return;
+            }
+            if (JOptionPane.showConfirmDialog(this, "Xóa mức giá này?") == 0) {
+                if (bangGiaDAO.delete(selectedMaGia)) {
+                    JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                    loadBangGiaData();
+                    loadDataGrid(); // Refresh cards to show reset price
+                    clearBangGiaForm();
+                }
+            }
+        });
+
+        btnLamMoiGia.addActionListener(e -> clearBangGiaForm());
+
+        return tab;
+    }
+
+    // --- Bảng Giá helpers ---
+    private void loadCboBangGiaMon() {
+        cboBangGiaMon.removeAllItems();
+        for (MonAn m : dao.getAll()) {
+            cboBangGiaMon.addItem(m);
+        }
+    }
+
+    private void loadBangGiaData() {
+        modelBangGia.setRowCount(0);
+        DecimalFormat df = new DecimalFormat("#,###");
+        for (BangGia bg : bangGiaDAO.getAll()) {
+            // Try to get TenMon from combo
+            String tenMon = "";
+            for (int i = 0; i < cboBangGiaMon.getItemCount(); i++) {
+                MonAn m = cboBangGiaMon.getItemAt(i);
+                if (m.getMaMon().equals(bg.getMaMon())) {
+                    tenMon = m.getTenMon();
+                    break;
+                }
+            }
+            modelBangGia.addRow(new Object[] {
+                    bg.getMaGia(), bg.getMaMon(), tenMon,
+                    df.format(bg.getDonGia()),
+                    bg.getTuNgay() != null ? bg.getTuNgay() : "",
+                    bg.getDenNgay() != null ? bg.getDenNgay() : "",
+                    bg.getGioBatDau() != null ? bg.getGioBatDau() : "",
+                    bg.getGioKetThuc() != null ? bg.getGioKetThuc() : "",
+                    bg.getUuTien(),
+                    bg.getGhiChu() != null ? bg.getGhiChu() : ""
+            });
+        }
+    }
+
+    private BangGia getBangGiaForm() {
+        MonAn selectedMon = (MonAn) cboBangGiaMon.getSelectedItem();
+        if (selectedMon == null) {
+            JOptionPane.showMessageDialog(this, "Chọn món ăn!");
+            return null;
+        }
+        double donGia;
+        try {
+            donGia = Double.parseDouble(txtBangGiaDonGia.getText().replace(",", "").replace(".", ""));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Đơn giá không hợp lệ!");
+            return null;
+        }
+        String tuNgay = null;
+        if (txtBangGiaTuNgay.getDate() != null) {
+            tuNgay = new java.text.SimpleDateFormat("yyyy-MM-dd").format(txtBangGiaTuNgay.getDate());
+        }
+        String denNgay = null;
+        if (txtBangGiaDenNgay.getDate() != null) {
+            denNgay = new java.text.SimpleDateFormat("yyyy-MM-dd").format(txtBangGiaDenNgay.getDate());
+        }
+        String gioBD = new java.text.SimpleDateFormat("HH:mm:00").format(txtBangGiaGioBatDau.getValue());
+        String gioKT = new java.text.SimpleDateFormat("HH:mm:00").format(txtBangGiaGioKetThuc.getValue());
+        int uuTien = (int) txtBangGiaUuTien.getValue();
+        String ghiChu = txtBangGiaGhiChu.getText().trim().isEmpty() ? null : txtBangGiaGhiChu.getText().trim();
+
+        return new BangGia(selectedMon.getMaMon(), donGia, tuNgay, denNgay, gioBD, gioKT, uuTien, ghiChu);
+    }
+
+    private void fillBangGiaForm(int row) {
+        selectedMaGia = Integer.parseInt(modelBangGia.getValueAt(row, 0).toString());
+        String maMon = modelBangGia.getValueAt(row, 1).toString();
+        for (int i = 0; i < cboBangGiaMon.getItemCount(); i++) {
+            if (cboBangGiaMon.getItemAt(i).getMaMon().equals(maMon)) {
+                cboBangGiaMon.setSelectedIndex(i);
+                break;
+            }
+        }
+        txtBangGiaDonGia.setText(modelBangGia.getValueAt(row, 3).toString().replace(",", ""));
+        try {
+            String tuNgayStr = modelBangGia.getValueAt(row, 4).toString();
+            txtBangGiaTuNgay.setDate(tuNgayStr.isEmpty() ? null : new java.text.SimpleDateFormat("yyyy-MM-dd").parse(tuNgayStr));
+            String denNgayStr = modelBangGia.getValueAt(row, 5).toString();
+            txtBangGiaDenNgay.setDate(denNgayStr.isEmpty() ? null : new java.text.SimpleDateFormat("yyyy-MM-dd").parse(denNgayStr));
+        } catch (Exception e) {}
+        String gioBD = modelBangGia.getValueAt(row, 6).toString();
+        try { txtBangGiaGioBatDau.setValue(new java.text.SimpleDateFormat("HH:mm").parse(gioBD)); } catch (Exception e){}
+        String gioKT = modelBangGia.getValueAt(row, 7).toString();
+        try { txtBangGiaGioKetThuc.setValue(new java.text.SimpleDateFormat("HH:mm").parse(gioKT)); } catch (Exception e){}
+        try { txtBangGiaUuTien.setValue(Integer.parseInt(modelBangGia.getValueAt(row, 8).toString())); } catch (Exception e) {}
+        txtBangGiaGhiChu.setText(modelBangGia.getValueAt(row, 9).toString());
+    }
+
+    private void clearBangGiaForm() {
+        selectedMaGia = -1;
+        txtBangGiaDonGia.setText("");
+        txtBangGiaTuNgay.setDate(null);
+        txtBangGiaDenNgay.setDate(null);
+        try { txtBangGiaGioBatDau.setValue(new java.text.SimpleDateFormat("HH:mm").parse("00:00")); } catch (Exception e){}
+        try { txtBangGiaGioKetThuc.setValue(new java.text.SimpleDateFormat("HH:mm").parse("00:00")); } catch (Exception e){}
+        txtBangGiaUuTien.setValue(0);
+        txtBangGiaGhiChu.setText("");
     }
 
     // ================== HÀM XỬ LÝ GRID VIEW ==================
 
-    // Hàm load dữ liệu (có áp dụng tìm kiếm)
     void xuLyTimKiem() {
         String keyword = txtTimKiem.getText();
         String maLoai = "";
 
-        // Lấy mã loại từ ComboBox Lọc
         if (cboLocLoai.getSelectedItem() != null) {
             LoaiMon lm = (LoaiMon) cboLocLoai.getSelectedItem();
-            // Nếu mã là rỗng (mục "Tất cả") thì để chuỗi rỗng
             if (lm.getMaLoai() != null) {
                 maLoai = lm.getMaLoai();
             }
         }
 
-        // Gọi DAO tìm kiếm
         ArrayList<MonAn> list = dao.timKiem(keyword, maLoai);
 
-        // Vẽ lại giao diện
         pnlDanhSach.removeAll();
         for (MonAn m : list) {
             ItemMonAn item = new ItemMonAn(m);
@@ -279,18 +578,14 @@ public class QuanLyMonAn extends JPanel {
         pnlDanhSach.repaint();
     }
 
-    // Hàm load mặc định (lấy tất cả)
     void loadDataGrid() {
-        // Reset thanh tìm kiếm
         txtTimKiem.setText("");
         if (cboLocLoai.getItemCount() > 0)
             cboLocLoai.setSelectedIndex(0);
-
-        // Gọi hàm tìm kiếm với tham số rỗng -> tương đương getAll
         xuLyTimKiem();
     }
 
-    // Class con: ItemMonAn (Giữ nguyên như bài trước)
+    // Class con: ItemMonAn
     public class ItemMonAn extends JPanel {
         private MonAn monAn;
 
@@ -319,8 +614,16 @@ public class QuanLyMonAn extends JPanel {
 
             JLabel lblTen = new JLabel(m.getTenMon());
             lblTen.setFont(new Font("Segoe UI", Font.BOLD, 16));
+
+            // [GĐ3] Show dynamic price if available
+            double displayPrice = m.getDonGia();
+            try {
+                double dynamicPrice = bangGiaDAO.getGiaHienTai(m.getMaMon());
+                if (dynamicPrice > 0) displayPrice = dynamicPrice;
+            } catch (Exception e) { /* fallback to default */ }
+
             DecimalFormat df = new DecimalFormat("#,### VNĐ");
-            JLabel lblGia = new JLabel(df.format(m.getDonGia()));
+            JLabel lblGia = new JLabel(df.format(displayPrice));
             lblGia.setFont(new Font("Segoe UI", Font.BOLD, 14));
             lblGia.setForeground(new Color(200, 50, 50));
 
@@ -346,19 +649,15 @@ public class QuanLyMonAn extends JPanel {
 
     // ================== CÁC HÀM HỖ TRỢ KHÁC ==================
 
-    // Load CBO cho Form Nhập
     void loadComboboxLoai() {
         cboLoai.removeAllItems();
         for (LoaiMon lm : daoLoai.getAllLoai())
             cboLoai.addItem(lm);
     }
 
-    // Load CBO cho Thanh Lọc (Thêm mục "Tất cả")
     void loadComboboxLoc() {
         cboLocLoai.removeAllItems();
-        // Thêm mục mặc định
         cboLocLoai.addItem(new LoaiMon("", "--- Tất cả ---"));
-
         for (LoaiMon lm : daoLoai.getAllLoai()) {
             cboLocLoai.addItem(lm);
         }

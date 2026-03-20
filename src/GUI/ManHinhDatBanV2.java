@@ -1173,18 +1173,35 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlDetailContent.removeAll();
 
         // 1. Table Header
-        JLabel lblName = new JLabel(table.getTenBan());
+        String baseName = table.getTenBan();
+        String mergeInfo = "";
+
+        // Status Label Logic
+        String displayStatus = table.getTrangThai();
+
+        // Kiểm tra thông tin gộp bàn nếu đang Có Khách
+        if ("Có Khách".equals(table.getTrangThai()) || "Có khách".equals(table.getTrangThai())) {
+            int maHD = hoaDonDAO.getMaHDByBan(table.getMaBan());
+            if (maHD != -1) {
+                Entity.HoaDon hd = hoaDonDAO.getThongTinHoaDon(maHD);
+                if (hd != null && hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
+                    java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
+                    java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
+                    while (m.find()) {
+                        mergedTables.add(m.group(1));
+                    }
+                    if (!mergedTables.isEmpty()) {
+                        mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
+                    }
+                }
+            }
+        }
+
+        JLabel lblName = new JLabel("<html>" + baseName + mergeInfo + "</html>");
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlDetailContent.add(lblName);
-
-        // Status Label (Visual only)
-        /*
-         * If filter is active, this status might be "Trống" even if DB says "Có Khách".
-         * But table object passed here comes from the Card, which respects the filter.
-         */
-        // Status Label Logic
-        String displayStatus = table.getTrangThai();
 
         // If filtering, we double-check availability for the specific time slot
         if (isFilterActive) {

@@ -19,15 +19,16 @@ public class MonAnDAO {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 list.add(new MonAn(
-                    rs.getString("MaMon"),
-                    rs.getString("TenMon"),
-                    rs.getString("DonViTinh"),
-                    rs.getDouble("DonGia"),
-                    rs.getString("HinhAnh"),
-                    rs.getString("MaLoai")
-                ));
+                        rs.getString("MaMon"),
+                        rs.getString("TenMon"),
+                        rs.getString("DonViTinh"),
+                        rs.getDouble("DonGia"),
+                        rs.getString("HinhAnh"),
+                        rs.getString("MaLoai")));
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return list;
     }
 
@@ -44,7 +45,10 @@ public class MonAnDAO {
             ps.setString(5, m.getHinhAnh());
             ps.setString(6, m.getMaLoai());
             return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // 3. Xóa món
@@ -55,7 +59,10 @@ public class MonAnDAO {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maMon);
             return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // 4. Sửa món
@@ -71,41 +78,44 @@ public class MonAnDAO {
             ps.setString(5, m.getMaLoai());
             ps.setString(6, m.getMaMon());
             return ps.executeUpdate() > 0;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
- // Hàm tìm kiếm đa năng: Tìm theo tên GẦN ĐÚNG và theo Mã Loại
+
+    // Hàm tìm kiếm đa năng: Tìm theo tên GẦN ĐÚNG và theo Mã Loại
     public ArrayList<MonAn> timKiem(String keyword, String maLoai) {
         ArrayList<MonAn> list = new ArrayList<>();
         Connection con = ConnectDB.getConnection();
-        
+
         // Tạo câu SQL động
         String sql = "SELECT * FROM MonAn WHERE TenMon LIKE ? ";
-        
+
         // Nếu maLoai khác rỗng (tức là không phải chọn "Tất cả") thì thêm điều kiện
         if (maLoai != null && !maLoai.isEmpty()) {
             sql += " AND MaLoai = ?";
         }
-        
+
         try {
             PreparedStatement ps = con.prepareStatement(sql);
             // Tham số 1: Tên (thêm % để tìm gần đúng)
             ps.setString(1, "%" + keyword + "%");
-            
+
             // Tham số 2: Mã loại (nếu có)
             if (maLoai != null && !maLoai.isEmpty()) {
                 ps.setString(2, maLoai);
             }
-            
+
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 list.add(new MonAn(
-                    rs.getString("MaMon"),
-                    rs.getString("TenMon"),
-                    rs.getString("DonViTinh"),
-                    rs.getDouble("DonGia"),
-                    rs.getString("HinhAnh"),
-                    rs.getString("MaLoai")
-                ));
+                        rs.getString("MaMon"),
+                        rs.getString("TenMon"),
+                        rs.getString("DonViTinh"),
+                        rs.getDouble("DonGia"),
+                        rs.getString("HinhAnh"),
+                        rs.getString("MaLoai")));
             }
         } catch (Exception e) {
             e.printStackTrace();

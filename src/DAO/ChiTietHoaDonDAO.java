@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import connectDB.ConnectDB;
 import Entity.ChiTietHoaDon;
+// [GĐ3] BangGiaDAO để lấy giá hiện tại
 
 public class ChiTietHoaDonDAO {
 
@@ -63,6 +64,25 @@ public class ChiTietHoaDonDAO {
             ps.setInt(1, soLuongMoi);
             ps.setInt(2, maHD);
             ps.setString(3, maMon);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Cập nhật số lượng và đơn giá món ăn (dùng cho giá vé động)
+     */
+    public boolean capNhatSoLuongVaGia(int maHD, String maMon, int soLuongMoi, double donGiaMoi) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "UPDATE ChiTietHoaDon SET SoLuong = ?, DonGia = ? WHERE MaHD = ? AND MaMon = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, soLuongMoi);
+            ps.setDouble(2, donGiaMoi);
+            ps.setInt(3, maHD);
+            ps.setString(4, maMon);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();

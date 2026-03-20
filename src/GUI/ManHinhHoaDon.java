@@ -52,6 +52,12 @@ public class ManHinhHoaDon extends JPanel {
     private JButton btnThanhToan;
     private JButton btnInHoaDon;
 
+    // [GĐ4] VAT/Fee spinners
+    private JSpinner spnVAT;
+    private JSpinner spnPhiPhucVu;
+    private JLabel lblVATAmount;
+    private JLabel lblPhiAmount;
+
     // Data Tab 1
     private String selectedMaBan = null;
     private int currentMaHD = -1;
@@ -250,7 +256,7 @@ public class ManHinhHoaDon extends JPanel {
         pnlFooter.setBorder(new EmptyBorder(20, 0, 0, 0));
 
         // Calculation Area
-        JPanel pnlCalc = new JPanel(new GridLayout(4, 2, 10, 10)); // 4 Rows
+        JPanel pnlCalc = new JPanel(new GridLayout(6, 2, 10, 8)); // [GĐ4] 6 Rows
         pnlCalc.setBackground(Color.WHITE);
 
         // ROW 1: Tổng tiền hàng
@@ -259,11 +265,41 @@ public class ManHinhHoaDon extends JPanel {
         lblTongTienHang.setFont(new Font("Segoe UI", Font.BOLD, 14));
         pnlCalc.add(lblTongTienHang);
 
-        // ROW 2: Khuyến mãi thành viên
-        // Left: Label
+        // ROW 2: [GĐ4] VAT
+        JPanel pnlVATLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        pnlVATLabel.setBackground(Color.WHITE);
+        pnlVATLabel.add(new JLabel("+ VAT:"));
+        spnVAT = new JSpinner(new javax.swing.SpinnerNumberModel(10.0, 0.0, 50.0, 0.5));
+        spnVAT.setPreferredSize(new Dimension(60, 25));
+        spnVAT.addChangeListener(e -> updateFinalTotal());
+        pnlVATLabel.add(spnVAT);
+        pnlVATLabel.add(new JLabel("%"));
+        pnlCalc.add(pnlVATLabel);
+
+        lblVATAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
+        lblVATAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblVATAmount.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblVATAmount);
+
+        // ROW 3: [GĐ4] Phí phục vụ
+        JPanel pnlPhiLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        pnlPhiLabel.setBackground(Color.WHITE);
+        pnlPhiLabel.add(new JLabel("+ Phí PV:"));
+        spnPhiPhucVu = new JSpinner(new javax.swing.SpinnerNumberModel(5.0, 0.0, 30.0, 0.5));
+        spnPhiPhucVu.setPreferredSize(new Dimension(60, 25));
+        spnPhiPhucVu.addChangeListener(e -> updateFinalTotal());
+        pnlPhiLabel.add(spnPhiPhucVu);
+        pnlPhiLabel.add(new JLabel("%"));
+        pnlCalc.add(pnlPhiLabel);
+
+        lblPhiAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
+        lblPhiAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblPhiAmount.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblPhiAmount);
+
+        // ROW 4: Khuyến mãi thành viên
         pnlCalc.add(new JLabel("Giảm giá thành viên:", SwingConstants.RIGHT));
 
-        // Right: Panel containing Rank Name + Amount Label
         JPanel pnlMemberDiscount = new JPanel(new BorderLayout(5, 0));
         pnlMemberDiscount.setBackground(Color.WHITE);
 
@@ -272,7 +308,7 @@ public class ManHinhHoaDon extends JPanel {
         lblRankName.setForeground(new Color(31, 41, 55));
 
         lblTienGiam = new JLabel("- 0 VNĐ", SwingConstants.RIGHT);
-        lblTienGiam.setForeground(new Color(22, 163, 74)); // Green
+        lblTienGiam.setForeground(new Color(22, 163, 74));
         lblTienGiam.setFont(new Font("Segoe UI", Font.ITALIC, 13));
 
         pnlMemberDiscount.add(lblRankName, BorderLayout.CENTER);
@@ -280,7 +316,7 @@ public class ManHinhHoaDon extends JPanel {
 
         pnlCalc.add(pnlMemberDiscount);
 
-        // ROW 3: Mã Voucher (Placeholder)
+        // ROW 5: Mã Voucher
         pnlCalc.add(new JLabel("Mã Voucher:", SwingConstants.RIGHT));
 
         JPanel pnlVoucher = new JPanel(new BorderLayout(5, 0));
@@ -298,7 +334,7 @@ public class ManHinhHoaDon extends JPanel {
 
         pnlCalc.add(pnlVoucher);
 
-        // ROW 4: Tổng thanh toán
+        // ROW 6: Tổng thanh toán
         JLabel lblTotalTitle = new JLabel("TỔNG THANH TOÁN:", SwingConstants.RIGHT);
         lblTotalTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTotalTitle.setForeground(new Color(220, 38, 38));
@@ -485,7 +521,20 @@ public class ManHinhHoaDon extends JPanel {
         if (hd == null)
             return;
 
-        lblTitleBan.setText("Bàn: " + hd.getMaBan());
+        String baseBan = "Bàn: " + hd.getMaBan();
+        String mergeInfo = "";
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
+            java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
+            java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
+            while (m.find()) {
+                mergedTables.add(m.group(1));
+            }
+            if (!mergedTables.isEmpty()) {
+                mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
+            }
+        }
+        lblTitleBan.setText("<html>" + baseBan + mergeInfo + "</html>");
         lblMaHD.setText("Mã HĐ: #" + hd.getMaHD());
         lblNgayTao.setText("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()));
 
@@ -525,6 +574,15 @@ public class ManHinhHoaDon extends JPanel {
         double currentDiscountVIP = 0;
         double currentDiscountVoucher = 0;
 
+        // [GĐ4] Get VAT/fee from spinners
+        double vatPercent = (double) spnVAT.getValue();
+        double phiPercent = (double) spnPhiPhucVu.getValue();
+        double vatAmount = currentTongTienHang * vatPercent / 100.0;
+        double phiAmount = currentTongTienHang * phiPercent / 100.0;
+
+        lblVATAmount.setText("+ " + formatMoney(vatAmount) + " VNĐ");
+        lblPhiAmount.setText("+ " + formatMoney(phiAmount) + " VNĐ");
+
         // 1. VIP Discount
         if (currentKhachHang != null) {
             int percent = currentKhachHang.getPhanTramGiam();
@@ -545,7 +603,6 @@ public class ManHinhHoaDon extends JPanel {
 
         double totalDiscount = currentDiscountVIP + currentDiscountVoucher;
 
-        // Update Label Text to show details if voucher applied
         if (currentVoucher != null) {
             lblTienGiam.setText("<html>VIP: -" + formatMoney(currentDiscountVIP) + "<br>Voucher: -"
                     + formatMoney(currentDiscountVoucher) + "</html>");
@@ -553,7 +610,8 @@ public class ManHinhHoaDon extends JPanel {
             lblTienGiam.setText("- " + formatMoney(currentDiscountVIP) + " VNĐ");
         }
 
-        double finalTotal = currentTongTienHang - totalDiscount;
+        // [GĐ4] Final = TongTien + VAT + PhiPV - GiamGia
+        double finalTotal = currentTongTienHang + vatAmount + phiAmount - totalDiscount;
         if (finalTotal < 0)
             finalTotal = 0;
 
@@ -697,7 +755,12 @@ public class ManHinhHoaDon extends JPanel {
                 "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             double finalTotal = parseMoney(lblThanhTien.getText());
-            boolean success = hdDAO.thanhToan(currentMaHD, finalTotal);
+            // [GĐ4] Pass VAT/fee from spinners + customer SDT + voucher code
+            double vatVal = (double) spnVAT.getValue();
+            double phiVal = (double) spnPhiPhucVu.getValue();
+            String maKM = (currentVoucher != null) ? txtVoucher.getText().trim() : null;
+            String sdtKH = (currentKhachHang != null) ? currentKhachHang.getSoDienThoai() : null;
+            boolean success = hdDAO.thanhToan(currentMaHD, maKM, sdtKH, vatVal, phiVal);
             if (success) {
                 // Tích điểm cho khách hàng
                 HoaDon hd = hdDAO.getThongTinHoaDon(currentMaHD);
@@ -708,6 +771,7 @@ public class ManHinhHoaDon extends JPanel {
                 }
 
                 banDAO.updateTrangThai(selectedMaBan, "Trống");
+                banDAO.huyGopBan(selectedMaBan); // Giải phóng các bàn đang gộp
                 new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
                 JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
                 loadTableList();
@@ -740,6 +804,9 @@ public class ManHinhHoaDon extends JPanel {
         this.currentTongTienHang = 0;
         this.currentKhachHang = null;
         this.currentVoucher = null;
+        // [GĐ4] Reset spinners to defaults
+        spnVAT.setValue(10.0);
+        spnPhiPhucVu.setValue(5.0);
     }
 
     private void loadHistoryData() {
@@ -762,11 +829,16 @@ public class ManHinhHoaDon extends JPanel {
                 tenKhach = "Vãng lai";
             }
 
+            String mergedInfo = "";
+            if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+                mergedInfo = hd.getGhiChu();
+            }
+
             modelHistory.addRow(new Object[] {
                     hd.getMaHD(),
-                    "Bàn " + hd.getMaBan(),
+                    "Bàn " + hd.getMaBan() + mergedInfo,
                     new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()),
-                    formatMoney(hd.getTongTien()) + " VNĐ",
+                    formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng Tiền
                     tenKhach,
                     hd.getMaNV()
             });
@@ -797,14 +869,19 @@ public class ManHinhHoaDon extends JPanel {
             return;
 
         // Header Info
-        JPanel pnlInfo = new JPanel(new GridLayout(4, 2, 10, 10));
+        JPanel pnlInfo = new JPanel(new GridLayout(6, 2, 10, 5)); // Tăng lên 6 dòng
         pnlInfo.setBorder(new EmptyBorder(10, 10, 10, 10));
         pnlInfo.setBackground(Color.WHITE);
 
-        pnlInfo.add(new JLabel("Mã Hóa Đơn: " + hd.getMaHD()));
+        pnlInfo.add(new JLabel("Mã Hóa Đơn: #" + hd.getMaHD()));
         pnlInfo.add(
-                new JLabel("Ngày tạo: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
-        pnlInfo.add(new JLabel("Bàn: " + hd.getMaBan()));
+                new JLabel("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
+        
+        String mergedInfo = "";
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+            mergedInfo = hd.getGhiChu();
+        }
+        pnlInfo.add(new JLabel("Bàn: " + hd.getMaBan() + mergedInfo));
 
         String tenNV = "---";
         if (hd.getMaNV() != null) {
@@ -826,7 +903,22 @@ public class ManHinhHoaDon extends JPanel {
                 tenKhach = sdt;
         }
         pnlInfo.add(new JLabel("Khách hàng: " + tenKhach));
-        pnlInfo.add(new JLabel("Tổng tiền: " + formatMoney(hd.getTongTien()) + " VNĐ"));
+        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
+
+        pnlInfo.add(new JLabel("Tiền hàng: " + formatMoney(hd.getTongTien()) + " VNĐ"));
+        
+        // [Bug 3] Fix VAT, Phi Phuc Vu, Giam Gia display
+        double vat = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
+        double phi = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
+        
+        pnlInfo.add(new JLabel("VAT (" + hd.getPhanTramVAT() + "%): +" + formatMoney(vat)));
+        pnlInfo.add(new JLabel("Phí PV (" + hd.getPhiPhucVu() + "%): +" + formatMoney(phi)));
+        pnlInfo.add(new JLabel("Giảm giá: -" + formatMoney(hd.getTienGiamGia())));
+        
+        JLabel lblThanhTienHD = new JLabel("Thành tiền: " + formatMoney(hd.getThanhTien()) + " VNĐ");
+        lblThanhTienHD.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblThanhTienHD.setForeground(Color.RED);
+        pnlInfo.add(lblThanhTienHD);
 
         dialog.add(pnlInfo, BorderLayout.NORTH);
 

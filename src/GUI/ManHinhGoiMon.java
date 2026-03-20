@@ -13,6 +13,7 @@ import DAO.HoaDonDAO;
 import DAO.MonAnDAO;
 import DAO.LoaiMonDAO;
 import DAO.ChiTietHoaDonDAO;
+import DAO.BangGiaDAO;
 import Entity.MonAn;
 import Entity.LoaiMon;
 import Entity.ChiTietHoaDon;
@@ -27,6 +28,7 @@ public class ManHinhGoiMon extends JFrame {
     private MonAnDAO monAnDAO = new MonAnDAO();
     private LoaiMonDAO loaiMonDAO = new LoaiMonDAO();
     private ChiTietHoaDonDAO cthdDAO = new ChiTietHoaDonDAO();
+    private BangGiaDAO bangGiaDAO = new BangGiaDAO();
 
     // UI Components
     private JPanel pnlMenuCards;
@@ -240,7 +242,15 @@ public class ManHinhGoiMon extends JFrame {
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblName.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JLabel lblPrice = new JLabel(formatMoney(m.getDonGia()) + " / " + m.getDonViTinh());
+        // [GĐ3] Show dynamic price
+        double displayPrice = m.getDonGia();
+        try {
+            double dynamicPrice = bangGiaDAO.getGiaHienTai(m.getMaMon());
+            if (dynamicPrice > 0) displayPrice = dynamicPrice;
+        } catch (Exception ex) { /* fallback */ }
+        final double cardPrice = displayPrice;
+
+        JLabel lblPrice = new JLabel(formatMoney(displayPrice) + " / " + m.getDonViTinh());
         lblPrice.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblPrice.setForeground(new Color(220, 38, 38));
         lblPrice.setHorizontalAlignment(SwingConstants.CENTER);
@@ -271,7 +281,7 @@ public class ManHinhGoiMon extends JFrame {
 
         btnAdd.addActionListener(e -> {
             int qty = (int) spnQty.getValue();
-            addSingleItemToOrder(m, qty);
+            addSingleItemToOrder(m, qty, cardPrice);
         });
 
         pnlAction.add(spnQty);
@@ -433,7 +443,7 @@ public class ManHinhGoiMon extends JFrame {
 
     // --- LOGIC ---
 
-    private void addSingleItemToOrder(MonAn m, int qty) {
+    private void addSingleItemToOrder(MonAn m, int qty, double dynamicPrice) {
         if (qty <= 0)
             return;
 
@@ -443,15 +453,18 @@ public class ManHinhGoiMon extends JFrame {
             return;
         }
 
+        // [GĐ3] Use dynamic price instead of MonAn.getDonGia()
+        double priceToUse = dynamicPrice > 0 ? dynamicPrice : m.getDonGia();
+
         // Check if item exists
         ChiTietHoaDon exists = cthdDAO.getChiTiet(maHD, m.getMaMon());
         if (exists != null) {
-            // Update
+            // Update quantity AND PRICE
             int newSL = exists.getSoLuong() + qty;
-            cthdDAO.capNhatSoLuong(maHD, m.getMaMon(), newSL);
+            cthdDAO.capNhatSoLuongVaGia(maHD, m.getMaMon(), newSL, priceToUse);
         } else {
-            // Insert
-            cthdDAO.themMon(maHD, m.getMaMon(), qty, m.getDonGia());
+            // Insert with dynamic price
+            cthdDAO.themMon(maHD, m.getMaMon(), qty, priceToUse);
         }
         loadOrderData(); // Refresh Right Panel
     }

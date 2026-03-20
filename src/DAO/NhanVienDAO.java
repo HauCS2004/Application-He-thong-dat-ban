@@ -1,145 +1,145 @@
 package DAO;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
+import java.util.ArrayList;
 import connectDB.ConnectDB;
 import Entity.NhanVien;
+import Entity.TaiKhoan;
 
+/**
+ * NhanVienDAO — Sau GĐ1: tách TaiKhoan ra bảng riêng.
+ * Login kiểm tra cả NhanVien + TaiKhoan (JOIN).
+ */
 public class NhanVienDAO {
 
-    /**
-     * Login - Xác thực nhân viên
-     * 
-     * @param maNV    - Mã nhân viên
-     * @param matKhau - Mật khẩu (plain text)
-     * @return NhanVien object nếu login thành công, null nếu thất bại
-     */
-    public NhanVien login(String maNV, String matKhau) {
-        NhanVien nv = null;
-
-        try {
-            Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM NhanVien WHERE MaNV = ? AND MatKhau = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
-
-            ps.setString(1, maNV);
-            ps.setString(2, matKhau);
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                // Login thành công - Tạo object NhanVien
-                nv = new NhanVien(
-                        rs.getString("MaNV"),
-                        rs.getString("TenNV"),
-                        rs.getString("MatKhau"),
-                        rs.getString("ChucVu"),
-                        rs.getString("SoDienThoai"),
-                        rs.getString("Email"),
-                        rs.getDate("NgayVaoLam"));
-
-                System.out.println("✅ Login success: " + nv.getTenNV());
-            } else {
-                System.out.println("❌ Login failed: Sai mã NV hoặc mật khẩu");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("❌ Lỗi database khi login!");
-        }
-
+    // ----------------------------------------------------------------
+    // Helper: map ResultSet -> NhanVien (không có TaiKhoan)
+    // ----------------------------------------------------------------
+    private NhanVien mapNhanVien(ResultSet rs) throws SQLException {
+        NhanVien nv = new NhanVien(
+                rs.getString("MaNV"),
+                rs.getString("TenNV"),
+                rs.getString("SoDienThoai"),
+                rs.getString("Email"),
+                rs.getDate("NgayVaoLam"));
         return nv;
     }
 
-    /**
-     * Lấy thông tin nhân viên theo mã
-     */
-    public NhanVien getByMaNV(String maNV) {
-        NhanVien nv = null;
+    // ----------------------------------------------------------------
+    // Helper: load TaiKhoan cho một NhanVien
+    // ----------------------------------------------------------------
+    private TaiKhoan loadTaiKhoan(Connection con, String maNV) throws SQLException {
+        String sql = "SELECT * FROM TaiKhoan WHERE MaTK = ?";
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setString(1, maNV);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            return new TaiKhoan(rs.getString("MaTK"), rs.getString("MatKhau"), rs.getString("VaiTro"));
+        }
+        return null;
+    }
 
+    // ----------------------------------------------------------------
+    // 1. Login (JOIN NhanVien + TaiKhoan)
+    // ----------------------------------------------------------------
+    public NhanVien login(String maNV, String matKhau) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT nv.*, tk.MatKhau, tk.VaiTro " +
+                    "FROM NhanVien nv " +
+                    "INNER JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
+                    "WHERE nv.MaNV = ? AND tk.MatKhau = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maNV);
+            ps.setString(2, matKhau);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                NhanVien nv = mapNhanVien(rs);
+                TaiKhoan tk = new TaiKhoan(
+                        rs.getString("MaNV"),
+                        rs.getString("MatKhau"),
+                        rs.getString("VaiTro"));
+                nv.setTaiKhoan(tk);
+                System.out.println("✅ Login success: " + nv.getTenNV());
+                return nv;
+            } else {
+                System.out.println("❌ Login failed: Sai mã NV hoặc mật khẩu");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // ----------------------------------------------------------------
+    // 2. Lấy thông tin nhân viên theo mã (kèm TaiKhoan)
+    // ----------------------------------------------------------------
+    public NhanVien getByMaNV(String maNV) {
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM NhanVien WHERE MaNV = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maNV);
-
             ResultSet rs = ps.executeQuery();
-
             if (rs.next()) {
-                nv = new NhanVien(
-                        rs.getString("MaNV"),
-                        rs.getString("TenNV"),
-                        rs.getString("MatKhau"),
-                        rs.getString("ChucVu"),
-                        rs.getString("SoDienThoai"),
-                        rs.getString("Email"),
-                        rs.getDate("NgayVaoLam"));
+                NhanVien nv = mapNhanVien(rs);
+                nv.setTaiKhoan(loadTaiKhoan(con, maNV));
+                return nv;
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        return nv;
+        return null;
     }
 
-    /**
-     * Đổi mật khẩu
-     */
+    // ----------------------------------------------------------------
+    // 3. Đổi mật khẩu (cập nhật TaiKhoan)
+    // ----------------------------------------------------------------
     public boolean changePassword(String maNV, String oldPass, String newPass) {
         try {
             Connection con = ConnectDB.getConnection();
-
-            // Verify old password first
-            String checkSql = "SELECT COUNT(*) FROM NhanVien WHERE MaNV = ? AND MatKhau = ?";
+            // Xác minh mật khẩu cũ
+            String checkSql = "SELECT COUNT(*) FROM TaiKhoan WHERE MaTK = ? AND MatKhau = ?";
             PreparedStatement checkPs = con.prepareStatement(checkSql);
             checkPs.setString(1, maNV);
             checkPs.setString(2, oldPass);
-
             ResultSet rs = checkPs.executeQuery();
             rs.next();
-
             if (rs.getInt(1) == 0) {
                 System.out.println("❌ Mật khẩu cũ không đúng!");
                 return false;
             }
-
-            // Update new password
-            String updateSql = "UPDATE NhanVien SET MatKhau = ? WHERE MaNV = ?";
+            // Cập nhật mật khẩu mới
+            String updateSql = "UPDATE TaiKhoan SET MatKhau = ? WHERE MaTK = ?";
             PreparedStatement updatePs = con.prepareStatement(updateSql);
             updatePs.setString(1, newPass);
             updatePs.setString(2, maNV);
-
             return updatePs.executeUpdate() > 0;
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return false;
     }
 
-    /**
-     * Lấy danh sách tất cả nhân viên
-     */
-    public java.util.ArrayList<NhanVien> getAll() {
-        java.util.ArrayList<NhanVien> list = new java.util.ArrayList<>();
+    // ----------------------------------------------------------------
+    // 4. Lấy tất cả nhân viên (kèm vaiTro)
+    // ----------------------------------------------------------------
+    public ArrayList<NhanVien> getAll() {
+        ArrayList<NhanVien> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM NhanVien";
+            // LEFT JOIN để lấy vaiTro
+            String sql = "SELECT nv.*, tk.VaiTro " +
+                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK";
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
-                NhanVien nv = new NhanVien(
-                        rs.getString("MaNV"),
-                        rs.getString("TenNV"),
-                        rs.getString("MatKhau"),
-                        rs.getString("ChucVu"),
-                        rs.getString("SoDienThoai"),
-                        rs.getString("Email"),
-                        rs.getDate("NgayVaoLam"));
+                NhanVien nv = mapNhanVien(rs);
+                String vaiTro = rs.getString("VaiTro");
+                if (vaiTro != null) {
+                    nv.setTaiKhoan(new TaiKhoan(nv.getMaNV(), "", vaiTro));
+                }
                 list.add(nv);
             }
         } catch (Exception e) {
@@ -148,64 +148,119 @@ public class NhanVienDAO {
         return list;
     }
 
-    /**
-     * Thêm nhân viên mới
-     */
+    // ----------------------------------------------------------------
+    // 5. Thêm nhân viên mới (kèm tạo TaiKhoan)
+    // ----------------------------------------------------------------
+    public boolean insert(NhanVien nv, String matKhau, String vaiTro) {
+        Connection con = null;
+        try {
+            con = ConnectDB.getConnection();
+            con.setAutoCommit(false);
+
+            // Insert NhanVien
+            String sqlNV = "INSERT INTO NhanVien (MaNV, TenNV, SoDienThoai, Email, NgayVaoLam) " +
+                    "VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement psNV = con.prepareStatement(sqlNV);
+            psNV.setString(1, nv.getMaNV());
+            psNV.setString(2, nv.getTenNV());
+            psNV.setString(3, nv.getSoDienThoai());
+            psNV.setString(4, nv.getEmail());
+            psNV.setDate(5, nv.getNgayVaoLam() != null
+                    ? new java.sql.Date(nv.getNgayVaoLam().getTime())
+                    : new java.sql.Date(System.currentTimeMillis()));
+            psNV.executeUpdate();
+
+            // Insert TaiKhoan
+            String sqlTK = "INSERT INTO TaiKhoan (MaTK, MatKhau, VaiTro) VALUES (?, ?, ?)";
+            PreparedStatement psTK = con.prepareStatement(sqlTK);
+            psTK.setString(1, nv.getMaNV());
+            psTK.setString(2, matKhau);
+            psTK.setString(3, vaiTro != null ? vaiTro : "Nhân viên");
+            psTK.executeUpdate();
+
+            con.commit();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                if (con != null)
+                    con.rollback();
+            } catch (Exception ex) {
+            }
+        } finally {
+            try {
+                if (con != null)
+                    con.setAutoCommit(true);
+            } catch (Exception ex) {
+            }
+        }
+        return false;
+    }
+
+    // Overload cho backward-compat (không có vaiTro)
     public boolean insert(NhanVien nv) {
-        try {
-            Connection con = ConnectDB.getConnection();
-            String sql = "INSERT INTO NhanVien (MaNV, TenNV, MatKhau, ChucVu, SoDienThoai, Email, NgayVaoLam) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement ps = con.prepareStatement(sql);
-
-            ps.setString(1, nv.getMaNV());
-            ps.setString(2, nv.getTenNV());
-            ps.setString(3, nv.getMatKhau());
-            ps.setString(4, nv.getChucVu());
-            ps.setString(5, nv.getSoDienThoai());
-            ps.setString(6, nv.getEmail());
-            ps.setDate(7, new java.sql.Date(nv.getNgayVaoLam().getTime()));
-
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        String matKhau = (nv.getTaiKhoan() != null) ? nv.getTaiKhoan().getMatKhau() : "123";
+        String vaiTro = (nv.getTaiKhoan() != null) ? nv.getTaiKhoan().getVaiTro() : "Nhân viên";
+        return insert(nv, matKhau, vaiTro);
     }
 
-    /**
-     * Cập nhật thông tin nhân viên
-     */
+    // ----------------------------------------------------------------
+    // 6. Cập nhật thông tin nhân viên (và vaiTro nếu có TaiKhoan)
+    // ----------------------------------------------------------------
     public boolean update(NhanVien nv) {
+        Connection con = null;
         try {
-            Connection con = ConnectDB.getConnection();
-            String sql = "UPDATE NhanVien SET TenNV = ?, MatKhau = ?, ChucVu = ?, SoDienThoai = ?, Email = ?, NgayVaoLam = ? WHERE MaNV = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
+            con = ConnectDB.getConnection();
+            con.setAutoCommit(false);
 
-            ps.setString(1, nv.getTenNV());
-            ps.setString(2, nv.getMatKhau());
-            ps.setString(3, nv.getChucVu());
-            ps.setString(4, nv.getSoDienThoai());
-            ps.setString(5, nv.getEmail());
-            ps.setDate(6, new java.sql.Date(nv.getNgayVaoLam().getTime()));
-            ps.setString(7, nv.getMaNV());
+            String sqlNV = "UPDATE NhanVien SET TenNV=?, SoDienThoai=?, Email=?, NgayVaoLam=? WHERE MaNV=?";
+            PreparedStatement psNV = con.prepareStatement(sqlNV);
+            psNV.setString(1, nv.getTenNV());
+            psNV.setString(2, nv.getSoDienThoai());
+            psNV.setString(3, nv.getEmail());
+            psNV.setDate(4, nv.getNgayVaoLam() != null
+                    ? new java.sql.Date(nv.getNgayVaoLam().getTime())
+                    : new java.sql.Date(System.currentTimeMillis()));
+            psNV.setString(5, nv.getMaNV());
+            psNV.executeUpdate();
 
-            return ps.executeUpdate() > 0;
+            // Cập nhật VaiTro nếu có
+            if (nv.getTaiKhoan() != null) {
+                String sqlTK = "UPDATE TaiKhoan SET VaiTro=? WHERE MaTK=?";
+                PreparedStatement psTK = con.prepareStatement(sqlTK);
+                psTK.setString(1, nv.getTaiKhoan().getVaiTro());
+                psTK.setString(2, nv.getMaNV());
+                psTK.executeUpdate();
+            }
+
+            con.commit();
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            try {
+                if (con != null)
+                    con.rollback();
+            } catch (Exception ex) {
+            }
+        } finally {
+            try {
+                if (con != null)
+                    con.setAutoCommit(true);
+            } catch (Exception ex) {
+            }
         }
         return false;
     }
 
-    /**
-     * Xóa nhân viên
-     */
+    // ----------------------------------------------------------------
+    // 7. Xóa nhân viên (TaiKhoan tự xóa cascade)
+    // ----------------------------------------------------------------
     public boolean delete(String maNV) {
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "DELETE FROM NhanVien WHERE MaNV = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maNV);
-
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -213,31 +268,27 @@ public class NhanVienDAO {
         return false;
     }
 
-    /**
-     * Tìm kiếm nhân viên gần đúng theo Tên hoặc SĐT hoặc Mã
-     */
-    public java.util.ArrayList<NhanVien> timKiem(String keyword) {
-        java.util.ArrayList<NhanVien> list = new java.util.ArrayList<>();
+    // ----------------------------------------------------------------
+    // 8. Tìm kiếm nhân viên
+    // ----------------------------------------------------------------
+    public ArrayList<NhanVien> timKiem(String keyword) {
+        ArrayList<NhanVien> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM NhanVien WHERE TenNV LIKE ? OR SoDienThoai LIKE ? OR MaNV LIKE ?";
+            String sql = "SELECT nv.*, tk.VaiTro FROM NhanVien nv " +
+                    "LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
+                    "WHERE nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?";
             PreparedStatement ps = con.prepareStatement(sql);
-            String query = "%" + keyword + "%";
-            ps.setString(1, query);
-            ps.setString(2, query);
-            ps.setString(3, query);
-
+            String q = "%" + keyword + "%";
+            ps.setString(1, q);
+            ps.setString(2, q);
+            ps.setString(3, q);
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
-                NhanVien nv = new NhanVien(
-                        rs.getString("MaNV"),
-                        rs.getString("TenNV"),
-                        rs.getString("MatKhau"),
-                        rs.getString("ChucVu"),
-                        rs.getString("SoDienThoai"),
-                        rs.getString("Email"),
-                        rs.getDate("NgayVaoLam"));
+                NhanVien nv = mapNhanVien(rs);
+                String vaiTro = rs.getString("VaiTro");
+                if (vaiTro != null)
+                    nv.setTaiKhoan(new TaiKhoan(nv.getMaNV(), "", vaiTro));
                 list.add(nv);
             }
         } catch (Exception e) {

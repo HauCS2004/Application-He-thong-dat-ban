@@ -328,8 +328,39 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void updateSidePanel(Ban table) {
-        lblDetailName.setText("BÀN " + table.getTenBan());
-        lblDetailStatus.setText(table.getTrangThai());
+        String baseName = "BÀN " + table.getTenBan();
+        String mergeInfo = "";
+
+        String displayStatus = table.getTrangThai();
+        // [Bug Fix 1] Hiển thị chi tiết bàn gộp
+        if ("Đang Gộp".equals(table.getTrangThai()) && table.getMaBanGop() != null) {
+            displayStatus = "Đang gộp vào bàn " + table.getMaBanGop();
+        } else if ("Có Khách".equals(table.getTrangThai())) {
+            DAO.HoaDonDAO tempHdDAO = new DAO.HoaDonDAO();
+            int maHD = tempHdDAO.getMaHDByBan(table.getMaBan());
+            if (maHD != -1) {
+                Entity.HoaDon hd = tempHdDAO.getThongTinHoaDon(maHD);
+                if (hd != null && hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+                    // Trích xuất các bàn gộp từ ghi chú: [Ghép từ bàn 03] [Ghép từ bàn 05]
+                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
+                    java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
+                    java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
+                    while (m.find()) {
+                        mergedTables.add(m.group(1));
+                    }
+
+                    if (!mergedTables.isEmpty()) {
+                        mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
+                        // Xóa phần thông tin ghép khỏi displayStatus để không bị lặp
+                        displayStatus = table.getTrangThai();
+                    }
+                }
+            }
+        }
+
+        lblDetailName.setText("<html>" + baseName + mergeInfo + "</html>");
+        // Cho component JLabel wrap text bằng HTML
+        lblDetailStatus.setText("<html>" + displayStatus.replace("\n", "<br>") + "</html>");
 
         if ("Trống".equals(table.getTrangThai()))
             lblDetailStatus.setForeground(new Color(22, 163, 74));
@@ -412,6 +443,18 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             btnAssign.addActionListener(e -> assignCustomer(table.getMaBan()));
             pnlActionButtons.add(btnAssign);
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
+
+            // Button: Chuyển Bàn
+            JButton btnChuyenBan = createStyledButton("CHUYỂN BÀN", new Color(234, 88, 12)); // Orange
+            btnChuyenBan.addActionListener(e -> processChuyenBan(table));
+            pnlActionButtons.add(btnChuyenBan);
+            pnlActionButtons.add(Box.createVerticalStrut(10));
+
+            // Button: Ghép Bàn
+            JButton btnGhepBan = createStyledButton("GHÉP BÀN", new Color(124, 58, 237)); // Purple
+            btnGhepBan.addActionListener(e -> processGhepBan(table));
+            pnlActionButtons.add(btnGhepBan);
+            pnlActionButtons.add(Box.createVerticalStrut(10));
 
             pnlActionButtons.add(btnPay);
         }
@@ -598,6 +641,130 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             // Refresh logic if needed?
         } else {
             JOptionPane.showMessageDialog(this, "Lỗi cập nhật hóa đơn!");
+        }
+    }
+
+    // --- CHUYỂN BÀN ---
+    private void processChuyenBan(Ban table) {
+        // Get list of empty tables
+        ArrayList<Ban> allBan = banDAO.getAllBan();
+        ArrayList<Ban> emptyTables = new ArrayList<>();
+        for (Ban b : allBan) {
+            if ("Trống".equals(b.getTrangThai())) {
+                emptyTables.add(b);
+            }
+        }
+
+        if (emptyTables.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có bàn trống để chuyển!", "Thông báo",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Build selection options
+        String[] options = new String[emptyTables.size()];
+        for (int i = 0; i < emptyTables.size(); i++) {
+            Ban b = emptyTables.get(i);
+            options[i] = b.getTenBan() + " (" + b.getMaBan() + ") - " + b.getSoGhe() + " ghế";
+        }
+
+        String selected = (String) JOptionPane.showInputDialog(this,
+                "Chuyển từ bàn " + table.getTenBan() + " sang bàn nào?",
+                "Chuyển Bàn", JOptionPane.QUESTION_MESSAGE, null,
+                options, options[0]);
+
+        if (selected != null) {
+            int idx = java.util.Arrays.asList(options).indexOf(selected);
+            Ban target = emptyTables.get(idx);
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Xác nhận chuyển bàn:\n" + table.getTenBan() + " → " + target.getTenBan() +
+                            "\n\nHóa đơn, món ăn sẽ được chuyển sang bàn mới.",
+                    "Xác nhận Chuyển Bàn", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (banDAO.chuyenBan(table.getMaBan(), target.getMaBan())) {
+                    JOptionPane.showMessageDialog(this, "Chuyển bàn thành công!");
+                    refreshAllFloors();
+                    loadTodayBookings();
+                    selectedTable = null;
+                    updateSidePanel(new Ban(target.getMaBan(), target.getTenBan(), "Có Khách", target.getMaKV(),
+                            target.getSoGhe(), null));
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi chuyển bàn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+    }
+
+    // --- GHÉP BÀN ---
+    private void processGhepBan(Ban table) {
+        // Get list of occupied tables (excluding current)
+        ArrayList<Ban> allBan = banDAO.getAllBan();
+        ArrayList<Ban> occupiedTables = new ArrayList<>();
+        for (Ban b : allBan) {
+            if ("Có Khách".equals(b.getTrangThai()) && !b.getMaBan().equals(table.getMaBan())) {
+                occupiedTables.add(b);
+            }
+        }
+
+        if (occupiedTables.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có bàn có khách nào khác để ghép!", "Thông báo",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Build checkbox panel
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(new JLabel("Ghép các bàn sau vào bàn " + table.getTenBan() + ":"));
+        panel.add(Box.createVerticalStrut(10));
+
+        JCheckBox[] checkboxes = new JCheckBox[occupiedTables.size()];
+        for (int i = 0; i < occupiedTables.size(); i++) {
+            Ban b = occupiedTables.get(i);
+            checkboxes[i] = new JCheckBox(b.getTenBan() + " (" + b.getMaBan() + ") - " + b.getSoGhe() + " ghế");
+            panel.add(checkboxes[i]);
+        }
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Ghép Bàn",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            ArrayList<String> selectedBans = new ArrayList<>();
+            for (int i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].isSelected()) {
+                    selectedBans.add(occupiedTables.get(i).getMaBan());
+                }
+            }
+
+            if (selectedBans.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Chưa chọn bàn nào để ghép!");
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder("Xác nhận ghép các bàn sau vào " + table.getTenBan() + ":\n");
+            for (String maBan : selectedBans) {
+                for (Ban b : occupiedTables) {
+                    if (b.getMaBan().equals(maBan)) {
+                        sb.append("  • ").append(b.getTenBan()).append("\n");
+                    }
+                }
+            }
+            sb.append("\nMón ăn từ các bàn nguồn sẽ được gộp vào hóa đơn bàn đích.");
+
+            int confirm = JOptionPane.showConfirmDialog(this, sb.toString(),
+                    "Xác nhận Ghép Bàn", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (banDAO.ghepNhieuBan(table.getMaBan(), selectedBans)) {
+                    JOptionPane.showMessageDialog(this, "Ghép bàn thành công!");
+                    refreshAllFloors();
+                    loadTodayBookings();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Lỗi ghép bàn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         }
     }
 }

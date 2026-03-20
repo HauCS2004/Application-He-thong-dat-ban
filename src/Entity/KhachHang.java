@@ -5,14 +5,14 @@ import java.util.Date;
 public class KhachHang {
     private String soDienThoai;
     private String tenKhach;
-    private String email; // ✅ MỚI
-    private Date ngaySinh; // ✅ MỚI
+    private String email;
+    private Date ngaySinh;
     private int diemTichLuy;
     private String hangVIP; // ✅ MỚI: Đồng, Bạc, Vàng, Kim cương
-    private Date ngayTao; // ✅ MỚI
-    private Date lanGiaoDichCuoi; // ✅ MỚI
-    private double tongChiTieu; // ✅ MỚI
-    private String ghiChu; // ✅ MỚI
+    private Date ngayTao;
+    private Date lanGiaoDichCuoi; 
+    private double tongChiTieu; 
+    private String ghiChu;
 
     // Constructor mặc định
     public KhachHang() {
