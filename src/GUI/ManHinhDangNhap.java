@@ -83,11 +83,8 @@ public class ManHinhDangNhap extends JFrame {
         pnlForm.add(lblMaNV, c);
 
         txtMaNV = new JTextField();
-        txtMaNV.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        txtMaNV.setPreferredSize(new Dimension(0, 40));
-        txtMaNV.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                new EmptyBorder(5, 10, 5, 10)));
+        GUI.utils.UIStyle.styleTextField(txtMaNV);
+        txtMaNV.setPreferredSize(new Dimension(0, 44));
         c.gridy = 1;
         pnlForm.add(txtMaNV, c);
 
@@ -98,11 +95,8 @@ public class ManHinhDangNhap extends JFrame {
         pnlForm.add(lblMatKhau, c);
 
         txtMatKhau = new JPasswordField();
-        txtMatKhau.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        txtMatKhau.setPreferredSize(new Dimension(0, 40));
-        txtMatKhau.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                new EmptyBorder(5, 10, 5, 10)));
+        GUI.utils.UIStyle.stylePasswordField(txtMatKhau);
+        txtMatKhau.setPreferredSize(new Dimension(0, 44));
         c.gridy = 3;
         pnlForm.add(txtMatKhau, c);
 
@@ -126,8 +120,9 @@ public class ManHinhDangNhap extends JFrame {
         btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnLogin.setBackground(new Color(0, 123, 255));
         btnLogin.setForeground(Color.WHITE);
-        btnLogin.setPreferredSize(new Dimension(0, 45));
+        btnLogin.setPreferredSize(new Dimension(0, 48));
         btnLogin.setFocusPainted(false);
+        btnLogin.setBorderPainted(false);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
         c.gridy = 5;
         c.insets = new Insets(10, 0, 10, 0);
@@ -238,9 +233,19 @@ public class ManHinhDangNhap extends JFrame {
     // Test main
     public static void main(String[] args) {
         try {
-            // Use Reflection to avoid "Cannot resolve" compile validation if not in
-            // classpath yet
             Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
+            // ── same FlatLaf properties as TrangChu.main() ──
+            javax.swing.UIManager.put("Button.arc",          10);
+            javax.swing.UIManager.put("Component.arc",       8);
+            javax.swing.UIManager.put("TextComponent.arc",   8);
+            javax.swing.UIManager.put("CheckBox.arc",        6);
+            javax.swing.UIManager.put("Button.margin",       new java.awt.Insets(7, 16, 7, 16));
+            javax.swing.UIManager.put("TextField.margin",    new java.awt.Insets(6, 10, 6, 10));
+            javax.swing.UIManager.put("PasswordField.margin",new java.awt.Insets(6, 10, 6, 10));
+            javax.swing.UIManager.put("ScrollBar.thumbArc",  999);
+            javax.swing.UIManager.put("ScrollBar.thumbInsets",new java.awt.Insets(2, 2, 2, 2));
+            javax.swing.UIManager.put("ScrollBar.width",     8);
+            javax.swing.UIManager.put("Component.focusWidth",1);
         } catch (Exception ex) {
             System.err.println("Failed to initialize FlatLaf");
         }

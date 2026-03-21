@@ -352,9 +352,62 @@ public class DatBanDAO {
         }
     }
 
-    /** Backward-compat alias của autoCancelOverdueBookings() */
+    /** 
+     * Lấy danh sách booking quá giờ (trễ 1-30 phút) — READ-ONLY, không hủy.
+     * Dùng để hiển thị cho nhân viên xử lý.
+     */
+    public ArrayList<DatBan> getDatBanQuaGio() {
+        ArrayList<DatBan> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT DISTINCT db.* FROM DatBan db " +
+                    "LEFT JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                    "WHERE db.TrangThai IN (N'\u0110ã xác nhận', N'Chờ xác nhận') " +
+                    "AND DATEDIFF(MINUTE, db.ThoiGianBatDau, GETDATE()) BETWEEN 1 AND 30 " +
+                    "ORDER BY db.ThoiGianBatDau ASC";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next())
+                list.add(map(rs, con));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Nhân viên hủy thủ công một booking kèm lý do ghi chú.
+     * Reset bàn về Trống, ghi GhiChu vào record.
+     */
+    public boolean huyDatBanManual(int maDat, String ghiChu) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            // 1. Lấy danh sách bàn cần reset
+            List<String> danhSachBan = loadDanhSachBan(con, maDat);
+            // 2. Cập nhật trạng thái + ghi chú
+            PreparedStatement ps = con.prepareStatement(
+                    "UPDATE DatBan SET TrangThai = N'\u0110ã hủy', GhiChu = ? WHERE MaDat = ?");
+            ps.setString(1, ghiChu);
+            ps.setInt(2, maDat);
+            boolean ok = ps.executeUpdate() > 0;
+            // 3. Reset bàn
+            if (ok) {
+                BanDAO banDAO = new BanDAO();
+                for (String maBan : danhSachBan)
+                    banDAO.updateTrangThai(maBan, "Trống");
+            }
+            return ok;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /** 
+     * Backward-compat: trả về danh sách booking quá giờ (1-30p) — không còn tự động hủy.
+     * Auto-cancel cần được gọi riêng biệt qua autoCancelOverdueBookings().
+     */
     public ArrayList<DatBan> getOverdueBookings() {
-        autoCancelOverdueBookings();
-        return new ArrayList<>();
+        return getDatBanQuaGio();
     }
 }

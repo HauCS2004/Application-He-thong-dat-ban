@@ -92,13 +92,54 @@ public class TrangChu extends JFrame {
     public static void main(String[] args) {
         // Setup FlatLaf theme
         try {
-            // Use Reflection to avoid "Cannot resolve" compile validation if not in
-            // classpath yet
             Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
-            javax.swing.UIManager.put("Button.arc", 10);
-            javax.swing.UIManager.put("Component.arc", 10);
+
+            // ── Rounded corners (bo góc) ──────────────────────────────────────
+            javax.swing.UIManager.put("Button.arc",          10);
+            javax.swing.UIManager.put("Component.arc",       8);
+            javax.swing.UIManager.put("TextComponent.arc",   8);  // Input fields
+            javax.swing.UIManager.put("CheckBox.arc",        6);
+            javax.swing.UIManager.put("ProgressBar.arc",     8);
+
+            // ── Button padding ────────────────────────────────────────────────
+            javax.swing.UIManager.put("Button.margin",
+                new java.awt.Insets(7, 16, 7, 16));
+
+            // ── TextField / ComboBox padding ──────────────────────────────────
+            javax.swing.UIManager.put("TextField.margin",
+                new java.awt.Insets(6, 10, 6, 10));
+            javax.swing.UIManager.put("PasswordField.margin",
+                new java.awt.Insets(6, 10, 6, 10));
+            javax.swing.UIManager.put("ComboBox.padding",
+                new java.awt.Insets(4, 8, 4, 8));
+
+            // ── Scrollbar hiện đại (pill shape) ────────────────────────────────
+            javax.swing.UIManager.put("ScrollBar.thumbArc",    999);
+            javax.swing.UIManager.put("ScrollBar.thumbInsets",
+                new java.awt.Insets(2, 2, 2, 2));
+            javax.swing.UIManager.put("ScrollBar.width",        8);
+            javax.swing.UIManager.put("ScrollBar.track",       new java.awt.Color(0, 0, 0, 0));
+
+            // ── Table styling ─────────────────────────────────────────────────
+            javax.swing.UIManager.put("Table.rowHeight",        40);
+            javax.swing.UIManager.put("Table.showHorizontalLines", false);
+            javax.swing.UIManager.put("Table.showVerticalLines",   false);
+            javax.swing.UIManager.put("Table.intercellSpacing",
+                new java.awt.Dimension(0, 0));
+            javax.swing.UIManager.put("Table.selectionBackground",
+                new java.awt.Color(239, 246, 255));
+            javax.swing.UIManager.put("Table.selectionForeground",
+                new java.awt.Color(17, 24, 39));
+
+            // ── Focus ring đẹp hơn ───────────────────────────────────────────
+            javax.swing.UIManager.put("Component.focusWidth",  1);
+            javax.swing.UIManager.put("Component.innerFocusWidth", 0);
+
+            // ── TabbedPane ────────────────────────────────────────────────────
+            javax.swing.UIManager.put("TabbedPane.tabHeight",   38);
+
         } catch (Exception ex) {
-            System.err.println("Failed to initialize FlatLaf");
+            System.err.println("Failed to initialize FlatLaf: " + ex.getMessage());
         }
 
         SwingUtilities.invokeLater(() -> {

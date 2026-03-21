@@ -225,4 +225,85 @@ public class ThongKeDAO {
         }
         return list;
     }
+
+    // ----------------------------------------------------------------
+    // 8. Doanh thu theo khoảng ngày tùy chọn (FIX: filter thực sự)
+    // ----------------------------------------------------------------
+    public ArrayList<Object[]> getDoanhThuTheoKhoang(Date from, Date to) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT CAST(NgayTao AS DATE) as Ngay, SUM(TongTien) as Tien " +
+                    "FROM HoaDon " +
+                    "WHERE TrangThai = 1 AND NgayTao BETWEEN ? AND ? " +
+                    "GROUP BY CAST(NgayTao AS DATE) " +
+                    "ORDER BY Ngay ASC";
+
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(from);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.setTime(to);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setTimestamp(1, start);
+            ps.setTimestamp(2, end);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[] { rs.getDate("Ngay"), rs.getDouble("Tien") });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // ----------------------------------------------------------------
+    // 9. Dashboard Trang Chủ: Số hóa đơn hôm nay (tất cả trạng thái)
+    // ----------------------------------------------------------------
+    public int getSoHoaDonHomNay() {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT COUNT(*) FROM HoaDon WHERE CAST(NgayTao AS DATE) = CAST(GETDATE() AS DATE)";
+            ResultSet rs = con.createStatement().executeQuery(sql);
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    // ----------------------------------------------------------------
+    // 10. Dashboard Trang Chủ: Số khách hôm nay (từ hóa đơn đang mở)
+    // ----------------------------------------------------------------
+    public int getSoKhachHomNay() {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT COALESCE(SUM(SoLuongKhach), 0) FROM HoaDon " +
+                    "WHERE TrangThai = 0 AND CAST(NgayTao AS DATE) = CAST(GETDATE() AS DATE)";
+            ResultSet rs = con.createStatement().executeQuery(sql);
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    // ----------------------------------------------------------------
+    // 11. Dashboard Trang Chủ: Số bàn đang có khách
+    // ----------------------------------------------------------------
+    public int getSoBanDangMo() {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT COUNT(*) FROM Ban WHERE TrangThai = N'Có Khách'";
+            ResultSet rs = con.createStatement().executeQuery(sql);
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return 0;
+    }
 }

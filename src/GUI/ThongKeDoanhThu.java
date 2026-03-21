@@ -184,17 +184,16 @@ public class ThongKeDoanhThu extends JPanel {
     }
 
     private void loadRevenueData() {
-        // Since getDoanhThuNgay only gets ONE day, and getDoanhThu7NgayGanNhat() is
-        // hardcoded,
-        // For custom range, we'd need loop or new DAO method.
-        // For now, let's use getDoanhThu7NgayGanNhat() if button clicked, ignoring
-        // params for simplicity OR update DAO.
-        // Actually, let's just show 7 days recent for now based on DAO spec.
-        // Note: Real implementation needs a getDoanhThuRange(from, to). Using 7 days
-        // for demo.
-
+        Date f = dateFrom.getDate();
+        Date t = dateTo.getDate();
+        if (f == null || t == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày bắt đầu và ngày kết thúc!",
+                    "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         modelDoanhThu.setRowCount(0);
-        ArrayList<Object[]> list = tkDAO.getDoanhThu7NgayGanNhat();
+        // Gọi đúng method với filter ngày thực sự
+        ArrayList<Object[]> list = tkDAO.getDoanhThuTheoKhoang(f, t);
         for (Object[] row : list) {
             modelDoanhThu.addRow(new Object[] {
                     row[0], // Date

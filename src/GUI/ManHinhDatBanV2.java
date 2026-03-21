@@ -1053,63 +1053,153 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
     private void showNotificationDialog() {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thông báo đặt bàn", true);
-        dialog.setSize(600, 400);
+        dialog.setSize(650, 450);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
         JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        // 1. Upcoming Panel
+        // --- 1. Tab Sắp đến ---
         JPanel pnlUpcoming = new JPanel(new BorderLayout());
         ArrayList<Entity.DatBan> upcoming = datBanDAO.getUpcomingBookings(30);
         if (upcoming.isEmpty()) {
-            pnlUpcoming.add(new JLabel("Không có đặt bàn nào sắp đến giờ (~30p)", SwingConstants.CENTER));
+            JLabel lbl = new JLabel("Không có đặt bàn nào sắp đến giờ (~30p)", SwingConstants.CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            pnlUpcoming.add(lbl);
         } else {
-            String[] cols = { "Mã", "Bàn", "Khách", "SĐT", "Giờ đến" };
-            DefaultTableModel model = new DefaultTableModel(cols, 0);
+            String[] cols = { "Mã Đặt", "Bàn", "Khách", "SĐT", "Giờ đến" };
+            DefaultTableModel model = new DefaultTableModel(cols, 0) {
+                public boolean isCellEditable(int r, int c) { return false; }
+            };
             for (Entity.DatBan db : upcoming) {
                 model.addRow(new Object[] {
                         db.getMaDat(), db.getMaBan(), db.getTenKhach(), db.getSdt(),
-                        new java.text.SimpleDateFormat("HH:mm").format(db.getThoiGianBatDau())
+                        new java.text.SimpleDateFormat("HH:mm dd/MM").format(db.getThoiGianBatDau())
                 });
             }
             JTable table = new JTable(model);
             table.setRowHeight(30);
+            table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             pnlUpcoming.add(new JScrollPane(table));
         }
         tabbedPane.addTab("Sắp đến (" + upcoming.size() + ")", pnlUpcoming);
 
-        // 2. Overdue Panel
-        JPanel pnlOverdue = new JPanel(new BorderLayout());
-        ArrayList<Entity.DatBan> overdue = datBanDAO.getOverdueBookings();
+        // --- 2. Tab Quá Giờ --- (READ-ONLY từ getDatBanQuaGio(), không auto-cancel)
+        JPanel pnlOverdue = new JPanel(new BorderLayout(0, 5));
+        pnlOverdue.setBorder(new EmptyBorder(8, 8, 8, 8));
+        // Lấy danh sách quá giờ 1-30p, không hủy gì cả
+        ArrayList<Entity.DatBan> overdue = datBanDAO.getDatBanQuaGio();
+
+        String[] colsOv = { "Mã Đặt", "Bàn", "Khách", "SĐT", "Giờ hẹn", "Trễ (phút)" };
+        DefaultTableModel modelOv = new DefaultTableModel(colsOv, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+
         if (overdue.isEmpty()) {
-            pnlOverdue.add(new JLabel("Không có đặt bàn nào quá giờ", SwingConstants.CENTER));
+            JLabel lbl = new JLabel("Không có đặt bàn nào quá giờ trong 30 phút vừa rồi", SwingConstants.CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            pnlOverdue.add(lbl, BorderLayout.CENTER);
         } else {
-            String[] cols = { "Mã", "Bàn", "Khách", "SĐT", "Giờ hẹn" };
-            DefaultTableModel model = new DefaultTableModel(cols, 0);
+            long now = System.currentTimeMillis();
             for (Entity.DatBan db : overdue) {
-                model.addRow(new Object[] {
+                long trezMillis = now - db.getThoiGianBatDau().getTime();
+                int trezPhut = (int) (trezMillis / 60_000);
+                modelOv.addRow(new Object[] {
                         db.getMaDat(), db.getMaBan(), db.getTenKhach(), db.getSdt(),
-                        new java.text.SimpleDateFormat("HH:mm").format(db.getThoiGianBatDau())
+                        new java.text.SimpleDateFormat("HH:mm dd/MM").format(db.getThoiGianBatDau()),
+                        trezPhut
                 });
             }
-            JTable table = new JTable(model);
-            table.setRowHeight(30);
 
-            // Add Cancel Action
-            JButton btnCancelAll = new JButton("Hủy và Dọn tất cả bàn quá giờ");
-            btnCancelAll.addActionListener(e -> {
-                int count = datBanDAO.autoCancelOverdueBookings();
-                JOptionPane.showMessageDialog(dialog, "Đã hủy " + count + " đơn đặt quá giờ.");
-                dialog.dispose();
-                loadBookings();
-                refreshAllFloors();
-                // --- NEW: Split View Logic ---
+            JTable tblOv = new JTable(modelOv);
+            tblOv.setRowHeight(30);
+            tblOv.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            tblOv.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+            // Tô màu cột "Trễ" theo mức độ
+            tblOv.getColumnModel().getColumn(5).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+                public java.awt.Component getTableCellRendererComponent(JTable t, Object v,
+                        boolean sel, boolean foc, int r, int c) {
+                    super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                    if (v instanceof Integer) {
+                        int min = (Integer) v;
+                        setBackground(min <= 15 ? new Color(254, 249, 195)   // vàng nhạt
+                                : min <= 25 ? new Color(254, 215, 170)         // cam
+                                : new Color(254, 202, 202));                   // đỏ
+                        setText(min + " phút");
+                        setHorizontalAlignment(SwingConstants.CENTER);
+                    }
+                    return this;
+                }
             });
 
-            pnlOverdue.add(new JScrollPane(table), BorderLayout.CENTER);
-            pnlOverdue.add(btnCancelAll, BorderLayout.SOUTH);
+            pnlOverdue.add(new JScrollPane(tblOv), BorderLayout.CENTER);
+
+            // --- Nút hành động ---
+            JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+            pnlBtns.setOpaque(false);
+
+            // Nút hủy từng booking được chọn
+            JButton btnHuyChon = new JButton("❌ Hủy booking được chọn");
+            btnHuyChon.setBackground(new Color(239, 68, 68));
+            btnHuyChon.setForeground(Color.WHITE);
+            btnHuyChon.setFocusPainted(false);
+            btnHuyChon.addActionListener(ev -> {
+                int row = tblOv.getSelectedRow();
+                if (row < 0) {
+                    JOptionPane.showMessageDialog(dialog, "Vui lòng chọn một đư bàn trong danh sách!",
+                            "Chưa chọn", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                int maDat = (Integer) modelOv.getValueAt(row, 0);
+                String tenKhach = (String) modelOv.getValueAt(row, 2);
+                String sdt = (String) modelOv.getValueAt(row, 3);
+
+                // Hỏi lý do hủy
+                String lyDo = JOptionPane.showInputDialog(dialog,
+                        "Lý do hủy cho khách " + tenKhach + " (" + sdt + "):",
+                        "Hủy đặt bàn theo yêu cầu");
+                if (lyDo == null) return; // Bấm Cancel
+                if (lyDo.isBlank()) lyDo = "Hủy theo yêu cầu khách (NV xử lý)";
+
+                boolean ok = datBanDAO.huyDatBanManual(maDat, lyDo);
+                if (ok) {
+                    JOptionPane.showMessageDialog(dialog, "✔ Đã hủy và ghi lý do: " + lyDo);
+                    modelOv.removeRow(row); // Xóa khỏi UI luôn
+                    loadBookings();
+                    refreshAllFloors();
+                    checkAlerts(); // Cập nhật badge
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Lỗi khi hủy! Vui lòng thử lại.",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            // Nút hủy tất cả (chỉ hủy booking > 30p)
+            JButton btnHuyTatCa = new JButton("🗑 Hủy tất cả quá 30 phút");
+            btnHuyTatCa.setBackground(new Color(107, 114, 128));
+            btnHuyTatCa.setForeground(Color.WHITE);
+            btnHuyTatCa.setFocusPainted(false);
+            btnHuyTatCa.setToolTipText("Chỉ hủy các booking đã quá 30 phút (không phải danh sách này)");
+            btnHuyTatCa.addActionListener(ev -> {
+                int confirm = JOptionPane.showConfirmDialog(dialog,
+                        "Hủy tất cả đặt bàn đã QUÁ 30 PHÚT?\n(Danh sách này đang hiện booking trễ 1-30p — những cái >30p sẽ bị hủy)",
+                        "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    int count = datBanDAO.autoCancelOverdueBookings();
+                    JOptionPane.showMessageDialog(dialog, "Đã tự động hủy " + count + " đơn quá 30 phút.");
+                    dialog.dispose();
+                    loadBookings();
+                    refreshAllFloors();
+                    checkAlerts();
+                }
+            });
+
+            pnlBtns.add(btnHuyChon);
+            pnlBtns.add(btnHuyTatCa);
+            pnlOverdue.add(pnlBtns, BorderLayout.SOUTH);
         }
+
         tabbedPane.addTab("Quá giờ (" + overdue.size() + ")", pnlOverdue);
 
         dialog.add(tabbedPane, BorderLayout.CENTER);
