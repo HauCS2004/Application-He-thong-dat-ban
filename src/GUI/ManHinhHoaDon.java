@@ -96,9 +96,9 @@ public class ManHinhHoaDon extends JPanel {
         tabs = new JTabbedPane();
         tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-        tabs.addTab("Lập Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/payment.png"), createPaymentTab());
         tabs.addTab("Lịch Sử Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/order-history.png"),
                 createHistoryTab());
+        tabs.addTab("Lập Hóa Đơn", GUI.utils.IconHelper.loadIcon("view/icons/payment.png"), createPaymentTab());
 
         add(tabs, BorderLayout.CENTER);
 
@@ -113,7 +113,7 @@ public class ManHinhHoaDon extends JPanel {
 
         // Tab Change Event
         tabs.addChangeListener(e -> {
-            if (tabs.getSelectedIndex() == 0) {
+            if (tabs.getSelectedIndex() == 1) { // 1 là Lập Hóa Đơn
                 loadTableList();
             } else {
                 loadHistoryData();
@@ -393,11 +393,11 @@ public class ManHinhHoaDon extends JPanel {
         pnlFilter.setBackground(new Color(243, 244, 246));
         pnlFilter.setBorder(BorderFactory.createTitledBorder("Bộ Lọc"));
 
-        dateFrom = new JDateChooser(new Date());
+        dateFrom = new JDateChooser(); // Bỏ Date() ban đầu
         dateFrom.setDateFormatString("dd/MM/yyyy");
         dateFrom.setPreferredSize(new Dimension(130, 30));
 
-        dateTo = new JDateChooser(new Date());
+        dateTo = new JDateChooser(); // Bỏ Date() ban đầu
         dateTo.setDateFormatString("dd/MM/yyyy");
         dateTo.setPreferredSize(new Dimension(130, 30));
 
@@ -626,7 +626,7 @@ public class ManHinhHoaDon extends JPanel {
             return;
         }
 
-        KhuyenMai km = kmDAO.getByCode(code);
+        KhuyenMai km = kmDAO.getByMaKM(code);
         if (km == null) {
             JOptionPane.showMessageDialog(this, "Mã Voucher không tồn tại!");
             currentVoucher = null;
@@ -815,9 +815,7 @@ public class ManHinhHoaDon extends JPanel {
         Date to = dateTo.getDate();
         String search = txtSearchHistory.getText().trim();
 
-        if (from == null || to == null)
-            return;
-
+        // (if dateFrom/To is null, they will be ignored in DAO now)
         ArrayList<HoaDon> list = hdDAO.getLichSuHoaDon(from, to, search);
         for (HoaDon hd : list) {
             String tenKhach = hd.getSdtKhach();

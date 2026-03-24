@@ -7,6 +7,9 @@ public class NhanVien {
     private String tenNV;
     private String soDienThoai;
     private String email;
+    private String cccd;
+    private String gioiTinh;
+    private String trangThai;
     private java.util.Date ngayVaoLam;
     // Tham chiếu tới TaiKhoan (load khi cần, có thể null)
     private TaiKhoan taiKhoan;
@@ -22,6 +25,19 @@ public class NhanVien {
     }
 
     // Constructor đầy đủ (cho SELECT từ database)
+    public NhanVien(String maNV, String tenNV, String gioiTinh, String soDienThoai,
+            String email, String cccd, java.util.Date ngayVaoLam, String trangThai) {
+        this.maNV = maNV;
+        this.tenNV = tenNV;
+        this.gioiTinh = gioiTinh;
+        this.soDienThoai = soDienThoai;
+        this.email = email;
+        this.cccd = cccd;
+        this.ngayVaoLam = ngayVaoLam;
+        this.trangThai = trangThai;
+    }
+
+    // Constructor cũ để tương thích ngược nếu có file gọi
     public NhanVien(String maNV, String tenNV, String soDienThoai,
             String email, java.util.Date ngayVaoLam) {
         this.maNV = maNV;
@@ -29,6 +45,7 @@ public class NhanVien {
         this.soDienThoai = soDienThoai;
         this.email = email;
         this.ngayVaoLam = ngayVaoLam;
+        this.trangThai = "Đang làm việc"; // Mặc định
     }
 
     /** Tiện ích: kiểm tra vai trò qua TaiKhoan đính kèm */
@@ -75,6 +92,30 @@ public class NhanVien {
 
     public void setNgayVaoLam(java.util.Date d) {
         this.ngayVaoLam = d;
+    }
+
+    public String getCccd() {
+        return cccd;
+    }
+
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
+    }
+
+    public String getGioiTinh() {
+        return gioiTinh;
+    }
+
+    public void setGioiTinh(String gioiTinh) {
+        this.gioiTinh = gioiTinh;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
     }
 
     public TaiKhoan getTaiKhoan() {

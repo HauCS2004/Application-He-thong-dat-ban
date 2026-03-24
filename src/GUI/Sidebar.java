@@ -117,15 +117,15 @@ public class Sidebar extends JPanel {
         addSeparator("VẬN HÀNH");
         addMenuItem("home.png", "Trang Chủ", "home");
         addMenuItem("serving.png", "Phục Vụ", "phuc_vu"); // Most used -> High priority
-        addMenuItem("booking.png", "Quản Lý Đặt Bàn", "dat_ban");
-        addMenuItem("payment.png", "Quản Lý Hóa Đơn", "hoa_don"); // Renamed per user request
+        addMenuItem("booking.png", "Đặt Bàn", "dat_ban");
+        addMenuItem("payment.png", "Hóa Đơn", "hoa_don"); // Renamed per user request
         addMenuItem("customer.png", "Khách Hàng", "khach_hang"); // Moved to Operations
 
         // 2. NHÓM QUẢN TRỊ (Manager Only)
         if (isManager) {
             addSeparator("QUẢN TRỊ");
             addMenuItem("table.png", "Phòng Bàn", "quan_ly_ban_visual");
-            addMenuItem("menu.png", "Thực Đơn", "mon_an");
+            addMenuItem("menu.png", "Món Ăn", "mon_an");
             addMenuItem("voucher.png", "Khuyến Mãi", "khuyen_mai"); // New Promotion Management
             addMenuItem("employee.png", "Nhân Viên", "nhan_vien"); // New Employee Management
 

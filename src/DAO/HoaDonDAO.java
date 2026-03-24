@@ -21,7 +21,9 @@ public class HoaDonDAO {
                 rs.getDouble("PhiPhucVu"),
                 rs.getDouble("TienGiamGia"),
                 rs.getDouble("ThanhTien"),
-                rs.getInt("TrangThai"),
+                rs.getString("TrangThai"),
+                rs.getString("PhuongThucThanhToan"),
+                rs.getTimestamp("ThoiGianThanhToan"),
                 rs.getString("MaBan"),
                 rs.getInt("SoLuongKhach"),
                 rs.getString("SDT_Khach"),
@@ -36,7 +38,7 @@ public class HoaDonDAO {
         try {
             Connection con = ConnectDB.getConnection();
             PreparedStatement ps = con.prepareStatement(
-                    "SELECT MaHD FROM HoaDon WHERE MaBan=? AND TrangThai=0");
+                    "SELECT MaHD FROM HoaDon WHERE MaBan=? AND TrangThai=N'Chưa thanh toán'");
             ps.setString(1, maBan);
             ResultSet rs = ps.executeQuery();
             if (rs.next())
@@ -109,7 +111,7 @@ public class HoaDonDAO {
             con = ConnectDB.getConnection();
             String sql = "INSERT INTO HoaDon(MaBan, MaNV, NgayTao, TrangThai, SoLuongKhach, " +
                     "SDT_Khach, GhiChu, PhanTramVAT, PhiPhucVu) " +
-                    "VALUES(?, ?, GETDATE(), 0, ?, ?, ?, ?, ?)";
+                    "VALUES(?, ?, GETDATE(), N'Chưa thanh toán', ?, ?, ?, ?, ?)";
             ps = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, hd.getMaBan());
             ps.setString(2, hd.getMaNV());
@@ -138,7 +140,7 @@ public class HoaDonDAO {
     public boolean thanhToan(int maHD, String maKM, String sdt, double vat, double phiPhucVu) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "{CALL SP_ThanhToan(?, ?, ?, ?, ?)}";
+            String sql = "{CALL SP_ThanhToan(?, ?, ?, ?, ?, ?)}";
             CallableStatement cs = con.prepareCall(sql);
             cs.setInt(1, maHD);
             if (maKM != null && !maKM.isEmpty())
@@ -151,6 +153,7 @@ public class HoaDonDAO {
                 cs.setNull(3, Types.VARCHAR);
             cs.setDouble(4, vat);
             cs.setDouble(5, phiPhucVu);
+            cs.setString(6, "Tiền mặt");
             cs.execute();
             return true;
         } catch (Exception e) {
@@ -187,7 +190,7 @@ public class HoaDonDAO {
         try {
             Connection con = ConnectDB.getConnection();
             PreparedStatement ps = con.prepareStatement(
-                    "SELECT SoLuongKhach FROM HoaDon WHERE MaBan=? AND TrangThai=0");
+                    "SELECT SoLuongKhach FROM HoaDon WHERE MaBan=? AND TrangThai=N'Chưa thanh toán'");
             ps.setString(1, maBan);
             ResultSet rs = ps.executeQuery();
             if (rs.next())
@@ -235,29 +238,37 @@ public class HoaDonDAO {
         ArrayList<HoaDon> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM HoaDon WHERE TrangThai=1 AND NgayTao BETWEEN ? AND ?";
-            if (search != null && !search.isEmpty())
-                sql += " AND (SDT_Khach LIKE ? OR CAST(MaHD AS NVARCHAR) LIKE ?)";
-            sql += " ORDER BY NgayTao DESC";
-
-            PreparedStatement ps = con.prepareStatement(sql);
-            java.util.Calendar cal = java.util.Calendar.getInstance();
-            cal.setTime(fromDate);
-            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            cal.set(java.util.Calendar.MINUTE, 0);
-            cal.set(java.util.Calendar.SECOND, 0);
-            cal.set(java.util.Calendar.MILLISECOND, 0);
-            ps.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
-            cal.setTime(toDate);
-            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
-            cal.set(java.util.Calendar.MINUTE, 59);
-            cal.set(java.util.Calendar.SECOND, 59);
-            cal.set(java.util.Calendar.MILLISECOND, 999);
-            ps.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
-            if (search != null && !search.isEmpty()) {
-                ps.setString(3, "%" + search + "%");
-                ps.setString(4, "%" + search + "%");
+            StringBuilder sql = new StringBuilder("SELECT * FROM HoaDon WHERE TrangThai=N'Đã thanh toán'");
+            
+            if (fromDate != null && toDate != null) {
+                sql.append(" AND NgayTao BETWEEN ? AND ?");
             }
+            if (search != null && !search.isEmpty()) {
+                sql.append(" AND (SDT_Khach LIKE ? OR CONVERT(NVARCHAR, MaHD) LIKE ?)");
+            }
+            sql.append(" ORDER BY NgayTao DESC");
+
+            PreparedStatement ps = con.prepareStatement(sql.toString());
+            int pIndex = 1;
+
+            if (fromDate != null && toDate != null) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(fromDate);
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0); cal.set(java.util.Calendar.MINUTE, 0);
+                cal.set(java.util.Calendar.SECOND, 0); cal.set(java.util.Calendar.MILLISECOND, 0);
+                ps.setTimestamp(pIndex++, new Timestamp(cal.getTimeInMillis()));
+                
+                cal.setTime(toDate);
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 23); cal.set(java.util.Calendar.MINUTE, 59);
+                cal.set(java.util.Calendar.SECOND, 59); cal.set(java.util.Calendar.MILLISECOND, 999);
+                ps.setTimestamp(pIndex++, new Timestamp(cal.getTimeInMillis()));
+            }
+
+            if (search != null && !search.isEmpty()) {
+                ps.setString(pIndex++, "%" + search + "%");
+                ps.setString(pIndex++, "%" + search + "%");
+            }
+
             ResultSet rs = ps.executeQuery();
             while (rs.next())
                 list.add(map(rs));

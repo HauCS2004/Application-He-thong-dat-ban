@@ -60,7 +60,7 @@ public class ManHinhTrangChu extends JPanel {
         add(pnlStats, BorderLayout.NORTH);
 
         // --- PHẦN 2: HÌNH ẢNH TRUNG TÂM ---
-        ImageIcon icon = UTILS.XImage.read("bg_restaurant.jpg");
+        ImageIcon icon = UTILS.XImage.read("restaurant.jpg");
         final Image imgBot = (icon != null) ? icon.getImage() : null;
 
         JPanel pnlBackground = new JPanel() {

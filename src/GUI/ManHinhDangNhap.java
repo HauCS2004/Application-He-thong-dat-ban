@@ -211,7 +211,7 @@ public class ManHinhDangNhap extends JFrame {
 
                 // Mở TrangChu
                 this.dispose();
-                new TrangChu().setVisible(true);
+                new MainLayout().setVisible(true);
 
             } else {
                 // Login thất bại

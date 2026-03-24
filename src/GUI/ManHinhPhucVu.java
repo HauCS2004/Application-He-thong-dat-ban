@@ -420,8 +420,8 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             btnPay.addActionListener(e -> {
                 // NAVIGATION LOGIC
                 Window w = SwingUtilities.getWindowAncestor(this);
-                if (w instanceof TrangChu) {
-                    TrangChu tc = (TrangChu) w;
+                if (w instanceof MainLayout) {
+                    MainLayout tc = (MainLayout) w;
                     tc.showScreen("hoa_don");
                     if (tc.getPnlHoaDon() != null) {
                         try {

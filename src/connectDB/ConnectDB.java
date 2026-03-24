@@ -14,7 +14,7 @@ public class ConnectDB {
 
     public void connect() {
         // Thông số kết nối SQL Server
-        String databaseName = "QuanLyNhaHang";
+        String databaseName = "QuanLyNhaHang_V3";
         String user = "sa";
         String password = "11111"; // SỬA LẠI NẾU KHÁC
 

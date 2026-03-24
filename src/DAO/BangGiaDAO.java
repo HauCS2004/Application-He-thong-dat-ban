@@ -4,15 +4,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import connectDB.ConnectDB;
 import Entity.BangGia;
+import Entity.ChiTietBangGia;
 
-/**
- * BangGiaDAO — Quản lý bảng giá theo thời gian / khung giờ (GĐ3)
- */
 public class BangGiaDAO {
 
-    // ----------------------------------------------------------------
-    // 1. Lấy giá hiện tại của một món (gọi SP_LayGiaHienTai)
-    // ----------------------------------------------------------------
     public double getGiaHienTai(String maMon) {
         try {
             Connection con = ConnectDB.getConnection();
@@ -29,7 +24,6 @@ public class BangGiaDAO {
         return 0;
     }
 
-    // Overload tại thời điểm cụ thể
     public double getGiaHienTai(String maMon, java.util.Date thoiDiem) {
         try {
             Connection con = ConnectDB.getConnection();
@@ -46,87 +40,87 @@ public class BangGiaDAO {
         return 0;
     }
 
-    // ----------------------------------------------------------------
-    // 2. Lấy tất cả giá của 1 món
-    // ----------------------------------------------------------------
-    public ArrayList<BangGia> getByMon(String maMon) {
-        ArrayList<BangGia> list = new ArrayList<>();
-        try {
-            Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM BangGia WHERE MaMon = ? ORDER BY UuTien DESC, MaGia";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, maMon);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next())
-                list.add(map(rs));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    // ----------------------------------------------------------------
-    // 3. Lấy all (cho màn hình quản lý)
-    // ----------------------------------------------------------------
     public ArrayList<BangGia> getAll() {
         ArrayList<BangGia> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT bg.*, m.TenMon FROM BangGia bg " +
-                    "JOIN MonAn m ON bg.MaMon = m.MaMon " +
-                    "ORDER BY bg.MaMon, bg.UuTien DESC";
+            String sql = "SELECT * FROM BangGia ORDER BY UuTien DESC, MaBG DESC";
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
-            while (rs.next())
-                list.add(map(rs));
+            while (rs.next()) {
+                list.add(mapHeader(rs));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return list;
     }
 
-    // ----------------------------------------------------------------
-    // 4. Thêm mức giá mới
-    // ----------------------------------------------------------------
-    public boolean insert(BangGia bg) {
+    public ArrayList<ChiTietBangGia> getChiTietByMaBG(int maBG) {
+        ArrayList<ChiTietBangGia> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "INSERT INTO BangGia (MaMon, DonGia, TuNgay, DenNgay, GioBatDau, GioKetThuc, UuTien, GhiChu) "
-                    +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "SELECT * FROM ChiTietBangGia WHERE MaBG = ?";
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, bg.getMaMon());
-            ps.setDouble(2, bg.getDonGia());
-            ps.setObject(3, bg.getTuNgay() != null ? java.sql.Date.valueOf(bg.getTuNgay()) : null);
-            ps.setObject(4, bg.getDenNgay() != null ? java.sql.Date.valueOf(bg.getDenNgay()) : null);
-            ps.setObject(5, bg.getGioBatDau() != null ? java.sql.Time.valueOf(bg.getGioBatDau()) : null);
-            ps.setObject(6, bg.getGioKetThuc() != null ? java.sql.Time.valueOf(bg.getGioKetThuc()) : null);
-            ps.setInt(7, bg.getUuTien());
-            ps.setString(8, bg.getGhiChu());
-            return ps.executeUpdate() > 0;
+            ps.setInt(1, maBG);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new ChiTietBangGia(
+                        rs.getInt("MaBG"),
+                        rs.getString("MaMon"),
+                        rs.getDouble("DonGia"),
+                        rs.getString("GhiChu")
+                ));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
+        return list;
     }
 
-    // ----------------------------------------------------------------
-    // 5. Sửa mức giá
-    // ----------------------------------------------------------------
+    public int insert(BangGia bg) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "INSERT INTO BangGia (TenBG, LoaiBG, NgayBatDau, NgayKetThuc, GioBatDau, GioKetThuc, UuTien, TrangThai, GhiChu) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, bg.getTenBG());
+            ps.setString(2, bg.getLoaiBG());
+            ps.setDate(3, bg.getNgayBatDau());
+            ps.setDate(4, bg.getNgayKetThuc());
+            ps.setTime(5, bg.getGioBatDau());
+            ps.setTime(6, bg.getGioKetThuc());
+            ps.setInt(7, bg.getUuTien());
+            ps.setString(8, bg.getTrangThai());
+            ps.setString(9, bg.getGhiChu());
+            
+            ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     public boolean update(BangGia bg) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "UPDATE BangGia SET DonGia=?, TuNgay=?, DenNgay=?, " +
-                    "GioBatDau=?, GioKetThuc=?, UuTien=?, GhiChu=? WHERE MaGia=?";
+            String sql = "UPDATE BangGia SET TenBG=?, LoaiBG=?, NgayBatDau=?, NgayKetThuc=?, " +
+                    "GioBatDau=?, GioKetThuc=?, UuTien=?, TrangThai=?, GhiChu=? WHERE MaBG=?";
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setDouble(1, bg.getDonGia());
-            ps.setObject(2, bg.getTuNgay() != null ? java.sql.Date.valueOf(bg.getTuNgay()) : null);
-            ps.setObject(3, bg.getDenNgay() != null ? java.sql.Date.valueOf(bg.getDenNgay()) : null);
-            ps.setObject(4, bg.getGioBatDau() != null ? java.sql.Time.valueOf(bg.getGioBatDau()) : null);
-            ps.setObject(5, bg.getGioKetThuc() != null ? java.sql.Time.valueOf(bg.getGioKetThuc()) : null);
-            ps.setInt(6, bg.getUuTien());
-            ps.setString(7, bg.getGhiChu());
-            ps.setInt(8, bg.getMaGia());
+            ps.setString(1, bg.getTenBG());
+            ps.setString(2, bg.getLoaiBG());
+            ps.setDate(3, bg.getNgayBatDau());
+            ps.setDate(4, bg.getNgayKetThuc());
+            ps.setTime(5, bg.getGioBatDau());
+            ps.setTime(6, bg.getGioKetThuc());
+            ps.setInt(7, bg.getUuTien());
+            ps.setString(8, bg.getTrangThai());
+            ps.setString(9, bg.getGhiChu());
+            ps.setInt(10, bg.getMaBG());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -134,14 +128,11 @@ public class BangGiaDAO {
         return false;
     }
 
-    // ----------------------------------------------------------------
-    // 6. Xóa mức giá
-    // ----------------------------------------------------------------
-    public boolean delete(int maGia) {
+    public boolean delete(int maBG) {
         try {
             Connection con = ConnectDB.getConnection();
-            PreparedStatement ps = con.prepareStatement("DELETE FROM BangGia WHERE MaGia=?");
-            ps.setInt(1, maGia);
+            PreparedStatement ps = con.prepareStatement("DELETE FROM BangGia WHERE MaBG=?");
+            ps.setInt(1, maBG);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -149,19 +140,47 @@ public class BangGiaDAO {
         return false;
     }
 
-    // ----------------------------------------------------------------
-    // Helper: Map ResultSet -> BangGia
-    // ----------------------------------------------------------------
-    private BangGia map(ResultSet rs) throws SQLException {
+    public boolean insertChiTiet(ChiTietBangGia ct) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "INSERT INTO ChiTietBangGia (MaBG, MaMon, DonGia, GhiChu) VALUES (?, ?, ?, ?)";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, ct.getMaBG());
+            ps.setString(2, ct.getMaMon());
+            ps.setDouble(3, ct.getDonGia());
+            ps.setString(4, ct.getGhiChu());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean deleteChiTiet(int maBG, String maMon) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            PreparedStatement ps = con.prepareStatement("DELETE FROM ChiTietBangGia WHERE MaBG=? AND MaMon=?");
+            ps.setInt(1, maBG);
+            ps.setString(2, maMon);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private BangGia mapHeader(ResultSet rs) throws SQLException {
         return new BangGia(
-                rs.getInt("MaGia"),
-                rs.getString("MaMon"),
-                rs.getDouble("DonGia"),
-                rs.getDate("TuNgay") != null ? rs.getDate("TuNgay").toString() : null,
-                rs.getDate("DenNgay") != null ? rs.getDate("DenNgay").toString() : null,
-                rs.getTime("GioBatDau") != null ? rs.getTime("GioBatDau").toString() : null,
-                rs.getTime("GioKetThuc") != null ? rs.getTime("GioKetThuc").toString() : null,
+                rs.getInt("MaBG"),
+                rs.getString("TenBG"),
+                rs.getString("LoaiBG"),
+                rs.getDate("NgayBatDau"),
+                rs.getDate("NgayKetThuc"),
+                rs.getTime("GioBatDau"),
+                rs.getTime("GioKetThuc"),
                 rs.getInt("UuTien"),
-                rs.getString("GhiChu"));
+                rs.getString("TrangThai"),
+                rs.getString("GhiChu"),
+                rs.getTimestamp("NgayTao"));
     }
 }

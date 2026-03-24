@@ -19,9 +19,12 @@ public class NhanVienDAO {
         NhanVien nv = new NhanVien(
                 rs.getString("MaNV"),
                 rs.getString("TenNV"),
+                rs.getString("GioiTinh"),
                 rs.getString("SoDienThoai"),
                 rs.getString("Email"),
-                rs.getDate("NgayVaoLam"));
+                rs.getString("CCCD"),
+                rs.getDate("NgayVaoLam"),
+                rs.getString("TrangThai"));
         return nv;
     }
 
@@ -48,7 +51,7 @@ public class NhanVienDAO {
             String sql = "SELECT nv.*, tk.MatKhau, tk.VaiTro " +
                     "FROM NhanVien nv " +
                     "INNER JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
-                    "WHERE nv.MaNV = ? AND tk.MatKhau = ?";
+                    "WHERE nv.MaNV = ? AND tk.MatKhau = ? AND nv.TrangThai = N'Đang làm việc'";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maNV);
             ps.setString(2, matKhau);
@@ -131,7 +134,8 @@ public class NhanVienDAO {
             Connection con = ConnectDB.getConnection();
             // LEFT JOIN để lấy vaiTro
             String sql = "SELECT nv.*, tk.VaiTro " +
-                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK";
+                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
+                    "WHERE nv.TrangThai = N'Đang làm việc'";
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -158,16 +162,19 @@ public class NhanVienDAO {
             con.setAutoCommit(false);
 
             // Insert NhanVien
-            String sqlNV = "INSERT INTO NhanVien (MaNV, TenNV, SoDienThoai, Email, NgayVaoLam) " +
-                    "VALUES (?, ?, ?, ?, ?)";
+            String sqlNV = "INSERT INTO NhanVien (MaNV, TenNV, GioiTinh, SoDienThoai, Email, CCCD, NgayVaoLam, TrangThai) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement psNV = con.prepareStatement(sqlNV);
             psNV.setString(1, nv.getMaNV());
             psNV.setString(2, nv.getTenNV());
-            psNV.setString(3, nv.getSoDienThoai());
-            psNV.setString(4, nv.getEmail());
-            psNV.setDate(5, nv.getNgayVaoLam() != null
+            psNV.setString(3, nv.getGioiTinh() != null ? nv.getGioiTinh() : "Nam"); // default
+            psNV.setString(4, nv.getSoDienThoai());
+            psNV.setString(5, nv.getEmail());
+            psNV.setString(6, nv.getCccd() != null ? nv.getCccd() : "");
+            psNV.setDate(7, nv.getNgayVaoLam() != null
                     ? new java.sql.Date(nv.getNgayVaoLam().getTime())
                     : new java.sql.Date(System.currentTimeMillis()));
+            psNV.setString(8, nv.getTrangThai() != null ? nv.getTrangThai() : "Đang làm việc");
             psNV.executeUpdate();
 
             // Insert TaiKhoan
@@ -213,15 +220,18 @@ public class NhanVienDAO {
             con = ConnectDB.getConnection();
             con.setAutoCommit(false);
 
-            String sqlNV = "UPDATE NhanVien SET TenNV=?, SoDienThoai=?, Email=?, NgayVaoLam=? WHERE MaNV=?";
+            String sqlNV = "UPDATE NhanVien SET TenNV=?, GioiTinh=?, SoDienThoai=?, Email=?, CCCD=?, NgayVaoLam=?, TrangThai=? WHERE MaNV=?";
             PreparedStatement psNV = con.prepareStatement(sqlNV);
             psNV.setString(1, nv.getTenNV());
-            psNV.setString(2, nv.getSoDienThoai());
-            psNV.setString(3, nv.getEmail());
-            psNV.setDate(4, nv.getNgayVaoLam() != null
+            psNV.setString(2, nv.getGioiTinh() != null ? nv.getGioiTinh() : "Nam");
+            psNV.setString(3, nv.getSoDienThoai());
+            psNV.setString(4, nv.getEmail());
+            psNV.setString(5, nv.getCccd() != null ? nv.getCccd() : "");
+            psNV.setDate(6, nv.getNgayVaoLam() != null
                     ? new java.sql.Date(nv.getNgayVaoLam().getTime())
                     : new java.sql.Date(System.currentTimeMillis()));
-            psNV.setString(5, nv.getMaNV());
+            psNV.setString(7, nv.getTrangThai() != null ? nv.getTrangThai() : "Đang làm việc");
+            psNV.setString(8, nv.getMaNV());
             psNV.executeUpdate();
 
             // Cập nhật VaiTro nếu có
@@ -252,13 +262,11 @@ public class NhanVienDAO {
         return false;
     }
 
-    // ----------------------------------------------------------------
-    // 7. Xóa nhân viên (TaiKhoan tự xóa cascade)
-    // ----------------------------------------------------------------
+    // 7. Xóa nhân viên (Soft Delete)
     public boolean delete(String maNV) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "DELETE FROM NhanVien WHERE MaNV = ?";
+            String sql = "UPDATE NhanVien SET TrangThai = N'Đã nghỉ' WHERE MaNV = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, maNV);
             return ps.executeUpdate() > 0;
@@ -277,7 +285,7 @@ public class NhanVienDAO {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT nv.*, tk.VaiTro FROM NhanVien nv " +
                     "LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
-                    "WHERE nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?";
+                    "WHERE (nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?) AND nv.TrangThai = N'Đang làm việc'";
             PreparedStatement ps = con.prepareStatement(sql);
             String q = "%" + keyword + "%";
             ps.setString(1, q);

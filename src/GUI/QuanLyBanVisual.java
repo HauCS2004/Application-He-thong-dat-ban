@@ -8,7 +8,7 @@ import Entity.Ban;
 
 /**
  * QuanLyBan - Visual Table Management Screen
- * NEW: Using TableCard components with color-coded status
+ * Calls BanDialog for CRUD operations
  */
 public class QuanLyBanVisual extends JPanel {
 
@@ -83,13 +83,13 @@ public class QuanLyBanVisual extends JPanel {
         btnAdd.setBackground(new Color(16, 185, 129)); // Green
         btnAdd.setForeground(Color.WHITE);
         btnAdd.setFocusPainted(false);
-        btnAdd.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/add.png")); // New Icon
+        btnAdd.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/add.png"));
         btnAdd.addActionListener(e -> handleAddTable());
 
         btnRefresh = new JButton("Làm mới");
         btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btnRefresh.setFocusPainted(false);
-        btnRefresh.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/refresh.png")); // New Icon
+        btnRefresh.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/refresh.png"));
         btnRefresh.addActionListener(e -> refreshCurrentFloor());
 
         pnlBtns.add(btnAdd);
@@ -205,28 +205,30 @@ public class QuanLyBanVisual extends JPanel {
     private void handleTableSelected(Ban table) {
         this.selectedTable = table;
 
-        // Deselect all cards in current floor (Visual only)
-        // Note: Ideally refresh logic handles this, but here we just update Right Panel
-
-        // Update details panel with table info
         lblSelectedTable.setText(table.getTenBan());
         lblStatus.setText("Trạng thái: " + table.getTrangThai());
         lblInfo.setText("Sức chứa: " + table.getSoGhe() + " người");
         lblZone.setText("Khu vực: " + table.getMaKV());
 
-        // Show CRUD buttons
         btnAction1.setVisible(true);
         btnAction2.setVisible(true);
     }
 
-    // CRUD Handlers
     private void handleAddTable() {
-        showTableDialog(null);
+        BanDialog dialog = new BanDialog(this, null, banDAO);
+        dialog.setVisible(true);
+        if (dialog.isSaved()) {
+            refreshCurrentFloor();
+        }
     }
 
     private void handleEditTable() {
         if (selectedTable != null) {
-            showTableDialog(selectedTable);
+            BanDialog dialog = new BanDialog(this, selectedTable, banDAO);
+            dialog.setVisible(true);
+            if (dialog.isSaved()) {
+                refreshCurrentFloor();
+            }
         }
     }
 
@@ -251,78 +253,6 @@ public class QuanLyBanVisual extends JPanel {
                 }
             }
         }
-    }
-
-    // Helper Dialog
-    private void showTableDialog(Ban ban) {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
-                ban == null ? "Thêm Bàn Mới" : "Sửa Bàn", true);
-        dialog.setLayout(new BorderLayout());
-        dialog.setSize(400, 300);
-        dialog.setLocationRelativeTo(this);
-
-        JPanel pnlCenter = new JPanel(new GridLayout(4, 2, 10, 10));
-        pnlCenter.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        JTextField txtMa = new JTextField(ban != null ? ban.getMaBan() : "");
-        JTextField txtTen = new JTextField(ban != null ? ban.getTenBan() : "");
-        JTextField txtGhe = new JTextField(ban != null ? String.valueOf(ban.getSoGhe()) : "4");
-        String[] khuVucs = { "KV01", "KV02", "KV03", "KV04" };
-        JComboBox<String> cboKV = new JComboBox<>(khuVucs);
-        if (ban != null)
-            cboKV.setSelectedItem(ban.getMaKV());
-
-        pnlCenter.add(new JLabel("Mã Bàn:"));
-        pnlCenter.add(txtMa);
-        pnlCenter.add(new JLabel("Tên Bàn:"));
-        pnlCenter.add(txtTen);
-        pnlCenter.add(new JLabel("Khu Vực:"));
-        pnlCenter.add(cboKV);
-        pnlCenter.add(new JLabel("Số Ghế:"));
-        pnlCenter.add(txtGhe);
-
-        if (ban != null)
-            txtMa.setEditable(false);
-
-        JButton btnSave = new JButton("Lưu");
-        btnSave.addActionListener(e -> {
-            String ma = txtMa.getText().trim();
-            String ten = txtTen.getText().trim();
-            String kv = cboKV.getSelectedItem().toString();
-            int ghe = 4;
-            try {
-                ghe = Integer.parseInt(txtGhe.getText());
-            } catch (Exception ex) {
-            }
-
-            if (ma.isEmpty() || ten.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "Vui lòng nhập đủ thông tin!");
-                return;
-            }
-
-            Ban newBan = new Ban(ma, ten, "Trống", kv, ghe, null);
-            boolean result;
-            if (ban == null) {
-                result = banDAO.insert(newBan);
-            } else {
-                result = banDAO.updateInfo(newBan);
-            }
-
-            if (result) {
-                JOptionPane.showMessageDialog(dialog, "Lưu thành công!");
-                dialog.dispose();
-                refreshCurrentFloor();
-            } else {
-                JOptionPane.showMessageDialog(dialog, "Lỗi khi lưu (Trùng mã?)!");
-            }
-        });
-
-        JPanel pnlBottom = new JPanel();
-        pnlBottom.add(btnSave);
-
-        dialog.add(pnlCenter, BorderLayout.CENTER);
-        dialog.add(pnlBottom, BorderLayout.SOUTH);
-        dialog.setVisible(true);
     }
 
     private void refreshCurrentFloor() {

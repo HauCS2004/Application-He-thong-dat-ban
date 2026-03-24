@@ -10,7 +10,9 @@ public class HoaDon {
     private double phiPhucVu; // % phí phục vụ (VD: 5)
     private double tienGiamGia; // Tổng số tiền giảm (KM + VIP)
     private double thanhTien; // Tổng cuối = tongTien*(1+VAT+Phi) - Giam
-    private int trangThai; // 0: Chưa thanh toán, 1: Đã thanh toán
+    private String trangThai; // "Chưa thanh toán", "Đã thanh toán", "Đã hủy"
+    private String phuongThucThanhToan;
+    private java.util.Date thoiGianThanhToan;
     private String maBan;
     private int soLuongKhach;
     private String sdtKhach;
@@ -28,7 +30,7 @@ public class HoaDon {
         this.ghiChu = ghiChu;
         this.maNV = maNV;
         this.ngayTao = new java.util.Date();
-        this.trangThai = 0;
+        this.trangThai = "Chưa thanh toán";
         this.tongTien = 0;
         this.phanTramVAT = 10; // Mặc định 10%
         this.phiPhucVu = 5; // Mặc định 5%
@@ -39,7 +41,8 @@ public class HoaDon {
     // Constructor đầy đủ (lúc đọc từ SQL)
     public HoaDon(int maHD, java.util.Date ngayTao, double tongTien,
             double phanTramVAT, double phiPhucVu, double tienGiamGia, double thanhTien,
-            int trangThai, String maBan, int soLuongKhach,
+            String trangThai, String phuongThucThanhToan, java.util.Date thoiGianThanhToan, 
+            String maBan, int soLuongKhach,
             String sdtKhach, String ghiChu, String maNV) {
         this.maHD = maHD;
         this.ngayTao = ngayTao;
@@ -49,6 +52,8 @@ public class HoaDon {
         this.tienGiamGia = tienGiamGia;
         this.thanhTien = thanhTien;
         this.trangThai = trangThai;
+        this.phuongThucThanhToan = phuongThucThanhToan;
+        this.thoiGianThanhToan = thoiGianThanhToan;
         this.maBan = maBan;
         this.soLuongKhach = soLuongKhach;
         this.sdtKhach = sdtKhach;
@@ -81,12 +86,28 @@ public class HoaDon {
         this.tongTien = tongTien;
     }
 
-    public int getTrangThai() {
+    public String getTrangThai() {
         return trangThai;
     }
 
-    public void setTrangThai(int trangThai) {
+    public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
+    }
+
+    public String getPhuongThucThanhToan() {
+        return phuongThucThanhToan;
+    }
+
+    public void setPhuongThucThanhToan(String phuongThucThanhToan) {
+        this.phuongThucThanhToan = phuongThucThanhToan;
+    }
+
+    public java.util.Date getThoiGianThanhToan() {
+        return thoiGianThanhToan;
+    }
+
+    public void setThoiGianThanhToan(java.util.Date thoiGianThanhToan) {
+        this.thoiGianThanhToan = thoiGianThanhToan;
     }
 
     public String getMaBan() {

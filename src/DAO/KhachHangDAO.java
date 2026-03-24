@@ -9,13 +9,14 @@ import Entity.KhachHang;
 
 public class KhachHangDAO {
 
-    // 1. Lấy tất cả
+    // 1. Lấy tất cả khách hàng (chỉ lấy khách hàng đang hoạt động, TrangThai = 1)
     public ArrayList<KhachHang> getAll() {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM KhachHang";
-            ResultSet rs = con.createStatement().executeQuery(sql);
+            String sql = "SELECT * FROM KhachHang WHERE TrangThai = 1";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 list.add(new KhachHang(
                         rs.getString("SoDienThoai"),
@@ -44,15 +45,21 @@ public class KhachHangDAO {
         }
     }
 
-    // 3. Sửa khách
+    // 3. Sửa khách (Giữ PK cũ)
     public boolean update(KhachHang kh) {
+        return update(kh, kh.getSoDienThoai());
+    }
+
+    // 3.1 Sửa khách (hỗ trợ đổi SDT)
+    public boolean update(KhachHang kh, String oldSDT) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "UPDATE KhachHang SET TenKhach=?, DiemTichLuy=? WHERE SoDienThoai=?";
+            String sql = "UPDATE KhachHang SET SoDienThoai=?, TenKhach=?, DiemTichLuy=? WHERE SoDienThoai=?";
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, kh.getTenKhach());
-            ps.setInt(2, kh.getDiemTichLuy());
-            ps.setString(3, kh.getSoDienThoai());
+            ps.setString(1, kh.getSoDienThoai());
+            ps.setString(2, kh.getTenKhach());
+            ps.setInt(3, kh.getDiemTichLuy());
+            ps.setString(4, oldSDT);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -60,11 +67,12 @@ public class KhachHangDAO {
         }
     }
 
-    // 4. Xóa khách
+    // 4. Xóa khách (Soft Delete: Đổi trạng thái thành 0)
     public boolean delete(String sdt) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "DELETE FROM KhachHang WHERE SoDienThoai=?";
+            // Cập nhật trạng thái thành 0 thay vì xóa vật lý
+            String sql = "UPDATE KhachHang SET TrangThai = 0 WHERE SoDienThoai=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);
             return ps.executeUpdate() > 0;
@@ -79,13 +87,16 @@ public class KhachHangDAO {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM KhachHang WHERE TenKhach LIKE ? OR SoDienThoai LIKE ?";
+            String sql = "SELECT * FROM KhachHang WHERE (TenKhach LIKE ? OR SoDienThoai LIKE ?) AND TrangThai = 1";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, "%" + keyword + "%");
             ps.setString(2, "%" + keyword + "%");
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                list.add(new KhachHang(rs.getString(1), rs.getString(2), rs.getInt(3)));
+                list.add(new KhachHang(
+                        rs.getString("SoDienThoai"),
+                        rs.getString("TenKhach"),
+                        rs.getInt("DiemTichLuy")));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,17 +112,15 @@ public class KhachHangDAO {
         return insert(kh);
     }
 
-    // 7. Check khách hàng đã tồn tại chưa
+    // 6. Kiểm tra tồn tại
     public boolean checkTonTai(String sdt) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT COUNT(*) FROM KhachHang WHERE SoDienThoai = ?";
+            String sql = "SELECT 1 FROM KhachHang WHERE SoDienThoai=? AND TrangThai = 1";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
+            return rs.next();
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -10,7 +10,7 @@ import javax.swing.SwingUtilities;
 
 import connectDB.ConnectDB;
 
-public class TrangChu extends JFrame {
+public class MainLayout extends JFrame {
 
     private JPanel pnlContent;
     private CardLayout cardLayout;
@@ -26,7 +26,7 @@ public class TrangChu extends JFrame {
     private ManHinhPhucVu pnlPhucVu; // NEW
     private ManHinhNhanVien pnlNhanVien; // NEW: Employee Management
 
-    public TrangChu() {
+    public MainLayout() {
         ConnectDB.getInstance().connect();
         initGUI();
     }

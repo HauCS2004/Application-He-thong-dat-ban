@@ -127,7 +127,7 @@ public class KhuyenMaiDAO {
     }
 
     // Lấy khuyến mãi theo mã
-    public KhuyenMai getByCode(String code) {
+    public KhuyenMai getByMaKM(String code) {
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT * FROM KhuyenMai WHERE MaKM = ?";

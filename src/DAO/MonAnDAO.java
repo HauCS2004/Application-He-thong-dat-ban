@@ -102,24 +102,46 @@ public class MonAnDAO {
             // Tham số 1: Tên (thêm % để tìm gần đúng)
             ps.setString(1, "%" + keyword + "%");
 
-            // Tham số 2: Mã loại (nếu có)
-            if (maLoai != null && !maLoai.isEmpty()) {
-                ps.setString(2, maLoai);
-            }
-
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                list.add(new MonAn(
-                        rs.getString("MaMon"),
-                        rs.getString("TenMon"),
-                        rs.getString("DonViTinh"),
-                        rs.getDouble("DonGia"),
-                        rs.getString("HinhAnh"),
-                        rs.getString("MaLoai")));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        // Tham số 2: Mã loại (nếu có)
+        if (maLoai != null && !maLoai.isEmpty()) {
+            ps.setString(2, maLoai);
         }
-        return list;
+
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            list.add(new MonAn(
+                    rs.getString("MaMon"),
+                    rs.getString("TenMon"),
+                    rs.getString("DonViTinh"),
+                    rs.getDouble("DonGia"),                    rs.getString("HinhAnh"),
+                    rs.getString("MaLoai")));
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    return list;
+}
+
+// 5. Lấy món theo mã
+public MonAn getByMaMon(String maMon) {
+    try {
+        Connection con = ConnectDB.getConnection();
+        String sql = "SELECT * FROM MonAn WHERE MaMon = ?";
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setString(1, maMon);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            return new MonAn(
+                    rs.getString("MaMon"),
+                    rs.getString("TenMon"),
+                    rs.getString("DonViTinh"),
+                    rs.getDouble("DonGia"),
+                    rs.getString("HinhAnh"),
+                    rs.getString("MaLoai"));
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return null;
+}
 }

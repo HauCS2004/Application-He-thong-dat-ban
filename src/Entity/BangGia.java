@@ -1,128 +1,74 @@
 package Entity;
 
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+
 public class BangGia {
-    private int maGia;
-    private String maMon;
-    private double donGia;
-    private String tuNgay; // "yyyy-MM-dd" hoặc null
-    private String denNgay; // "yyyy-MM-dd" hoặc null
-    private String gioBatDau; // "HH:mm:ss" hoặc null
-    private String gioKetThuc; // "HH:mm:ss" hoặc null
+    private int maBG;
+    private String tenBG;
+    private String loaiBG;
+    private Date ngayBatDau;
+    private Date ngayKetThuc;
+    private Time gioBatDau;
+    private Time gioKetThuc;
     private int uuTien;
+    private String trangThai;
     private String ghiChu;
+    private Timestamp ngayTao;
 
     public BangGia() {
     }
 
-    public BangGia(int maGia, String maMon, double donGia,
-            String tuNgay, String denNgay,
-            String gioBatDau, String gioKetThuc,
-            int uuTien, String ghiChu) {
-        this.maGia = maGia;
-        this.maMon = maMon;
-        this.donGia = donGia;
-        this.tuNgay = tuNgay;
-        this.denNgay = denNgay;
+    public BangGia(int maBG, String tenBG, String loaiBG, Date ngayBatDau, Date ngayKetThuc, Time gioBatDau, Time gioKetThuc, int uuTien, String trangThai, String ghiChu, Timestamp ngayTao) {
+        this.maBG = maBG;
+        this.tenBG = tenBG;
+        this.loaiBG = loaiBG;
+        this.ngayBatDau = ngayBatDau;
+        this.ngayKetThuc = ngayKetThuc;
         this.gioBatDau = gioBatDau;
         this.gioKetThuc = gioKetThuc;
         this.uuTien = uuTien;
+        this.trangThai = trangThai;
         this.ghiChu = ghiChu;
+        this.ngayTao = ngayTao;
     }
 
-    // Constructor cho INSERT mới (không có maGia)
-    public BangGia(String maMon, double donGia,
-            String tuNgay, String denNgay,
-            String gioBatDau, String gioKetThuc,
-            int uuTien, String ghiChu) {
-        this.maMon = maMon;
-        this.donGia = donGia;
-        this.tuNgay = tuNgay;
-        this.denNgay = denNgay;
-        this.gioBatDau = gioBatDau;
-        this.gioKetThuc = gioKetThuc;
-        this.uuTien = uuTien;
-        this.ghiChu = ghiChu;
-    }
+    public int getMaBG() { return maBG; }
+    public void setMaBG(int maBG) { this.maBG = maBG; }
 
-    // --- Getters & Setters ---
-    public int getMaGia() {
-        return maGia;
-    }
+    public String getTenBG() { return tenBG; }
+    public void setTenBG(String tenBG) { this.tenBG = tenBG; }
 
-    public void setMaGia(int maGia) {
-        this.maGia = maGia;
-    }
+    public String getLoaiBG() { return loaiBG; }
+    public void setLoaiBG(String loaiBG) { this.loaiBG = loaiBG; }
 
-    public String getMaMon() {
-        return maMon;
-    }
+    public Date getNgayBatDau() { return ngayBatDau; }
+    public void setNgayBatDau(Date ngayBatDau) { this.ngayBatDau = ngayBatDau; }
 
-    public void setMaMon(String maMon) {
-        this.maMon = maMon;
-    }
+    public Date getNgayKetThuc() { return ngayKetThuc; }
+    public void setNgayKetThuc(Date ngayKetThuc) { this.ngayKetThuc = ngayKetThuc; }
 
-    public double getDonGia() {
-        return donGia;
-    }
+    public Time getGioBatDau() { return gioBatDau; }
+    public void setGioBatDau(Time gioBatDau) { this.gioBatDau = gioBatDau; }
 
-    public void setDonGia(double donGia) {
-        this.donGia = donGia;
-    }
+    public Time getGioKetThuc() { return gioKetThuc; }
+    public void setGioKetThuc(Time gioKetThuc) { this.gioKetThuc = gioKetThuc; }
 
-    public String getTuNgay() {
-        return tuNgay;
-    }
+    public int getUuTien() { return uuTien; }
+    public void setUuTien(int uuTien) { this.uuTien = uuTien; }
 
-    public void setTuNgay(String tuNgay) {
-        this.tuNgay = tuNgay;
-    }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
-    public String getDenNgay() {
-        return denNgay;
-    }
+    public String getGhiChu() { return ghiChu; }
+    public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
 
-    public void setDenNgay(String denNgay) {
-        this.denNgay = denNgay;
-    }
+    public Timestamp getNgayTao() { return ngayTao; }
+    public void setNgayTao(Timestamp ngayTao) { this.ngayTao = ngayTao; }
 
-    public String getGioBatDau() {
-        return gioBatDau;
-    }
-
-    public void setGioBatDau(String g) {
-        this.gioBatDau = g;
-    }
-
-    public String getGioKetThuc() {
-        return gioKetThuc;
-    }
-
-    public void setGioKetThuc(String g) {
-        this.gioKetThuc = g;
-    }
-
-    public int getUuTien() {
-        return uuTien;
-    }
-
-    public void setUuTien(int uuTien) {
-        this.uuTien = uuTien;
-    }
-
-    public String getGhiChu() {
-        return ghiChu;
-    }
-
-    public void setGhiChu(String ghiChu) {
-        this.ghiChu = ghiChu;
-    }
-
-    /** Mô tả ngắn cho hiển thị trong table */
     @Override
     public String toString() {
-        String khung = "";
-        if (gioBatDau != null && gioKetThuc != null)
-            khung = " [" + gioBatDau.substring(0, 5) + " - " + gioKetThuc.substring(0, 5) + "]";
-        return String.format("%.0f VNĐ%s", donGia, khung);
+        return tenBG + " (" + trangThai + ")";
     }
 }
