@@ -339,7 +339,7 @@ public class DatBanDAO {
             // Có khách
             con.createStatement().executeUpdate(
                     "UPDATE Ban SET TrangThai=N'Có Khách' WHERE MaBan IN " +
-                            "(SELECT MaBan FROM HoaDon WHERE TrangThai=0)");
+                            "(SELECT MaBan FROM HoaDon WHERE TrangThai=N'Chưa thanh toán')");
             // Đã đặt (qua ChiTietDatBan)
             con.createStatement().executeUpdate(
                     "UPDATE Ban SET TrangThai=N'Đã Đặt' WHERE TrangThai=N'Trống' AND MaBan IN (" +

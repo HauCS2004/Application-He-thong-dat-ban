@@ -128,18 +128,19 @@ CREATE TABLE ChiTietBangGia (
 )
 GO
 
--- 9. Khách Hàng
+-- 9. Khách Hàng (Đã thêm cột TrangThai)
 CREATE TABLE KhachHang (
-    SoDienThoai     VARCHAR(20)   PRIMARY KEY,
-    TenKhach        NVARCHAR(50)  NOT NULL,
-    Email           NVARCHAR(100) NULL,
-    NgaySinh        DATE          NULL,
-    DiemTichLuy     INT           DEFAULT 0,
-    HangVIP         NVARCHAR(20)  DEFAULT N'Đồng',
-    NgayTao         DATETIME      DEFAULT GETDATE(),
-    LanGiaoDichCuoi DATETIME      NULL,
-    TongChiTieu     DECIMAL(18,2) DEFAULT 0,
-    GhiChu          NVARCHAR(200) NULL
+    SoDienThoai      VARCHAR(20)   PRIMARY KEY,
+    TenKhach         NVARCHAR(50)  NOT NULL,
+    Email            NVARCHAR(100) NULL,
+    NgaySinh         DATE          NULL,
+    DiemTichLuy      INT           DEFAULT 0,
+    HangVIP          NVARCHAR(20)  DEFAULT N'Đồng',
+    NgayTao          DATETIME      DEFAULT GETDATE(),
+    LanGiaoDichCuoi  DATETIME      NULL,
+    TongChiTieu      DECIMAL(18,2) DEFAULT 0,
+    GhiChu           NVARCHAR(200) NULL,
+    TrangThai        INT           DEFAULT 1 -- 1: Hoạt động, 0: Ngưng hoạt động (Xóa mềm)
 )
 GO
 
