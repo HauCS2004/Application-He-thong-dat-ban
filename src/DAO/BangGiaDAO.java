@@ -156,6 +156,22 @@ public class BangGiaDAO {
         return false;
     }
 
+    public boolean updateChiTiet(ChiTietBangGia ct) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "UPDATE ChiTietBangGia SET DonGia = ?, GhiChu = ? WHERE MaBG = ? AND MaMon = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setDouble(1, ct.getDonGia());
+            ps.setString(2, ct.getGhiChu());
+            ps.setInt(3, ct.getMaBG());
+            ps.setString(4, ct.getMaMon());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public boolean deleteChiTiet(int maBG, String maMon) {
         try {
             Connection con = ConnectDB.getConnection();

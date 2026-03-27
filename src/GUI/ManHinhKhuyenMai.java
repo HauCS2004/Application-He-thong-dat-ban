@@ -141,6 +141,13 @@ public class ManHinhKhuyenMai extends JPanel {
         });
 
         btnClear.addActionListener(e -> loadData());
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadData();
+            }
+        });
     }
 
     private JButton createButton(String text, Color bg) {

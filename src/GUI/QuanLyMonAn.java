@@ -74,7 +74,23 @@ public class QuanLyMonAn extends JPanel {
         mainTabs.addTab("Danh sách Món Ăn", createMonAnTab());
         mainTabs.addTab("Quản lý Bảng Giá", createBangGiaTab());
 
+        mainTabs.addChangeListener(e -> {
+            if (mainTabs.getSelectedIndex() == 0) {
+                loadDataGrid();
+            } else if (mainTabs.getSelectedIndex() == 1) {
+                loadBangGiaData();
+            }
+        });
+
         add(mainTabs, BorderLayout.CENTER);
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadDataGrid();
+                loadBangGiaData();
+            }
+        });
     }
 
     // ==================== TAB 1: DANH SÁCH MÓN ĂN ====================
@@ -198,9 +214,9 @@ public class QuanLyMonAn extends JPanel {
 
         JPanel pnlMasterTop = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         pnlMasterTop.setBackground(Color.WHITE);
-        JButton btnThemBG = UIStyle.buttonSm(UIStyle.BtnType.SUCCESS, "THÊM CHIẾN DỊCH");
-        JButton btnSuaBG = UIStyle.buttonSm(UIStyle.BtnType.WARNING, "SỬA CHIẾN DỊCH");
-        JButton btnXoaBG = UIStyle.buttonSm(UIStyle.BtnType.DANGER, "XÓA CHIẾN DỊCH");
+        JButton btnThemBG = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM CHIẾN DỊCH");
+        JButton btnSuaBG = UIStyle.button(UIStyle.BtnType.WARNING, "SỬA CHIẾN DỊCH");
+        JButton btnXoaBG = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA CHIẾN DỊCH");
         pnlMasterTop.add(btnThemBG);
         pnlMasterTop.add(btnSuaBG);
         pnlMasterTop.add(btnXoaBG);
@@ -221,9 +237,11 @@ public class QuanLyMonAn extends JPanel {
 
         JPanel pnlDetailTop = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         pnlDetailTop.setBackground(Color.WHITE);
-        JButton btnThemMon = UIStyle.buttonSm(UIStyle.BtnType.SUCCESS, "THÊM MÓN VÀO CD");
-        JButton btnXoaMon = UIStyle.buttonSm(UIStyle.BtnType.DANGER, "XÓA MÓN KHỎI CD");
+        JButton btnThemMon = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM MÓN VÀO CD");
+        JButton btnSuaMon = UIStyle.button(UIStyle.BtnType.WARNING, "SỬA MÓN");
+        JButton btnXoaMon = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA MÓN KHỎI CD");
         pnlDetailTop.add(btnThemMon);
+        pnlDetailTop.add(btnSuaMon);
         pnlDetailTop.add(btnXoaMon);
         pnlDetail.add(pnlDetailTop, BorderLayout.NORTH);
 
@@ -287,7 +305,24 @@ public class QuanLyMonAn extends JPanel {
                 JOptionPane.showMessageDialog(this, "Vui lòng chọn Chiến Dịch Giá ở bảng trên trước!");
                 return;
             }
-            ChiTietBangGiaDialog dialog = new ChiTietBangGiaDialog(this, selectedMaBG, bangGiaDAO);
+            ChiTietBangGiaDialog dialog = new ChiTietBangGiaDialog(this, selectedMaBG, bangGiaDAO, null);
+            dialog.setVisible(true);
+            if (dialog.isSaved()) loadChiTietData(selectedMaBG);
+        });
+
+        btnSuaMon.addActionListener(e -> {
+            int row = tblChiTiet.getSelectedRow();
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn món ăn trong chiến dịch cần sửa!");
+                return;
+            }
+            String maMon = tblChiTiet.getValueAt(row, 0).toString();
+            double donGia = 0;
+            try { donGia = Double.parseDouble(tblChiTiet.getValueAt(row, 2).toString().replace(",", "")); } catch(Exception ex){}
+            String ghiChu = tblChiTiet.getValueAt(row, 3) != null ? tblChiTiet.getValueAt(row, 3).toString() : "";
+            
+            ChiTietBangGia ctEdit = new ChiTietBangGia(selectedMaBG, maMon, donGia, ghiChu);
+            ChiTietBangGiaDialog dialog = new ChiTietBangGiaDialog(this, selectedMaBG, bangGiaDAO, ctEdit);
             dialog.setVisible(true);
             if (dialog.isSaved()) loadChiTietData(selectedMaBG);
         });

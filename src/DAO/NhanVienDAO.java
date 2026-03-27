@@ -128,15 +128,22 @@ public class NhanVienDAO {
     // ----------------------------------------------------------------
     // 4. Lấy tất cả nhân viên (kèm vaiTro)
     // ----------------------------------------------------------------
-    public ArrayList<NhanVien> getAll() {
+    public ArrayList<NhanVien> getAll(String trangThai) {
         ArrayList<NhanVien> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            // LEFT JOIN để lấy vaiTro
             String sql = "SELECT nv.*, tk.VaiTro " +
-                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
-                    "WHERE nv.TrangThai = N'Đang làm việc'";
+                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK ";
+            
+            if (!"Tất cả".equals(trangThai)) {
+                sql += "WHERE nv.TrangThai = ? ";
+            }
+            
             PreparedStatement ps = con.prepareStatement(sql);
+            if (!"Tất cả".equals(trangThai)) {
+                ps.setString(1, trangThai);
+            }
+            
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 NhanVien nv = mapNhanVien(rs);
@@ -150,6 +157,10 @@ public class NhanVienDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public ArrayList<NhanVien> getAll() {
+        return getAll("Đang làm việc");
     }
 
     // ----------------------------------------------------------------
@@ -279,18 +290,28 @@ public class NhanVienDAO {
     // ----------------------------------------------------------------
     // 8. Tìm kiếm nhân viên
     // ----------------------------------------------------------------
-    public ArrayList<NhanVien> timKiem(String keyword) {
+    public ArrayList<NhanVien> timKiem(String keyword, String trangThai) {
         ArrayList<NhanVien> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT nv.*, tk.VaiTro FROM NhanVien nv " +
                     "LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
-                    "WHERE (nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?) AND nv.TrangThai = N'Đang làm việc'";
+                    "WHERE (nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?) ";
+            
+            if (!"Tất cả".equals(trangThai)) {
+                sql += "AND nv.TrangThai = ? ";
+            }
+                    
             PreparedStatement ps = con.prepareStatement(sql);
             String q = "%" + keyword + "%";
             ps.setString(1, q);
             ps.setString(2, q);
             ps.setString(3, q);
+            
+            if (!"Tất cả".equals(trangThai)) {
+                ps.setString(4, trangThai);
+            }
+            
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 NhanVien nv = mapNhanVien(rs);
@@ -303,5 +324,109 @@ public class NhanVienDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public ArrayList<NhanVien> timKiem(String keyword) {
+        return timKiem(keyword, "Đang làm việc");
+    }
+
+    // ----------------------------------------------------------------
+    // 9. Lấy tất cả nhân viên (kèm MatKhau) dùng cho Quản lý tài khoản
+    // ----------------------------------------------------------------
+    public ArrayList<NhanVien> getAllWithPassword(String trangThai) {
+        ArrayList<NhanVien> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT nv.*, tk.VaiTro, tk.MatKhau " +
+                    "FROM NhanVien nv LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK ";
+            
+            if (!"Tất cả".equals(trangThai)) {
+                sql += "WHERE nv.TrangThai = ?";
+            }
+            
+            PreparedStatement ps = con.prepareStatement(sql);
+            if (!"Tất cả".equals(trangThai)) {
+                ps.setString(1, trangThai);
+            }
+            
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                NhanVien nv = mapNhanVien(rs);
+                String vaiTro = rs.getString("VaiTro");
+                String matKhau = rs.getString("MatKhau");
+                if (vaiTro != null) {
+                    nv.setTaiKhoan(new TaiKhoan(nv.getMaNV(), matKhau != null ? matKhau : "", vaiTro));
+                }
+                list.add(nv);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    
+    public ArrayList<NhanVien> getAllWithPassword() {
+        return getAllWithPassword("Đang làm việc");
+    }
+
+    // ----------------------------------------------------------------
+    // 10. Tìm kiếm nhân viên (kèm MatKhau) dùng cho Quản lý tài khoản
+    // ----------------------------------------------------------------
+    public ArrayList<NhanVien> timKiemWithPassword(String keyword, String trangThai) {
+        ArrayList<NhanVien> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT nv.*, tk.VaiTro, tk.MatKhau FROM NhanVien nv " +
+                    "LEFT JOIN TaiKhoan tk ON nv.MaNV = tk.MaTK " +
+                    "WHERE (nv.TenNV LIKE ? OR nv.SoDienThoai LIKE ? OR nv.MaNV LIKE ?) ";
+            
+            if (!"Tất cả".equals(trangThai)) {
+                sql += "AND nv.TrangThai = ?";
+            }
+            
+            PreparedStatement ps = con.prepareStatement(sql);
+            String q = "%" + keyword + "%";
+            ps.setString(1, q);
+            ps.setString(2, q);
+            ps.setString(3, q);
+            
+            if (!"Tất cả".equals(trangThai)) {
+                ps.setString(4, trangThai);
+            }
+            
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                NhanVien nv = mapNhanVien(rs);
+                String vaiTro = rs.getString("VaiTro");
+                String matKhau = rs.getString("MatKhau");
+                if (vaiTro != null)
+                    nv.setTaiKhoan(new TaiKhoan(nv.getMaNV(), matKhau != null ? matKhau : "", vaiTro));
+                list.add(nv);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    
+    public ArrayList<NhanVien> timKiemWithPassword(String keyword) {
+        return timKiemWithPassword(keyword, "Đang làm việc");
+    }
+
+    // ----------------------------------------------------------------
+    // 11. Đổi mật khẩu (dành cho Admin/Quản lý bỏ qua MK cũ)
+    // ----------------------------------------------------------------
+    public boolean updatePasswordAdmin(String maNV, String newPass) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String updateSql = "UPDATE TaiKhoan SET MatKhau = ? WHERE MaTK = ?";
+            PreparedStatement updatePs = con.prepareStatement(updateSql);
+            updatePs.setString(1, newPass);
+            updatePs.setString(2, maNV);
+            return updatePs.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

@@ -7,9 +7,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.text.SimpleDateFormat;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -25,9 +22,8 @@ import javax.swing.table.DefaultTableModel;
 
 import DAO.NhanVienDAO;
 import Entity.NhanVien;
-import connectDB.SessionManager;
 
-public class ManHinhNhanVien extends JPanel {
+public class QuanLyTaiKhoan extends JPanel {
 
     private JTextField txtTim;
     private JComboBox<String> cboTrangThai;
@@ -35,12 +31,11 @@ public class ManHinhNhanVien extends JPanel {
     private DefaultTableModel model;
 
     private NhanVienDAO dao = new NhanVienDAO();
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 14);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 14);
 
-    public ManHinhNhanVien() {
+    public QuanLyTaiKhoan() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -75,14 +70,10 @@ public class ManHinhNhanVien extends JPanel {
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
         
-        JButton btnThem = createButton("THÊM", new Color(46, 204, 113));
-        JButton btnSua = createButton("SỬA", new Color(245, 158, 11));
-        JButton btnXoa = createButton("XÓA", new Color(220, 53, 69));
+        JButton btnSua = createButton("SỬA MẬT KHẨU", new Color(245, 158, 11));
         JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125));
 
-        pnlActions.add(btnThem);
         pnlActions.add(btnSua);
-        pnlActions.add(btnXoa);
         pnlActions.add(btnMoi);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
@@ -90,7 +81,7 @@ public class ManHinhNhanVien extends JPanel {
         add(pnlToolbar, BorderLayout.NORTH);
 
         // --- BẢNG DỮ LIỆU (CENTER) ---
-        String[] headers = { "Mã NV", "Tên nhân viên", "Giới tính", "SĐT", "Email", "CCCD", "Chức vụ", "Trạng thái", "Ngày vào làm" };
+        String[] headers = { "Mã NV / Tài khoản", "Tên nhân viên", "Vai trò", "Mật khẩu" };
         model = new DefaultTableModel(headers, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -113,51 +104,22 @@ public class ManHinhNhanVien extends JPanel {
         // --- XỬ LÝ SỰ KIỆN ---
         loadData();
 
-        btnThem.addActionListener(e -> {
-            NhanVienDialog dialog = new NhanVienDialog(this, null, dao);
-            dialog.setVisible(true);
-            if (dialog.isSaved()) {
-                loadData();
-            }
-        });
-
         btnSua.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần sửa!");
-                return;
-            }
-            String maNV = table.getValueAt(row, 0).toString();
-            NhanVien nv = dao.getByMaNV(maNV);
-            if (nv != null) {
-                NhanVienDialog dialog = new NhanVienDialog(this, nv, dao);
-                dialog.setVisible(true);
-                if (dialog.isSaved()) {
-                    loadData();
-                }
-            }
-        });
-
-        btnXoa.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row < 0) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần xóa!");
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn tài khoản cần sửa mật khẩu!");
                 return;
             }
             String maNV = table.getValueAt(row, 0).toString();
             String tenNV = table.getValueAt(row, 1).toString();
-
-            if (SessionManager.getCurrentUser() != null && SessionManager.getCurrentUser().getMaNV().equals(maNV)) {
-                JOptionPane.showMessageDialog(this, "Không thể xóa chính tài khoản đang đăng nhập!");
-                return;
-            }
-
-            if (JOptionPane.showConfirmDialog(this, "Bạn chắc chắn muốn cho nhân viên " + tenNV + " nghỉ việc (Vô hiệu hóa)?") == 0) {
-                if (dao.delete(maNV)) {
-                    JOptionPane.showMessageDialog(this, "Đã cập nhật trạng thái nhân viên thành Đã nghỉ!");
-                    loadData();
+            
+            String newPass = JOptionPane.showInputDialog(this, "Nhập mật khẩu mới cho nhân viên " + tenNV + " (" + maNV + "):", "Đổi mật khẩu", JOptionPane.PLAIN_MESSAGE);
+            if (newPass != null && !newPass.trim().isEmpty()) {
+                if (dao.updatePasswordAdmin(maNV, newPass.trim())) {
+                    JOptionPane.showMessageDialog(this, "Đổi mật khẩu thành công!");
+                    loadData(); // refresh
                 } else {
-                    JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật!");
+                    JOptionPane.showMessageDialog(this, "Lỗi khi đổi mật khẩu!");
                 }
             }
         });
@@ -198,7 +160,7 @@ public class ManHinhNhanVien extends JPanel {
     void loadData() {
         model.setRowCount(0);
         String trangThai = cboTrangThai != null ? cboTrangThai.getSelectedItem().toString() : "Đang làm việc";
-        for (NhanVien nv : dao.getAll(trangThai)) {
+        for (NhanVien nv : dao.getAllWithPassword(trangThai)) {
             addModel(nv);
         }
     }
@@ -206,23 +168,19 @@ public class ManHinhNhanVien extends JPanel {
     void loadDataTimKiem(String keyword) {
         model.setRowCount(0);
         String trangThai = cboTrangThai != null ? cboTrangThai.getSelectedItem().toString() : "Đang làm việc";
-        for (NhanVien nv : dao.timKiem(keyword, trangThai)) {
+        for (NhanVien nv : dao.timKiemWithPassword(keyword, trangThai)) {
             addModel(nv);
         }
     }
 
     void addModel(NhanVien nv) {
         String vaiTro = (nv.getTaiKhoan() != null) ? nv.getTaiKhoan().getVaiTro() : "Nhân viên";
+        String matKhau = (nv.getTaiKhoan() != null) ? nv.getTaiKhoan().getMatKhau() : "";
         model.addRow(new Object[] {
                 nv.getMaNV(),
                 nv.getTenNV(),
-                nv.getGioiTinh() != null ? nv.getGioiTinh() : "Nam",
-                nv.getSoDienThoai(),
-                nv.getEmail(),
-                nv.getCccd() != null ? nv.getCccd() : "",
                 vaiTro,
-                nv.getTrangThai() != null ? nv.getTrangThai() : "Đang làm việc",
-                nv.getNgayVaoLam() != null ? sdf.format(nv.getNgayVaoLam()) : ""
+                matKhau
         });
     }
 
@@ -231,7 +189,7 @@ public class ManHinhNhanVien extends JPanel {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setBackground(bg);
         btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(110, 35));
+        btn.setPreferredSize(new Dimension(160, 35));
         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         return btn;
     }

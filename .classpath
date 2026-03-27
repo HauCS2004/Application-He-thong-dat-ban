@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-23"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/java/Application-He-thong-dat-ban/libs/mssql-jdbc-13.2.1.jre11.jar"/>
-	<classpathentry kind="lib" path="D:/java/Application-He-thong-dat-ban/libs/jcalendar-1.4.jar"/>
-	<classpathentry kind="lib" path="D:/java/Application-He-thong-dat-ban/libs/flatlaf-3.7.jar"/>
+	<classpathentry kind="lib" path="c:/Projects/Application-He-thong-dat-ban/libs/mssql-jdbc-13.2.1.jre11.jar"/>
+	<classpathentry kind="lib" path="c:/Projects/Application-He-thong-dat-ban/libs/jcalendar-1.4.jar"/>
+	<classpathentry kind="lib" path="c:/Projects/Application-He-thong-dat-ban/libs/flatlaf-3.7.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

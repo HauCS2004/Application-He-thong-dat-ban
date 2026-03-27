@@ -47,7 +47,7 @@ public class BangGiaDialog extends JDialog {
         if (isEdit) this.bangGiaId = bg.getMaBG();
 
         setTitle(isEdit ? "SỬA BẢNG GIÁ" : "THÊM BẢNG GIÁ MỚI");
-        setSize(480, 520);
+        setSize(550, 600);
         setLocationRelativeTo(parent);
         setResizable(false);
         setLayout(new BorderLayout());
@@ -102,7 +102,7 @@ public class BangGiaDialog extends JDialog {
         spUuTien.setFont(UIStyle.textField("", 1).getFont());
         addRow(pnlInputs, gbc, row++, "Ưu tiên:", spUuTien);
 
-        cboTrangThai = new JComboBox<>(new String[] { "Đang áp dụng", "Tạm ngưng", "Đã kết thúc" });
+        cboTrangThai = new JComboBox<>(new String[] { "Hoạt động", "Tạm ngưng", "Đã kết thúc" });
         UIStyle.styleComboBox(cboTrangThai);
         addRow(pnlInputs, gbc, row++, "Trạng thái:", cboTrangThai);
 
@@ -148,7 +148,7 @@ public class BangGiaDialog extends JDialog {
     private void addRow(JPanel parent, GridBagConstraints gbc, int row, String label, java.awt.Component comp) {
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0;
         JLabel lbl = UIStyle.label(label);
-        lbl.setPreferredSize(new java.awt.Dimension(90, 30));
+        lbl.setPreferredSize(new java.awt.Dimension(110, 30));
         parent.add(lbl, gbc);
 
         gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1;

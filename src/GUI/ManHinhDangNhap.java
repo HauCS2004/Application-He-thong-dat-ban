@@ -29,81 +29,126 @@ public class ManHinhDangNhap extends JFrame {
 
     private void initGUI() {
         setTitle("ĐĂNG NHẬP - Hệ Thống Quản Lý Nhà Hàng");
-        setSize(450, 550);
+        setSize(850, 550);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
 
         // Main panel
         JPanel pnlMain = new JPanel();
-        pnlMain.setLayout(new BorderLayout());
+        pnlMain.setLayout(new GridLayout(1, 2)); // Split into 2 columns
         pnlMain.setBackground(Color.WHITE);
 
-        // --- HEADER ---
-        JPanel pnlHeader = new JPanel();
-        pnlHeader.setBackground(new Color(0, 123, 255));
-        pnlHeader.setPreferredSize(new Dimension(0, 150));
-        pnlHeader.setLayout(new GridBagLayout());
+        // --- LEFT PANEL (BRANDING) ---
+        JPanel pnlLeft = new JPanel();
+        pnlLeft.setBackground(new Color(0, 123, 255)); // Brand color
+        pnlLeft.setLayout(new GridBagLayout());
+        
+        GridBagConstraints gbcLeft = new GridBagConstraints();
+        gbcLeft.gridx = 0;
+        gbcLeft.gridy = 0;
+        gbcLeft.insets = new Insets(10, 10, 20, 10);
+        
+        // Load Logo
+        JLabel lblLogo = new JLabel();
+        ImageIcon logoIcon = GUI.utils.IconHelper.loadIcon("view/icons/logo.png");
+        if (logoIcon != null && logoIcon.getIconWidth() > 0) {
+            Image img = logoIcon.getImage().getScaledInstance(180, 180, Image.SCALE_SMOOTH);
+            lblLogo.setIcon(new ImageIcon(img));
+        } else {
+            lblLogo.setText("[LOGO HIỂN THỊ Ở ĐÂY]");
+            lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblLogo.setForeground(Color.WHITE);
+        }
+        pnlLeft.add(lblLogo, gbcLeft);
 
+        gbcLeft.gridy = 1;
+        gbcLeft.insets = new Insets(0, 10, 5, 10);
         JLabel lblTitle = new JLabel("QUẢN LÝ NHÀ HÀNG");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblTitle.setForeground(Color.WHITE);
+        pnlLeft.add(lblTitle, gbcLeft);
 
-        JLabel lblSubtitle = new JLabel("Đăng nhập để tiếp tục");
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lblSubtitle.setForeground(new Color(230, 230, 230));
+        gbcLeft.gridy = 2;
+        JLabel lblSubtitleLeft = new JLabel("Chuyên nghiệp - Tận tâm");
+        lblSubtitleLeft.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        lblSubtitleLeft.setForeground(new Color(230, 230, 230));
+        pnlLeft.add(lblSubtitleLeft, gbcLeft);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 5, 0);
-        pnlHeader.add(lblTitle, gbc);
+        pnlMain.add(pnlLeft);
 
-        gbc.gridy = 1;
-        pnlHeader.add(lblSubtitle, gbc);
+        // --- RIGHT PANEL (FORM) ---
+        JPanel pnlRight = new JPanel();
+        pnlRight.setBackground(Color.WHITE);
+        pnlRight.setLayout(new BorderLayout());
 
-        pnlMain.add(pnlHeader, BorderLayout.NORTH);
+        // Header right
+        JPanel pnlFormHeader = new JPanel(new GridBagLayout());
+        pnlFormHeader.setBackground(Color.WHITE);
+        pnlFormHeader.setBorder(new EmptyBorder(60, 0, 20, 0));
+        
+        GridBagConstraints gbcH = new GridBagConstraints();
+        gbcH.gridx = 0; 
+        gbcH.gridy = 0;
+        JLabel lblLoginTitle = new JLabel("ĐĂNG NHẬP");
+        lblLoginTitle.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lblLoginTitle.setForeground(new Color(33, 37, 41));
+        pnlFormHeader.add(lblLoginTitle, gbcH);
 
-        // --- FORM LOGIN ---
-        JPanel pnlForm = new JPanel();
+        gbcH.gridy = 1;
+        gbcH.insets = new Insets(5, 0, 0, 0);
+        JLabel lblSubtitle = new JLabel("Vui lòng đăng nhập để tiếp tục");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblSubtitle.setForeground(new Color(108, 117, 125));
+        pnlFormHeader.add(lblSubtitle, gbcH);
+
+        pnlRight.add(pnlFormHeader, BorderLayout.NORTH);
+
+        // Form fields
+        JPanel pnlForm = new JPanel(new GridBagLayout());
         pnlForm.setBackground(Color.WHITE);
-        pnlForm.setBorder(new EmptyBorder(40, 50, 40, 50));
-        pnlForm.setLayout(new GridBagLayout());
-
+        pnlForm.setBorder(new EmptyBorder(0, 50, 20, 50));
+        
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(10, 0, 10, 0);
+        c.insets = new Insets(10, 0, 8, 0);
+        c.weightx = 1.0;
 
         // Mã NV
-        JLabel lblMaNV = new JLabel("Mã Nhân Viên:");
-        lblMaNV.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        JLabel lblMaNV = new JLabel("Mã Tài Khoản / Số Điện Thoại:");
+        lblMaNV.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblMaNV.setForeground(new Color(73, 80, 87));
         c.gridx = 0;
         c.gridy = 0;
-        c.gridwidth = 2;
         pnlForm.add(lblMaNV, c);
 
         txtMaNV = new JTextField();
         GUI.utils.UIStyle.styleTextField(txtMaNV);
         txtMaNV.setPreferredSize(new Dimension(0, 44));
         c.gridy = 1;
+        c.insets = new Insets(0, 0, 15, 0);
         pnlForm.add(txtMaNV, c);
 
         // Mật khẩu
         JLabel lblMatKhau = new JLabel("Mật Khẩu:");
-        lblMatKhau.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblMatKhau.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblMatKhau.setForeground(new Color(73, 80, 87));
         c.gridy = 2;
+        c.insets = new Insets(5, 0, 8, 0);
         pnlForm.add(lblMatKhau, c);
 
         txtMatKhau = new JPasswordField();
         GUI.utils.UIStyle.stylePasswordField(txtMatKhau);
         txtMatKhau.setPreferredSize(new Dimension(0, 44));
         c.gridy = 3;
+        c.insets = new Insets(0, 0, 5, 0);
         pnlForm.add(txtMatKhau, c);
 
         // Checkbox hiện mật khẩu
         chkHienMatKhau = new JCheckBox("Hiện mật khẩu");
         chkHienMatKhau.setBackground(Color.WHITE);
         chkHienMatKhau.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        chkHienMatKhau.setForeground(new Color(108, 117, 125));
         chkHienMatKhau.addActionListener(e -> {
             if (chkHienMatKhau.isSelected()) {
                 txtMatKhau.setEchoChar((char) 0);
@@ -112,12 +157,12 @@ public class ManHinhDangNhap extends JFrame {
             }
         });
         c.gridy = 4;
-        c.insets = new Insets(5, 0, 20, 0);
+        c.insets = new Insets(0, 0, 25, 0);
         pnlForm.add(chkHienMatKhau, c);
 
         // Button Login
         btnLogin = new JButton("ĐĂNG NHẬP");
-        btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btnLogin.setBackground(new Color(0, 123, 255));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setPreferredSize(new Dimension(0, 48));
@@ -125,30 +170,35 @@ public class ManHinhDangNhap extends JFrame {
         btnLogin.setBorderPainted(false);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
         c.gridy = 5;
-        c.insets = new Insets(10, 0, 10, 0);
+        c.insets = new Insets(0, 0, 10, 0);
         pnlForm.add(btnLogin, c);
 
         // Button Thoát
         btnThoat = new JButton("THOÁT");
-        btnThoat.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        btnThoat.setBackground(new Color(220, 220, 220));
-        btnThoat.setPreferredSize(new Dimension(0, 40));
+        btnThoat.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnThoat.setBackground(new Color(241, 243, 245));
+        btnThoat.setForeground(new Color(73, 80, 87));
+        btnThoat.setPreferredSize(new Dimension(0, 44));
         btnThoat.setFocusPainted(false);
+        btnThoat.setBorderPainted(false);
         btnThoat.setCursor(new Cursor(Cursor.HAND_CURSOR));
         c.gridy = 6;
+        c.insets = new Insets(0, 0, 0, 0);
         pnlForm.add(btnThoat, c);
 
-        pnlMain.add(pnlForm, BorderLayout.CENTER);
+        pnlRight.add(pnlForm, BorderLayout.CENTER);
 
-        // --- FOOTER ---
-        JPanel pnlFooter = new JPanel();
-        pnlFooter.setBackground(new Color(245, 245, 245));
-        pnlFooter.setPreferredSize(new Dimension(0, 50));
+        // Right panel Footer
+        JPanel pnlFooterRight = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        pnlFooterRight.setBackground(Color.WHITE);
+        pnlFooterRight.setBorder(new EmptyBorder(0, 0, 20, 0));
         JLabel lblFooter = new JLabel("© 2026 Restaurant Management System");
         lblFooter.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lblFooter.setForeground(new Color(128, 128, 128));
-        pnlFooter.add(lblFooter);
-        pnlMain.add(pnlFooter, BorderLayout.SOUTH);
+        lblFooter.setForeground(new Color(173, 181, 189));
+        pnlFooterRight.add(lblFooter);
+        pnlRight.add(pnlFooterRight, BorderLayout.SOUTH);
+
+        pnlMain.add(pnlRight);
 
         add(pnlMain);
 
