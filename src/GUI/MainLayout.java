@@ -18,11 +18,11 @@ public class MainLayout extends JFrame {
     // Khai báo các màn hình con
     private ManHinhTrangChu pnlTrangChu;
     private ManHinhDatBanV2 pnlDatBan; // NEW: Redesigned booking screen
-    private QuanLyMonAn pnlQuanLyMonAn;
+    private ManHinhMonAn pnlQuanLyMonAn;
     private ManHinhHoaDon pnlHoaDon;
-    private QuanLyKhachHang pnlKhachHang;
-    private ThongKeDoanhThu pnlThongKe;
-    private QuanLyBanVisual pnlQuanLyBanVisual;
+    private ManHinhKhachHang pnlKhachHang;
+    private ManHinhThongKe pnlThongKe;
+    private ManHinhQLBanVisual pnlQuanLyBanVisual;
     private ManHinhPhucVu pnlPhucVu; // NEW
     private ManHinhNhanVien pnlNhanVien; // NEW: Employee Management
     private ManHinhTaiKhoan pnlTaiKhoan;
@@ -48,11 +48,11 @@ public class MainLayout extends JFrame {
         // >> Khởi tạo các Panel nội dung <<
         pnlTrangChu = new ManHinhTrangChu();
         pnlDatBan = new ManHinhDatBanV2(); // NEW: Redesigned
-        pnlQuanLyMonAn = new QuanLyMonAn();
+        pnlQuanLyMonAn = new ManHinhMonAn();
         pnlHoaDon = new ManHinhHoaDon();
-        pnlKhachHang = new QuanLyKhachHang();
-        pnlThongKe = new ThongKeDoanhThu();
-        pnlQuanLyBanVisual = new QuanLyBanVisual(); // NEW: Visual table system
+        pnlKhachHang = new ManHinhKhachHang();
+        pnlThongKe = new ManHinhThongKe();
+        pnlQuanLyBanVisual = new ManHinhQLBanVisual(); // NEW: Visual table system
         pnlPhucVu = new ManHinhPhucVu(); // NEW: Service Screen
         pnlNhanVien = new ManHinhNhanVien(); // NEW: Employee Screen
         pnlTaiKhoan = new ManHinhTaiKhoan();

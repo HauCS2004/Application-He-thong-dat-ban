@@ -22,7 +22,7 @@ import javax.swing.table.DefaultTableModel;
 import DAO.KhachHangDAO;
 import Entity.KhachHang;
 
-public class QuanLyKhachHang extends JPanel {
+public class ManHinhKhachHang extends JPanel {
 
     private JTextField txtTim;
     private JTable table;
@@ -33,7 +33,7 @@ public class QuanLyKhachHang extends JPanel {
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 14);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 14);
 
-    public QuanLyKhachHang() {
+    public ManHinhKhachHang() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -55,17 +55,17 @@ public class QuanLyKhachHang extends JPanel {
         txtTim.setPreferredSize(new Dimension(200, 35));
         pnlSearch.add(txtTim);
 
-        JButton btnTim = createButton("Tìm", new Color(52, 152, 219)); // Blue
+        JButton btnTim = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         pnlSearch.add(btnTim);
 
         // Action Buttons
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
         
-        JButton btnThem = createButton("THÊM", new Color(46, 204, 113));
-        JButton btnSua = createButton("SỬA", new Color(245, 158, 11));
-        JButton btnXoa = createButton("XÓA", new Color(220, 53, 69));
-        JButton btnTinhLai = createButton("TÍNH LẠI ĐIỂM", new Color(100, 50, 150));
+        JButton btnThem = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
+        JButton btnSua = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA");
+        JButton btnXoa = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "XÓA");
+        JButton btnTinhLai = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "TÍNH LẠI ĐIỂM");
 
         pnlActions.add(btnThem);
         pnlActions.add(btnSua);
@@ -205,13 +205,4 @@ public class QuanLyKhachHang extends JPanel {
         });
     }
 
-    private JButton createButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(130, 35));
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        return btn;
-    }
 }

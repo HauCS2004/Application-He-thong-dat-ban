@@ -63,14 +63,14 @@ public class ManHinhTaiKhoan extends JPanel {
         cboTrangThai.setSelectedItem("Đang làm việc");
         pnlSearch.add(cboTrangThai);
 
-        JButton btnTim = createButton("Tìm", new Color(52, 152, 219));
+        JButton btnTim = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         pnlSearch.add(btnTim);
 
         // Action Buttons
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
         
-        JButton btnSua = createButton("SỬA MẬT KHẨU", new Color(245, 158, 11));
+        JButton btnSua = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA MẬT KHẨU");
 
         pnlActions.add(btnSua);
 
@@ -175,15 +175,4 @@ public class ManHinhTaiKhoan extends JPanel {
                 vaiTro,
                 matKhau
         });
-    }
-
-    private JButton createButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(160, 35));
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        return btn;
-    }
-}
+    }}

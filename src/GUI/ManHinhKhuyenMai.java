@@ -61,9 +61,9 @@ public class ManHinhKhuyenMai extends JPanel {
         JPanel pnlToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         pnlToolbar.setBackground(new Color(240, 242, 245));
 
-        JButton btnAdd = createButton("THÊM", new Color(46, 204, 113));
-        JButton btnUpdate = createButton("SỬA", new Color(52, 152, 219));
-        JButton btnDelete = createButton("XÓA", new Color(231, 76, 60));
+        JButton btnAdd = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
+        JButton btnUpdate = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA");
+        JButton btnDelete = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "XÓA");
 
         pnlToolbar.add(btnAdd);
         pnlToolbar.add(btnUpdate);
@@ -144,18 +144,6 @@ public class ManHinhKhuyenMai extends JPanel {
                 loadData();
             }
         });
-    }
-
-    private JButton createButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setPreferredSize(new Dimension(110, 35));
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private void loadData() {

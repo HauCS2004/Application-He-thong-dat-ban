@@ -41,7 +41,7 @@ import Entity.MonAn;
 import GUI.utils.UIStyle;
 import UTILS.XImage;
 
-public class QuanLyMonAn extends JPanel {
+public class ManHinhMonAn extends JPanel {
 
     // --- Tab 1: Món Ăn Variables ---
     private JTextField txtTimKiem;
@@ -63,7 +63,7 @@ public class QuanLyMonAn extends JPanel {
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 16);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 16);
 
-    public QuanLyMonAn() {
+    public ManHinhMonAn() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));

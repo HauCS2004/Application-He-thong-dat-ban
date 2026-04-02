@@ -172,16 +172,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         btnNotify.addActionListener(e -> showNotificationDialog());
         pnlActions.add(btnNotify);
 
-        JButton btnCreate = new JButton("Thêm đặt bàn mới");
+        JButton btnCreate = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM ĐẶT BÀN MỚI");
         btnCreate.setIcon(
                 GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));
-        btnCreate.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnCreate.setForeground(Color.WHITE);
-        btnCreate.setBackground(new Color(34, 197, 94));
-        btnCreate.setFocusPainted(false);
-        btnCreate.setBorderPainted(false);
-        btnCreate.setPreferredSize(new Dimension(180, 40));
-        btnCreate.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCreate.setPreferredSize(new Dimension(190, 40));
         btnCreate.addActionListener(e -> {
             if (isFilterActive) {
                 showCreateBookingDialog(null, filterDate, filterHour, filterMinute);
@@ -566,11 +560,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlDateRow.add(Box.createHorizontalStrut(5));
 
         // Refresh Button (F5)
-        JButton btnRefresh = new JButton("↺ Reset bộ lọc");
+        JButton btnRefresh = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "Reset bộ lọc");
         btnRefresh.setToolTipText("Quay về thời gian thực (F5)");
-        btnRefresh.setBackground(new Color(107, 114, 128)); // Gray
-        btnRefresh.setForeground(Color.WHITE);
-        btnRefresh.setFocusPainted(false);
         pnlDateRow.add(btnRefresh);
 
         pnlDateRow.add(Box.createHorizontalStrut(20));
@@ -1075,7 +1066,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         } else {
             String[] cols = { "Mã Đặt", "Bàn", "Khách", "SĐT", "Giờ đến" };
             DefaultTableModel model = new DefaultTableModel(cols, 0) {
-                public boolean isCellEditable(int r, int c) { return false; }
+                public boolean isCellEditable(int r, int c) {
+                    return false;
+                }
             };
             for (Entity.DatBan db : upcoming) {
                 model.addRow(new Object[] {
@@ -1098,7 +1091,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
         String[] colsOv = { "Mã Đặt", "Bàn", "Khách", "SĐT", "Giờ hẹn", "Trễ (phút)" };
         DefaultTableModel modelOv = new DefaultTableModel(colsOv, 0) {
-            public boolean isCellEditable(int r, int c) { return false; }
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
 
         if (overdue.isEmpty()) {
@@ -1128,9 +1123,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                     super.getTableCellRendererComponent(t, v, sel, foc, r, c);
                     if (v instanceof Integer) {
                         int min = (Integer) v;
-                        setBackground(min <= 15 ? new Color(254, 249, 195)   // vàng nhạt
-                                : min <= 25 ? new Color(254, 215, 170)         // cam
-                                : new Color(254, 202, 202));                   // đỏ
+                        setBackground(min <= 15 ? new Color(254, 249, 195) // vàng nhạt
+                                : min <= 25 ? new Color(254, 215, 170) // cam
+                                        : new Color(254, 202, 202)); // đỏ
                         setText(min + " phút");
                         setHorizontalAlignment(SwingConstants.CENTER);
                     }
@@ -1164,8 +1159,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 String lyDo = JOptionPane.showInputDialog(dialog,
                         "Lý do hủy cho khách " + tenKhach + " (" + sdt + "):",
                         "Hủy đặt bàn theo yêu cầu");
-                if (lyDo == null) return; // Bấm Cancel
-                if (lyDo.isBlank()) lyDo = "Hủy theo yêu cầu khách (NV xử lý)";
+                if (lyDo == null)
+                    return; // Bấm Cancel
+                if (lyDo.isBlank())
+                    lyDo = "Hủy theo yêu cầu khách (NV xử lý)";
 
                 boolean ok = datBanDAO.huyDatBanManual(maDat, lyDo);
                 if (ok) {

@@ -10,7 +10,7 @@ import Entity.Ban;
  * QuanLyBan - Visual Table Management Screen
  * Calls BanDialog for CRUD operations
  */
-public class QuanLyBanVisual extends JPanel {
+public class ManHinhQLBanVisual extends JPanel {
 
     private JTabbedPane tabFloors;
     private JPanel pnlDetails;
@@ -24,7 +24,7 @@ public class QuanLyBanVisual extends JPanel {
     // DAO
     private DAO.BanDAO banDAO = new DAO.BanDAO();
 
-    public QuanLyBanVisual() {
+    public ManHinhQLBanVisual() {
         initUI();
     }
 
@@ -81,11 +81,7 @@ public class QuanLyBanVisual extends JPanel {
         JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlBtns.setOpaque(false);
 
-        JButton btnAdd = new JButton("Thêm Bàn");
-        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnAdd.setBackground(new Color(16, 185, 129)); // Green
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFocusPainted(false);
+        JButton btnAdd = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM BÀN");
         btnAdd.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/add.png"));
         btnAdd.addActionListener(e -> handleAddTable());
 
@@ -163,11 +159,13 @@ public class QuanLyBanVisual extends JPanel {
         pnlActions.setOpaque(false);
         pnlActions.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        btnAction1 = createActionButton("Chỉnh Sửa", new Color(59, 130, 246));
+        btnAction1 = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "Chỉnh Sửa");
         btnAction1.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/edit.png"));
+        btnAction1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-        btnAction2 = createActionButton("Xóa Bàn", new Color(239, 68, 68));
+        btnAction2 = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "Xóa Bàn");
         btnAction2.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/delete.png"));
+        btnAction2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
         btnAction1.setVisible(false);
         btnAction2.setVisible(false);
@@ -183,19 +181,6 @@ public class QuanLyBanVisual extends JPanel {
         pnl.add(Box.createVerticalGlue());
 
         return pnl;
-    }
-
-    private JButton createActionButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private void handleTableSelected(Ban table) {

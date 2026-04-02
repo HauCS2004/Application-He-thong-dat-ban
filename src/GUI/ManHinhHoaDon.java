@@ -326,8 +326,7 @@ public class ManHinhHoaDon extends JPanel {
         txtVoucher = new JTextField();
         txtVoucher.putClientProperty("JTextField.placeholderText", "Nhập mã...");
 
-        JButton btnCheckVoucher = new JButton("Áp dụng");
-        btnCheckVoucher.setBackground(new Color(243, 244, 246));
+        JButton btnCheckVoucher = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.PRIMARY, "Áp dụng");
         btnCheckVoucher.addActionListener(e -> applyVoucher());
 
         pnlVoucher.add(txtVoucher, BorderLayout.CENTER);
@@ -353,21 +352,15 @@ public class ManHinhHoaDon extends JPanel {
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         pnlButtons.setBackground(Color.WHITE);
 
-        btnInHoaDon = new JButton("In Hóa Đơn");
-        btnInHoaDon.setPreferredSize(new Dimension(120, 40));
+        btnInHoaDon = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "In Hóa Đơn");
+        btnInHoaDon.setPreferredSize(new Dimension(140, 40));
 
-        JButton btnThanhToanQR = new JButton("THANH TOÁN QR");
-        btnThanhToanQR.setBackground(new Color(109, 40, 217)); // Purple
-        btnThanhToanQR.setForeground(Color.WHITE);
-        btnThanhToanQR.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnThanhToanQR.setPreferredSize(new Dimension(160, 40));
+        JButton btnThanhToanQR = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "THANH TOÁN QR");
+        btnThanhToanQR.setPreferredSize(new Dimension(180, 40));
         btnThanhToanQR.addActionListener(e -> showQRCodeDialog());
 
-        btnThanhToan = new JButton("THANH TOÁN & ĐÓNG BÀN");
-        btnThanhToan.setBackground(new Color(16, 185, 129));
-        btnThanhToan.setForeground(Color.WHITE);
-        btnThanhToan.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnThanhToan.setPreferredSize(new Dimension(250, 40));
+        btnThanhToan = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THANH TOÁN & ĐÓNG BÀN");
+        btnThanhToan.setPreferredSize(new Dimension(280, 40));
         btnThanhToan.addActionListener(e -> processPayment());
 
         pnlButtons.add(btnInHoaDon);
@@ -406,9 +399,7 @@ public class ManHinhHoaDon extends JPanel {
         txtSearchHistory.setPreferredSize(new Dimension(200, 30));
         txtSearchHistory.putClientProperty("JTextField.placeholderText", "SĐT Khách hoặc Mã HĐ...");
 
-        JButton btnSearch = new JButton("Tìm Kiếm");
-        btnSearch.setBackground(new Color(52, 152, 219));
-        btnSearch.setForeground(Color.WHITE);
+        JButton btnSearch = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         btnSearch.addActionListener(e -> loadHistoryData());
 
         pnlFilter.add(new JLabel("Từ ngày:"));
@@ -724,11 +715,8 @@ public class ManHinhHoaDon extends JPanel {
                     SwingConstants.CENTER);
             lblInfo.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-            JButton btnConfirm = new JButton("XÁC NHẬN ĐÃ THANH TOÁN XONG");
-            btnConfirm.setBackground(new Color(22, 163, 74));
-            btnConfirm.setForeground(Color.WHITE);
-            btnConfirm.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            btnConfirm.setPreferredSize(new Dimension(200, 40));
+            JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "XÁC NHẬN ĐÃ THANH TOÁN XONG");
+            btnConfirm.setPreferredSize(new Dimension(280, 40));
             btnConfirm.addActionListener(e -> {
                 dialog.dispose();
                 processPayment(); // Call existing payment logic
@@ -939,7 +927,7 @@ public class ManHinhHoaDon extends JPanel {
         dialog.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // Close Button
-        JButton btnClose = new JButton("Đóng");
+        JButton btnClose = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.NEUTRAL, "Đóng");
         btnClose.addActionListener(e -> dialog.dispose());
         JPanel pnlBot = new JPanel();
         pnlBot.add(btnClose);

@@ -113,7 +113,7 @@ public class ManHinhGoiMon extends JFrame {
         }
         cboLoaiMon.addActionListener(e -> filterMenuCards());
 
-        JButton btnSearch = new JButton("Tìm");
+        JButton btnSearch = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         btnSearch.addActionListener(e -> filterMenuCards());
 
         pnlFilter.add(txtSearch);
@@ -274,11 +274,7 @@ public class ManHinhGoiMon extends JFrame {
         JSpinner spnQty = new JSpinner(new SpinnerNumberModel(1, 1, 99, 1));
         spnQty.setPreferredSize(new Dimension(60, 30));
 
-        JButton btnAdd = new JButton("Thêm");
-        btnAdd.setBackground(new Color(31, 41, 55));
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFocusPainted(false);
-        btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnAdd = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
         btnAdd.setPreferredSize(new Dimension(80, 30));
 
         if (isReadOnly || !hasPrice) {
@@ -464,14 +460,10 @@ public class ManHinhGoiMon extends JFrame {
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         pnlActions.setOpaque(false);
 
-        JButton btnClearAll = new JButton("Xóa Hết");
-        btnClearAll.setBackground(new Color(239, 68, 68)); // Red
-        btnClearAll.setForeground(Color.WHITE);
+        JButton btnClearAll = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "Xóa Hết");
         btnClearAll.addActionListener(e -> clearAllOrder());
 
-        JButton btnConfirm = new JButton("Xác Nhận");
-        btnConfirm.setBackground(new Color(16, 185, 129)); // Green
-        btnConfirm.setForeground(Color.WHITE);
+        JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "Xác Nhận");
         btnConfirm.setPreferredSize(new Dimension(100, 35));
 
         // This button acts as "Close" or "Finish Ordering"

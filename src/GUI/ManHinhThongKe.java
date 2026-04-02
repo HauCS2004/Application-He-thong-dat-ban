@@ -12,7 +12,7 @@ import com.toedter.calendar.JDateChooser;
 
 import DAO.ThongKeDAO;
 
-public class ThongKeDoanhThu extends JPanel {
+public class ManHinhThongKe extends JPanel {
 
     private ThongKeDAO tkDAO = new ThongKeDAO();
 
@@ -25,7 +25,7 @@ public class ThongKeDoanhThu extends JPanel {
     private JTable tblDoanhThu, tblMonAn;
     private DefaultTableModel modelDoanhThu, modelMonAn;
 
-    public ThongKeDoanhThu() {
+    public ManHinhThongKe() {
         setLayout(new BorderLayout(10, 10));
         setBackground(new Color(243, 244, 246)); // Light Gray Background
         setBorder(new EmptyBorder(10, 10, 10, 10));
