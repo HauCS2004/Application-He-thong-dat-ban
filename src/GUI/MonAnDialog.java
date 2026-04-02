@@ -37,7 +37,7 @@ import UTILS.XImage;
 
 public class MonAnDialog extends JDialog {
 
-    private JTextField txtMa, txtTen, txtGia;
+    private JTextField txtMa, txtTen;
     private JComboBox<String> cboDVT;
     private JComboBox<LoaiMon> cboLoai;
     private JLabel lblHinh;
@@ -89,9 +89,6 @@ public class MonAnDialog extends JDialog {
         txtTen = UIStyle.textField("", 20);
         addRow(pnlInputs, gbc, row++, "Tên món:", txtTen);
 
-        txtGia = UIStyle.textField("", 20);
-        txtGia.setText("0");
-        addRow(pnlInputs, gbc, row++, "Đơn giá:", txtGia);
 
         cboDVT = new JComboBox<>(new String[] { "Dĩa", "Tô", "Lon", "Chai", "Ly", "Nồi", "Phần", "Kg" });
         UIStyle.styleComboBox(cboDVT);
@@ -149,7 +146,7 @@ public class MonAnDialog extends JDialog {
             txtMa.setEditable(false);
             txtMa.setBackground(new Color(240, 240, 240));
             txtTen.setText(monAn.getTenMon());
-            txtGia.setText(String.valueOf((long) monAn.getDonGia()));
+
             cboDVT.setSelectedItem(monAn.getDonViTinh());
             
             for (int i = 0; i < cboLoai.getItemCount(); i++) {
@@ -220,16 +217,8 @@ public class MonAnDialog extends JDialog {
             return;
         }
 
-        double gia = 0;
-        try {
-            gia = Double.parseDouble(txtGia.getText().trim());
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Đơn giá phải là số!");
-            return;
-        }
-
         String maLoai = loaiSelected.getMaLoai();
-        MonAn newMon = new MonAn(ma, ten, dvt, gia, tenFileAnh, maLoai);
+        MonAn newMon = new MonAn(ma, ten, dvt, tenFileAnh, maLoai);
 
         if (isEdit) {
             if (dao.update(newMon)) {

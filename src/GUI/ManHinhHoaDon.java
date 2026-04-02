@@ -72,17 +72,23 @@ public class ManHinhHoaDon extends JPanel {
     private JDateChooser dateTo;
     private JTextField txtSearchHistory;
 
-    // API: Switch to active table
+    // API: Nhảy thẳng vào Tab "Lập Hóa Đơn" và tự động chọn bàn theo maBan
     public void selectActiveTable(String maBan) {
-        tabs.setSelectedIndex(0); // Switch to Payment Tab
-        loadTableList(); // specific load might be needed
-        // Ideally loop through pnlTableList buttons to find and simulate click
-        // Or refactor loadTableList to auto-select if selectedMaBan is set
+        // 1. Chuyển sang Tab "Lập Hóa Đơn" (index 1)
+        tabs.setSelectedIndex(1);
+
+        // 2. Load danh sách bàn trước
+        loadTableList();
+
+        // 3. Tìm TableCard có maBan khớp rồi kích hoạt
         for (Component c : pnlTableList.getComponents()) {
-            if (c instanceof JButton) {
-                JButton btn = (JButton) c;
-                if (btn.getText().contains(maBan)) { // Simplistic check (Text usually contains Ma or Ten)
-                    btn.doClick();
+            if (c instanceof GUI.components.TableCard) {
+                GUI.components.TableCard card = (GUI.components.TableCard) c;
+                Entity.Ban b = card.getTable();
+                if (b != null && b.getMaBan().equals(maBan)) {
+                    resetCardSelection();
+                    card.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
+                    selectTable(maBan);
                     break;
                 }
             }
@@ -165,11 +171,6 @@ public class ManHinhHoaDon extends JPanel {
         });
 
         pnl.add(scrollTables, BorderLayout.CENTER);
-
-        JButton btnRefresh = new JButton("Làm mới danh sách");
-        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnRefresh.addActionListener(e -> loadTableList());
-        pnl.add(btnRefresh, BorderLayout.SOUTH);
 
         return pnl;
     }

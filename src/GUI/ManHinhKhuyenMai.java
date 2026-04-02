@@ -64,12 +64,10 @@ public class ManHinhKhuyenMai extends JPanel {
         JButton btnAdd = createButton("THÊM", new Color(46, 204, 113));
         JButton btnUpdate = createButton("SỬA", new Color(52, 152, 219));
         JButton btnDelete = createButton("XÓA", new Color(231, 76, 60));
-        JButton btnClear = createButton("LÀM MỚI", new Color(149, 165, 166));
 
         pnlToolbar.add(btnAdd);
         pnlToolbar.add(btnUpdate);
         pnlToolbar.add(btnDelete);
-        pnlToolbar.add(btnClear);
 
         pnlCenter.add(pnlToolbar, BorderLayout.NORTH);
 
@@ -139,8 +137,6 @@ public class ManHinhKhuyenMai extends JPanel {
                 }
             }
         });
-
-        btnClear.addActionListener(e -> loadData());
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override

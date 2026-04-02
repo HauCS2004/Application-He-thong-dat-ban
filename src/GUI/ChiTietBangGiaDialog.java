@@ -45,7 +45,7 @@ public class ChiTietBangGiaDialog extends JDialog {
         this.maBG = maBG;
         this.ctEdit = ctEdit;
 
-        setTitle(ctEdit != null ? "CẬP NHẬT MÓN TRONG CHIẾN DỊCH" : "THÊM MÓN TRONG CHIẾN DỊCH");
+        setTitle(ctEdit != null ? "CẬP NHẬT GIÁ MÓN" : "THÊM GIÁ MÓN VÀO BẢNG GIÁ");
         setSize(500, 350);
         setLocationRelativeTo(parent);
         setResizable(false);
@@ -56,7 +56,7 @@ public class ChiTietBangGiaDialog extends JDialog {
         JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pnlHeader.setBackground(Color.WHITE);
         pnlHeader.setBorder(new EmptyBorder(15, 0, 5, 0));
-        pnlHeader.add(UIStyle.title(ctEdit != null ? "CẬP NHẬT GIÁ MÓN ƯU ĐÃI" : "ÁP GIÁ CHO MÓN ĂN"));
+        pnlHeader.add(UIStyle.title(ctEdit != null ? "CẬP NHẬT GIÁ MÓN" : "ÁP GIÁ CHO MÓN ĂN"));
         add(pnlHeader, BorderLayout.NORTH);
 
         // --- FORM INPUTS ---
@@ -80,7 +80,7 @@ public class ChiTietBangGiaDialog extends JDialog {
         addRow(pnlInputs, gbc, row++, "Món ăn:", cboCTMon);
 
         txtDonGia = UIStyle.textField("", 20);
-        addRow(pnlInputs, gbc, row++, "Đơn giá mới:", txtDonGia);
+        addRow(pnlInputs, gbc, row++, "Đơn giá:", txtDonGia);
 
         txtGhiChu = UIStyle.textField("", 20);
         addRow(pnlInputs, gbc, row++, "Ghi chú:", txtGhiChu);
@@ -129,14 +129,6 @@ public class ChiTietBangGiaDialog extends JDialog {
             }
         });
 
-        cboCTMon.addItemListener(e -> {
-            if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
-                MonAn selectedMon = (MonAn) cboCTMon.getSelectedItem();
-                if (selectedMon != null) {
-                    txtDonGia.setText(new DecimalFormat("#.##").format(selectedMon.getDonGia()).replace(",", ""));
-                }
-            }
-        });
 
         btnLuu.addActionListener(e -> save());
         btnHuy.addActionListener(e -> dispose());

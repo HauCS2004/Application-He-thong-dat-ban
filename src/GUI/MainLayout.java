@@ -25,7 +25,7 @@ public class MainLayout extends JFrame {
     private QuanLyBanVisual pnlQuanLyBanVisual;
     private ManHinhPhucVu pnlPhucVu; // NEW
     private ManHinhNhanVien pnlNhanVien; // NEW: Employee Management
-    private QuanLyTaiKhoan pnlTaiKhoan;
+    private ManHinhTaiKhoan pnlTaiKhoan;
 
     public MainLayout() {
         ConnectDB.getInstance().connect();
@@ -55,7 +55,7 @@ public class MainLayout extends JFrame {
         pnlQuanLyBanVisual = new QuanLyBanVisual(); // NEW: Visual table system
         pnlPhucVu = new ManHinhPhucVu(); // NEW: Service Screen
         pnlNhanVien = new ManHinhNhanVien(); // NEW: Employee Screen
-        pnlTaiKhoan = new QuanLyTaiKhoan();
+        pnlTaiKhoan = new ManHinhTaiKhoan();
 
         // Add vào CardLayout
         pnlContent.add(pnlTrangChu, "home");

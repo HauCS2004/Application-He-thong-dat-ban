@@ -98,11 +98,21 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
         add(mainTabs, BorderLayout.CENTER);
 
+        // Tự động làm mới khi chuyển giữa hai tab chính
+        mainTabs.addChangeListener(e -> {
+            if (mainTabs.getSelectedIndex() == 1) {
+                // Tab Danh Sách: load lại booking list
+                loadBookings();
+            } else {
+                // Tab Sơ Đồ Bàn: khôi phục trạng thái bàn thực tế
+                restoreAllOriginalStatuses();
+            }
+        });
+
         // Tự động làm mới khi chuyển tab/menu
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
-                // System.out.println("DEBUG: ManHinhDatBanV2 shown - Refreshing data...");
                 loadBookings();
 
                 // Refresh Map
@@ -240,11 +250,6 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlFilters.add(dateChooser);
         pnlFilters.add(new JLabel("🕐"));
         pnlFilters.add(cboTimeFilter);
-
-        JButton btnReload = new JButton("↻");
-        btnReload.setPreferredSize(new Dimension(40, 38));
-        btnReload.addActionListener(e -> loadBookings());
-        pnlFilters.add(btnReload);
 
         pnl.add(pnlFilters, BorderLayout.NORTH);
         pnl.add(createStatusTabs(), BorderLayout.SOUTH);
@@ -561,7 +566,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlDateRow.add(Box.createHorizontalStrut(5));
 
         // Refresh Button (F5)
-        JButton btnRefresh = new JButton("Làm mới");
+        JButton btnRefresh = new JButton("↺ Reset bộ lọc");
         btnRefresh.setToolTipText("Quay về thời gian thực (F5)");
         btnRefresh.setBackground(new Color(107, 114, 128)); // Gray
         btnRefresh.setForeground(Color.WHITE);

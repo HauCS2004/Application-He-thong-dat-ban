@@ -78,12 +78,10 @@ public class ManHinhNhanVien extends JPanel {
         JButton btnThem = createButton("THÊM", new Color(46, 204, 113));
         JButton btnSua = createButton("SỬA", new Color(245, 158, 11));
         JButton btnXoa = createButton("XÓA", new Color(220, 53, 69));
-        JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125));
 
         pnlActions.add(btnThem);
         pnlActions.add(btnSua);
         pnlActions.add(btnXoa);
-        pnlActions.add(btnMoi);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
         pnlToolbar.add(pnlActions, BorderLayout.EAST);
@@ -160,11 +158,6 @@ public class ManHinhNhanVien extends JPanel {
                     JOptionPane.showMessageDialog(this, "Lỗi khi cập nhật!");
                 }
             }
-        });
-
-        btnMoi.addActionListener(e -> {
-            txtTim.setText("");
-            loadData();
         });
 
         txtTim.addKeyListener(new KeyAdapter() {

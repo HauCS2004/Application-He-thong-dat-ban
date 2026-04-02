@@ -18,7 +18,7 @@ public class QuanLyBanVisual extends JPanel {
     private JLabel lblStatus;
     private JLabel lblInfo;
     private JLabel lblZone; // Add zone label
-    private JButton btnAction1, btnAction2, btnRefresh;
+    private JButton btnAction1, btnAction2;
     private Ban selectedTable;
 
     // DAO
@@ -53,7 +53,10 @@ public class QuanLyBanVisual extends JPanel {
         pnlDetails = createDetailsPanel();
         add(pnlDetails, BorderLayout.EAST);
 
-        // Tự động làm mới khi chuyển tab
+        // Tự động làm mới khi chuyển sang tab khu vực khác
+        tabFloors.addChangeListener(e -> refreshCurrentFloor());
+
+        // Tự động làm mới khi chuyển màn hình (menu sidebar)
         addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentShown(java.awt.event.ComponentEvent e) {
                 for (int i = 0; i < tabFloors.getTabCount(); i++) {
@@ -86,14 +89,7 @@ public class QuanLyBanVisual extends JPanel {
         btnAdd.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/add.png"));
         btnAdd.addActionListener(e -> handleAddTable());
 
-        btnRefresh = new JButton("Làm mới");
-        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btnRefresh.setFocusPainted(false);
-        btnRefresh.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/refresh.png"));
-        btnRefresh.addActionListener(e -> refreshCurrentFloor());
-
         pnlBtns.add(btnAdd);
-        pnlBtns.add(btnRefresh);
 
         pnl.add(lblTitle, BorderLayout.WEST);
         pnl.add(pnlBtns, BorderLayout.EAST);

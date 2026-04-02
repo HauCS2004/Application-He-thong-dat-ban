@@ -65,13 +65,11 @@ public class QuanLyKhachHang extends JPanel {
         JButton btnThem = createButton("THÊM", new Color(46, 204, 113));
         JButton btnSua = createButton("SỬA", new Color(245, 158, 11));
         JButton btnXoa = createButton("XÓA", new Color(220, 53, 69));
-        JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125));
         JButton btnTinhLai = createButton("TÍNH LẠI ĐIỂM", new Color(100, 50, 150));
 
         pnlActions.add(btnThem);
         pnlActions.add(btnSua);
         pnlActions.add(btnXoa);
-        pnlActions.add(btnMoi);
         pnlActions.add(btnTinhLai);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
@@ -146,11 +144,6 @@ public class QuanLyKhachHang extends JPanel {
                     JOptionPane.showMessageDialog(this, "Lỗi khi xóa!");
                 }
             }
-        });
-
-        btnMoi.addActionListener(e -> {
-            txtTim.setText("");
-            loadData();
         });
 
         btnTinhLai.addActionListener(e -> {
