@@ -23,7 +23,7 @@ import javax.swing.table.DefaultTableModel;
 import DAO.NhanVienDAO;
 import Entity.NhanVien;
 
-public class QuanLyTaiKhoan extends JPanel {
+public class ManHinhTaiKhoan extends JPanel {
 
     private JTextField txtTim;
     private JComboBox<String> cboTrangThai;
@@ -35,7 +35,7 @@ public class QuanLyTaiKhoan extends JPanel {
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 14);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 14);
 
-    public QuanLyTaiKhoan() {
+    public ManHinhTaiKhoan() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -63,18 +63,16 @@ public class QuanLyTaiKhoan extends JPanel {
         cboTrangThai.setSelectedItem("Đang làm việc");
         pnlSearch.add(cboTrangThai);
 
-        JButton btnTim = createButton("Tìm", new Color(52, 152, 219));
+        JButton btnTim = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         pnlSearch.add(btnTim);
 
         // Action Buttons
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
         
-        JButton btnSua = createButton("SỬA MẬT KHẨU", new Color(245, 158, 11));
-        JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125));
+        JButton btnSua = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA MẬT KHẨU");
 
         pnlActions.add(btnSua);
-        pnlActions.add(btnMoi);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
         pnlToolbar.add(pnlActions, BorderLayout.EAST);
@@ -122,11 +120,6 @@ public class QuanLyTaiKhoan extends JPanel {
                     JOptionPane.showMessageDialog(this, "Lỗi khi đổi mật khẩu!");
                 }
             }
-        });
-
-        btnMoi.addActionListener(e -> {
-            txtTim.setText("");
-            loadData();
         });
 
         txtTim.addKeyListener(new KeyAdapter() {
@@ -182,15 +175,4 @@ public class QuanLyTaiKhoan extends JPanel {
                 vaiTro,
                 matKhau
         });
-    }
-
-    private JButton createButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(160, 35));
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        return btn;
-    }
-}
+    }}

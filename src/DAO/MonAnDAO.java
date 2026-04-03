@@ -22,7 +22,6 @@ public class MonAnDAO {
                         rs.getString("MaMon"),
                         rs.getString("TenMon"),
                         rs.getString("DonViTinh"),
-                        rs.getDouble("DonGia"),
                         rs.getString("HinhAnh"),
                         rs.getString("MaLoai")));
             }
@@ -36,14 +35,13 @@ public class MonAnDAO {
     public boolean insert(MonAn m) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "INSERT INTO MonAn (MaMon, TenMon, DonViTinh, DonGia, HinhAnh, MaLoai) VALUES (?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO MonAn (MaMon, TenMon, DonViTinh, HinhAnh, MaLoai) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, m.getMaMon());
             ps.setString(2, m.getTenMon());
             ps.setString(3, m.getDonViTinh());
-            ps.setDouble(4, m.getDonGia());
-            ps.setString(5, m.getHinhAnh());
-            ps.setString(6, m.getMaLoai());
+            ps.setString(4, m.getHinhAnh());
+            ps.setString(5, m.getMaLoai());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,14 +67,13 @@ public class MonAnDAO {
     public boolean update(MonAn m) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "UPDATE MonAn SET TenMon=?, DonViTinh=?, DonGia=?, HinhAnh=?, MaLoai=? WHERE MaMon=?";
+            String sql = "UPDATE MonAn SET TenMon=?, DonViTinh=?, HinhAnh=?, MaLoai=? WHERE MaMon=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, m.getTenMon());
             ps.setString(2, m.getDonViTinh());
-            ps.setDouble(3, m.getDonGia());
-            ps.setString(4, m.getHinhAnh());
-            ps.setString(5, m.getMaLoai());
-            ps.setString(6, m.getMaMon());
+            ps.setString(3, m.getHinhAnh());
+            ps.setString(4, m.getMaLoai());
+            ps.setString(5, m.getMaMon());
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -102,46 +99,45 @@ public class MonAnDAO {
             // Tham số 1: Tên (thêm % để tìm gần đúng)
             ps.setString(1, "%" + keyword + "%");
 
-        // Tham số 2: Mã loại (nếu có)
-        if (maLoai != null && !maLoai.isEmpty()) {
-            ps.setString(2, maLoai);
-        }
+            // Tham số 2: Mã loại (nếu có)
+            if (maLoai != null && !maLoai.isEmpty()) {
+                ps.setString(2, maLoai);
+            }
 
-        ResultSet rs = ps.executeQuery();
-        while (rs.next()) {
-            list.add(new MonAn(
-                    rs.getString("MaMon"),
-                    rs.getString("TenMon"),
-                    rs.getString("DonViTinh"),
-                    rs.getDouble("DonGia"),                    rs.getString("HinhAnh"),
-                    rs.getString("MaLoai")));
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new MonAn(
+                        rs.getString("MaMon"),
+                        rs.getString("TenMon"),
+                        rs.getString("DonViTinh"),
+                        rs.getString("HinhAnh"),
+                        rs.getString("MaLoai")));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    } catch (Exception e) {
-        e.printStackTrace();
+        return list;
     }
-    return list;
-}
 
-// 5. Lấy món theo mã
-public MonAn getByMaMon(String maMon) {
-    try {
-        Connection con = ConnectDB.getConnection();
-        String sql = "SELECT * FROM MonAn WHERE MaMon = ?";
-        PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1, maMon);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return new MonAn(
-                    rs.getString("MaMon"),
-                    rs.getString("TenMon"),
-                    rs.getString("DonViTinh"),
-                    rs.getDouble("DonGia"),
-                    rs.getString("HinhAnh"),
-                    rs.getString("MaLoai"));
+    // 5. Lấy món theo mã
+    public MonAn getByMaMon(String maMon) {
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT * FROM MonAn WHERE MaMon = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maMon);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return new MonAn(
+                        rs.getString("MaMon"),
+                        rs.getString("TenMon"),
+                        rs.getString("DonViTinh"),
+                        rs.getString("HinhAnh"),
+                        rs.getString("MaLoai"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    } catch (Exception e) {
-        e.printStackTrace();
+        return null;
     }
-    return null;
-}
 }

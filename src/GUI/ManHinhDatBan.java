@@ -27,7 +27,7 @@ public class ManHinhDatBan extends JPanel {
     private JDateChooser dateChooser;
     private JTable tblBookings;
     private DefaultTableModel modelBookings;
-    private JButton btnRefresh, btnViewDetail;
+    private JButton btnViewDetail;
 
     // Tab 2: Tạo booking mới
     private JTextField txtTenKhach, txtSDT, txtSoKhach, txtGhiChu;
@@ -99,17 +99,12 @@ public class ManHinhDatBan extends JPanel {
         dateChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         dateChooser.addPropertyChangeListener("date", e -> loadBookingsByDate());
 
-        btnRefresh = new JButton("🔄 Làm mới");
-        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btnRefresh.addActionListener(e -> loadBookingsByDate());
-
         btnViewDetail = new JButton("👁 Xem chi tiết");
         btnViewDetail.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btnViewDetail.addActionListener(e -> viewBookingDetail());
 
         pnlTop.add(lblDate);
         pnlTop.add(dateChooser);
-        pnlTop.add(btnRefresh);
         pnlTop.add(btnViewDetail);
 
         panel.add(pnlTop, BorderLayout.NORTH);

@@ -4,18 +4,16 @@ public class MonAn {
     private String maMon;
     private String tenMon;
     private String donViTinh;
-    private double donGia;
     private String hinhAnh; // Chỉ lưu tên file (vd: ga.png)
     private String maLoai; // Mã loại (L01, L02...)
 
     public MonAn() {
     }
 
-    public MonAn(String maMon, String tenMon, String donViTinh, double donGia, String hinhAnh, String maLoai) {
+    public MonAn(String maMon, String tenMon, String donViTinh, String hinhAnh, String maLoai) {
         this.maMon = maMon;
         this.tenMon = tenMon;
         this.donViTinh = donViTinh;
-        this.donGia = donGia;
         this.hinhAnh = hinhAnh;
         this.maLoai = maLoai;
     }
@@ -43,14 +41,6 @@ public class MonAn {
 
     public void setDonViTinh(String donViTinh) {
         this.donViTinh = donViTinh;
-    }
-
-    public double getDonGia() {
-        return donGia;
-    }
-
-    public void setDonGia(double donGia) {
-        this.donGia = donGia;
     }
 
     public String getHinhAnh() {

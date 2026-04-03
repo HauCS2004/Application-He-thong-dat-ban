@@ -68,22 +68,20 @@ public class ManHinhNhanVien extends JPanel {
         cboTrangThai.setSelectedItem("Đang làm việc");
         pnlSearch.add(cboTrangThai);
 
-        JButton btnTim = createButton("Tìm", new Color(52, 152, 219));
+        JButton btnTim = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         pnlSearch.add(btnTim);
 
         // Action Buttons
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
         
-        JButton btnThem = createButton("THÊM", new Color(46, 204, 113));
-        JButton btnSua = createButton("SỬA", new Color(245, 158, 11));
-        JButton btnXoa = createButton("XÓA", new Color(220, 53, 69));
-        JButton btnMoi = createButton("LÀM MỚI", new Color(108, 117, 125));
+        JButton btnThem = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
+        JButton btnSua = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA");
+        JButton btnXoa = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "XÓA");
 
         pnlActions.add(btnThem);
         pnlActions.add(btnSua);
         pnlActions.add(btnXoa);
-        pnlActions.add(btnMoi);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
         pnlToolbar.add(pnlActions, BorderLayout.EAST);
@@ -162,11 +160,6 @@ public class ManHinhNhanVien extends JPanel {
             }
         });
 
-        btnMoi.addActionListener(e -> {
-            txtTim.setText("");
-            loadData();
-        });
-
         txtTim.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) {
                 loadDataTimKiem(txtTim.getText());
@@ -226,13 +219,4 @@ public class ManHinhNhanVien extends JPanel {
         });
     }
 
-    private JButton createButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setPreferredSize(new Dimension(110, 35));
-        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        return btn;
-    }
 }

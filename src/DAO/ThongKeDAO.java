@@ -14,7 +14,7 @@ public class ThongKeDAO {
         double total = 0;
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = 1 AND CAST(NgayTao AS DATE) = CAST(? AS DATE)";
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND CAST(NgayTao AS DATE) = CAST(? AS DATE)";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setDate(1, new java.sql.Date(date.getTime()));
             ResultSet rs = ps.executeQuery();
@@ -32,7 +32,7 @@ public class ThongKeDAO {
         double total = 0;
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = 1 AND MONTH(NgayTao) = ? AND YEAR(NgayTao) = ?";
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND MONTH(NgayTao) = ? AND YEAR(NgayTao) = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, month);
             ps.setInt(2, year);
@@ -51,7 +51,7 @@ public class ThongKeDAO {
         double total = 0;
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = 1 AND YEAR(NgayTao) = ?";
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND YEAR(NgayTao) = ?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, year);
             ResultSet rs = ps.executeQuery();
@@ -72,7 +72,7 @@ public class ThongKeDAO {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT CAST(NgayTao AS DATE) as Ngay, SUM(TongTien) as Tien " +
                     "FROM HoaDon " +
-                    "WHERE TrangThai = 1 AND NgayTao >= DATEADD(day, -7, GETDATE()) " +
+                    "WHERE TrangThai = N'Đã thanh toán' AND NgayTao >= DATEADD(day, -7, GETDATE()) " +
                     "GROUP BY CAST(NgayTao AS DATE) " +
                     "ORDER BY Ngay ASC";
             PreparedStatement ps = con.prepareStatement(sql);
@@ -98,7 +98,7 @@ public class ThongKeDAO {
                     "FROM ChiTietHoaDon ct " +
                     "JOIN HoaDon hd ON ct.MaHD = hd.MaHD " +
                     "JOIN MonAn m ON ct.MaMon = m.MaMon " +
-                    "WHERE hd.TrangThai = 1 " +
+                    "WHERE hd.TrangThai = N'Đã thanh toán' " +
                     "AND hd.NgayTao BETWEEN ? AND ? " +
                     "GROUP BY m.TenMon " +
                     "ORDER BY SL DESC";
@@ -141,7 +141,7 @@ public class ThongKeDAO {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT DATEPART(HOUR, NgayTao) as Gio, COUNT(*) as SoDon, SUM(TongTien) as DoanhThu " +
                     "FROM HoaDon " +
-                    "WHERE TrangThai = 1 AND NgayTao BETWEEN ? AND ? " +
+                    "WHERE TrangThai = N'Đã thanh toán' AND NgayTao BETWEEN ? AND ? " +
                     "GROUP BY DATEPART(HOUR, NgayTao) " +
                     "ORDER BY Gio";
 
@@ -186,7 +186,7 @@ public class ThongKeDAO {
             String sql = "SELECT hd.MaNV, nv.TenNV, COUNT(hd.MaHD) as SoDon, SUM(hd.TongTien) as DoanhThu " +
                     "FROM HoaDon hd " +
                     "LEFT JOIN NhanVien nv ON hd.MaNV = nv.MaNV " +
-                    "WHERE hd.TrangThai = 1 AND hd.NgayTao BETWEEN ? AND ? " +
+                    "WHERE hd.TrangThai = N'Đã thanh toán' AND hd.NgayTao BETWEEN ? AND ? " +
                     "GROUP BY hd.MaNV, nv.TenNV " +
                     "ORDER BY DoanhThu DESC";
 
@@ -235,7 +235,7 @@ public class ThongKeDAO {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT CAST(NgayTao AS DATE) as Ngay, SUM(TongTien) as Tien " +
                     "FROM HoaDon " +
-                    "WHERE TrangThai = 1 AND NgayTao BETWEEN ? AND ? " +
+                    "WHERE TrangThai = N'Đã thanh toán' AND NgayTao BETWEEN ? AND ? " +
                     "GROUP BY CAST(NgayTao AS DATE) " +
                     "ORDER BY Ngay ASC";
 
@@ -287,7 +287,7 @@ public class ThongKeDAO {
         try {
             Connection con = ConnectDB.getConnection();
             String sql = "SELECT COALESCE(SUM(SoLuongKhach), 0) FROM HoaDon " +
-                    "WHERE TrangThai = 0 AND CAST(NgayTao AS DATE) = CAST(GETDATE() AS DATE)";
+                    "WHERE TrangThai = N'Chưa thanh toán' AND CAST(NgayTao AS DATE) = CAST(GETDATE() AS DATE)";
             ResultSet rs = con.createStatement().executeQuery(sql);
             if (rs.next()) return rs.getInt(1);
         } catch (Exception e) { e.printStackTrace(); }

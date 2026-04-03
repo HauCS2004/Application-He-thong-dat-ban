@@ -85,15 +85,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         pnlTitle.add(lblTitle);
         pnlTitle.add(lblSubtitle);
 
-        JButton btnReload = new JButton("Làm mới trạng thái");
-        btnReload.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnReload.addActionListener(e -> {
-            refreshAllFloors();
-            loadTodayBookings();
-        });
-
         pnlHeader.add(pnlTitle, BorderLayout.WEST);
-        pnlHeader.add(btnReload, BorderLayout.EAST);
 
         add(pnlHeader, BorderLayout.NORTH);
 

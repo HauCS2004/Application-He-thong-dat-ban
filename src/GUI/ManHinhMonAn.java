@@ -41,7 +41,7 @@ import Entity.MonAn;
 import GUI.utils.UIStyle;
 import UTILS.XImage;
 
-public class QuanLyMonAn extends JPanel {
+public class ManHinhMonAn extends JPanel {
 
     // --- Tab 1: Món Ăn Variables ---
     private JTextField txtTimKiem;
@@ -63,7 +63,7 @@ public class QuanLyMonAn extends JPanel {
     Font fontLabel = new Font("Segoe UI", Font.BOLD, 16);
     Font fontInput = new Font("Segoe UI", Font.PLAIN, 16);
 
-    public QuanLyMonAn() {
+    public ManHinhMonAn() {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -137,8 +137,8 @@ public class QuanLyMonAn extends JPanel {
         pnlToolbar.add(pnlActions, BorderLayout.EAST);
         tabPanel.add(pnlToolbar, BorderLayout.NORTH);
 
-        // Center Grid
-        pnlDanhSach = new JPanel(new GridLayout(0, 4, 15, 15));
+        // Center Grid - dùng FlowLayout để card không bị căng khi ít món
+        pnlDanhSach = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
         pnlDanhSach.setBackground(Color.WHITE);
 
         JScrollPane scroll = new JScrollPane(pnlDanhSach);
@@ -205,18 +205,18 @@ public class QuanLyMonAn extends JPanel {
         splitPane.setResizeWeight(0.5);
         splitPane.setDividerSize(10);
 
-        // ============ VÙNG MASTER: CHIẾN DỊCH GIÁ ============
+        // ============ VÙNG MASTER: BẢNG GIÁ ============
         JPanel pnlMaster = new JPanel(new BorderLayout(5, 10));
         pnlMaster.setBackground(Color.WHITE);
         pnlMaster.setBorder(new TitledBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                "CHIẾN DỊCH GIÁ (MASTER)", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION,
+                "BẢNG GIÁ (MASTER)", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION,
                 new Font("Segoe UI", Font.BOLD, 15), UIStyle.PRIMARY));
 
         JPanel pnlMasterTop = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         pnlMasterTop.setBackground(Color.WHITE);
-        JButton btnThemBG = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM CHIẾN DỊCH");
-        JButton btnSuaBG = UIStyle.button(UIStyle.BtnType.WARNING, "SỬA CHIẾN DỊCH");
-        JButton btnXoaBG = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA CHIẾN DỊCH");
+        JButton btnThemBG = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM BẢNG GIÁ");
+        JButton btnSuaBG = UIStyle.button(UIStyle.BtnType.WARNING, "SỬA BẢNG GIÁ");
+        JButton btnXoaBG = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA BẢNG GIÁ");
         pnlMasterTop.add(btnThemBG);
         pnlMasterTop.add(btnSuaBG);
         pnlMasterTop.add(btnXoaBG);
@@ -232,20 +232,20 @@ public class QuanLyMonAn extends JPanel {
         JPanel pnlDetail = new JPanel(new BorderLayout(5, 10));
         pnlDetail.setBackground(Color.WHITE);
         pnlDetail.setBorder(new TitledBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                "MÓN ĂN ÁP DỤNG TRONG CHIẾN DỊCH", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION,
+                "MÓN ĂN TRONG BẢNG GIÁ", TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION,
                 new Font("Segoe UI", Font.BOLD, 15), UIStyle.PRIMARY));
 
         JPanel pnlDetailTop = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         pnlDetailTop.setBackground(Color.WHITE);
-        JButton btnThemMon = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM MÓN VÀO CD");
+        JButton btnThemMon = UIStyle.button(UIStyle.BtnType.SUCCESS, "THÊM MÓN VÀO BG");
         JButton btnSuaMon = UIStyle.button(UIStyle.BtnType.WARNING, "SỬA MÓN");
-        JButton btnXoaMon = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA MÓN KHỎI CD");
+        JButton btnXoaMon = UIStyle.button(UIStyle.BtnType.DANGER, "XÓA MÓN KHỎI BG");
         pnlDetailTop.add(btnThemMon);
         pnlDetailTop.add(btnSuaMon);
         pnlDetailTop.add(btnXoaMon);
         pnlDetail.add(pnlDetailTop, BorderLayout.NORTH);
 
-        String[] headerCT = {"Mã Món", "Tên Món", "Đơn Giá Khuyến Mãi", "Ghi Chú"};
+        String[] headerCT = {"Mã Món", "Tên Món", "Đơn Giá", "Ghi Chú"};
         modelChiTiet = new DefaultTableModel(headerCT, 0) { public boolean isCellEditable(int row, int column) { return false; } };
         tblChiTiet = new JTable(modelChiTiet);
         UIStyle.styleTable(tblChiTiet);
@@ -364,6 +364,15 @@ public class QuanLyMonAn extends JPanel {
         for (MonAn m : list) {
             pnlDanhSach.add(new ItemMonAn(m));
         }
+
+        // Tính lại chiều cao để scroll hoạt động đúng với FlowLayout
+        int cardW = 235; // độ rộng mỗi card + gap
+        int cardH = 275; // chiều cao mỗi card + gap
+        int panelW = pnlDanhSach.getWidth();
+        int cols = panelW > 0 ? Math.max(1, panelW / cardW) : 4;
+        int rows = (int) Math.ceil((double) list.size() / cols);
+        pnlDanhSach.setPreferredSize(new java.awt.Dimension(panelW, Math.max(rows * cardH + 20, cardH)));
+
         pnlDanhSach.revalidate();
         pnlDanhSach.repaint();
     }
@@ -435,16 +444,18 @@ public class QuanLyMonAn extends JPanel {
             JLabel lblTen = new JLabel(m.getTenMon());
             lblTen.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
-            double displayPrice = m.getDonGia();
-            try {
-                double dynamicPrice = bangGiaDAO.getGiaHienTai(m.getMaMon());
-                if (dynamicPrice > 0) displayPrice = dynamicPrice;
-            } catch (Exception e) {}
+            double displayPrice = bangGiaDAO.getGiaHienTai(m.getMaMon());
 
             DecimalFormat df = new DecimalFormat("#,### VNĐ");
-            JLabel lblGia = new JLabel(df.format(displayPrice));
+            JLabel lblGia;
+            if (displayPrice > 0) {
+                lblGia = new JLabel(df.format(displayPrice));
+                lblGia.setForeground(UIStyle.DANGER_DARK);
+            } else {
+                lblGia = new JLabel("Chưa có giá");
+                lblGia.setForeground(new Color(150, 150, 150));
+            }
             lblGia.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblGia.setForeground(UIStyle.DANGER_DARK);
 
             pnlInfo.add(lblTen);
             pnlInfo.add(lblGia);

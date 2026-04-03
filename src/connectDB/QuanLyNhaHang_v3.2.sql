@@ -88,7 +88,6 @@ CREATE TABLE MonAn (
     MaMon     VARCHAR(10)   PRIMARY KEY,
     TenMon    NVARCHAR(100) NOT NULL,
     DonViTinh NVARCHAR(20)  NULL,
-    DonGia    DECIMAL(18,2) DEFAULT 0,
     HinhAnh   NVARCHAR(200) DEFAULT 'default.png',
     MaLoai    VARCHAR(10)   NOT NULL,
     TrangThai NVARCHAR(20)  DEFAULT N'Còn món',
@@ -519,7 +518,7 @@ BEGIN
     ORDER BY bg.UuTien DESC
 
     IF @GiaKetQua IS NULL
-        SELECT @GiaKetQua = DonGia FROM MonAn WHERE MaMon = @MaMon
+        SET @GiaKetQua = 0  -- Không fallback về MonAn.DonGia nữa
 
     SELECT ISNULL(@GiaKetQua, 0) AS DonGia
 END
@@ -611,7 +610,7 @@ BEGIN
                AND (bg.GioBatDau IS NULL OR CAST(@ThoiDiem AS TIME) >= bg.GioBatDau)
                AND (bg.GioKetThuc IS NULL OR CAST(@ThoiDiem AS TIME) <= bg.GioKetThuc)
              ORDER BY bg.UuTien DESC), 
-        ma.DonGia) AS GiaHienTai
+        0) AS GiaHienTai  -- Trả về 0 nếu chưa có trong bảng giá
     FROM MonAn ma
     INNER JOIN LoaiMon lm ON ma.MaLoai = lm.MaLoai
     WHERE ma.TrangThai <> N'Ngừng phục vụ'
@@ -706,37 +705,37 @@ INSERT INTO LoaiMon (MaLoai, TenLoai, MoTa) VALUES
 ('L05', N'Tráng miệng', N'Kem, trái cây, bánh');
 GO
 
-INSERT INTO MonAn (MaMon, TenMon, DonViTinh, DonGia, HinhAnh, MaLoai, TrangThai) VALUES
+INSERT INTO MonAn (MaMon, TenMon, DonViTinh, HinhAnh, MaLoai, TrangThai) VALUES
 -- Khai vị
-('M01', N'Khoai tây chiên bơ tỏi', N'Dĩa',  55000, 'khoaitay.jpg', 'L01', N'Còn món'),
-('M02', N'Gỏi ngó sen tôm thịt',   N'Dĩa',  95000, 'goi.jpg',      'L01', N'Còn món'),
-('M03', N'Súp cua tuyết nhĩ',      N'Chén', 45000, 'supcua.jpg',   'L01', N'Còn món'),
-('M04', N'Salad cá ngừ',           N'Dĩa',  85000, 'salad.jpg',    'L01', N'Còn món'),
-('M05', N'Đậu hũ lướt ván',        N'Dĩa',  60000, 'dauhu.jpg',    'L01', N'Còn món'),
+('M01', N'Khoai tây chiên bơ tỏi', N'Dĩa',  'khoaitay.jpg', 'L01', N'Còn món'),
+('M02', N'Gỏi ngó sen tôm thịt',   N'Dĩa',  'goi.jpg',      'L01', N'Còn món'),
+('M03', N'Súp cua tuyết nhĩ',      N'Chén', 'supcua.jpg',   'L01', N'Còn món'),
+('M04', N'Salad cá ngừ',           N'Dĩa',  'salad.jpg',    'L01', N'Còn món'),
+('M05', N'Đậu hũ lướt ván',        N'Dĩa',  'dauhu.jpg',    'L01', N'Còn món'),
 -- Món chính
-('M06', N'Bò bít tết xốt tiêu',    N'Phần', 180000, 'beefsteak.jpg','L02', N'Còn món'),
-('M07', N'Lẩu Thái hải sản',       N'Nồi',  280000, 'lauthai.jpg',  'L02', N'Còn món'),
-('M08', N'Lẩu nấm chim câu',       N'Nồi',  320000, 'launam.jpg',   'L02', N'Còn món'),
-('M09', N'Gà ta nướng muối ớt',    N'Con',  220000, 'ganuong.jpg',  'L02', N'Còn món'),
-('M10', N'Cua gạch rang me',       N'Kg',   650000, 'cuarang.jpg',  'L02', N'Còn món'),
-('M11', N'Mực sữa chiên nước mắm', N'Dĩa',  150000, 'mucchiem.jpg', 'L02', N'Còn món'),
-('M12', N'Hàu nướng phô mai',      N'Con',  25000,  'hau.jpg',      'L02', N'Còn món'),
+('M06', N'Bò bít tết xốt tiêu',    N'Phần', 'beefsteak.jpg','L02', N'Còn món'),
+('M07', N'Lẩu Thái hải sản',       N'Nồi',  'lauthai.jpg',  'L02', N'Còn món'),
+('M08', N'Lẩu nấm chim câu',       N'Nồi',  'launam.jpg',   'L02', N'Còn món'),
+('M09', N'Gà ta nướng muối ớt',    N'Con',  'ganuong.jpg',  'L02', N'Còn món'),
+('M10', N'Cua gạch rang me',       N'Kg',   'cuarang.jpg',  'L02', N'Còn món'),
+('M11', N'Mực sữa chiên nước mắm', N'Dĩa',  'mucchiem.jpg', 'L02', N'Còn món'),
+('M12', N'Hàu nướng phô mai',      N'Con',  'hau.jpg',      'L02', N'Còn món'),
 -- Cơm mì
-('M13', N'Cơm chiên hải sản',      N'Dĩa',  120000, 'comchien.jpg', 'L03', N'Còn món'),
-('M14', N'Mì xào giòn thập cẩm',   N'Dĩa',  110000, 'mixao.jpg',    'L03', N'Còn món'),
-('M15', N'Miến xào cua',           N'Dĩa',  160000, 'mienxao.jpg',  'L03', N'Còn món'),
+('M13', N'Cơm chiên hải sản',      N'Dĩa',  'comchien.jpg', 'L03', N'Còn món'),
+('M14', N'Mì xào giòn thập cẩm',   N'Dĩa',  'mixao.jpg',    'L03', N'Còn món'),
+('M15', N'Miến xào cua',           N'Dĩa',  'mienxao.jpg',  'L03', N'Còn món'),
 -- Đồ uống
-('M16', N'Tiger Beer (Lon)',       N'Lon',  22000,  'tiger.jpg',    'L04', N'Còn món'),
-('M17', N'Heineken (Chai)',        N'Chai', 25000,  'heineken.jpg', 'L04', N'Còn món'),
-('M18', N'Coca Cola',              N'Lon',  18000,  'coca.jpg',     'L04', N'Còn món'),
-('M19', N'Nước suối Aquafina',     N'Chai', 15000,  'nuocsuoi.jpg', 'L04', N'Còn món'),
-('M20', N'Nước ép dưa hấu',        N'Ly',   45000,  'ephau.jpg',    'L04', N'Còn món'),
-('M21', N'Mojito Chanh Dây',       N'Ly',   55000,  'mojito.jpg',   'L04', N'Còn món'),
+('M16', N'Tiger Beer (Lon)',       N'Lon',  'tiger.jpg',    'L04', N'Còn món'),
+('M17', N'Heineken (Chai)',        N'Chai', 'heineken.jpg', 'L04', N'Còn món'),
+('M18', N'Coca Cola',              N'Lon',  'coca.jpg',     'L04', N'Còn món'),
+('M19', N'Nước suối Aquafina',     N'Chai', 'nuocsuoi.jpg', 'L04', N'Còn món'),
+('M20', N'Nước ép dưa hấu',        N'Ly',   'ephau.jpg',    'L04', N'Còn món'),
+('M21', N'Mojito Chanh Dây',       N'Ly',   'mojito.jpg',   'L04', N'Còn món'),
 -- Tráng miệng
-('M22', N'Trái cây dĩa (Nhỏ)',     N'Dĩa',  70000,  'traicay.jpg',  'L05', N'Còn món'),
-('M23', N'Trái cây dĩa (Lớn)',     N'Dĩa',  120000, 'traicay.jpg',  'L05', N'Còn món'),
-('M24', N'Kem Vani hạnh nhân',     N'Ly',   45000,  'kem.jpg',      'L05', N'Còn món'),
-('M25', N'Chè khúc bạch',          N'Chén', 35000,  'che.jpg',      'L05', N'Hết món');
+('M22', N'Trái cây dĩa (Nhỏ)',     N'Dĩa',  'traicay.jpg',  'L05', N'Còn món'),
+('M23', N'Trái cây dĩa (Lớn)',     N'Dĩa',  'traicay.jpg',  'L05', N'Còn món'),
+('M24', N'Kem Vani hạnh nhân',     N'Ly',   'kem.jpg',      'L05', N'Còn món'),
+('M25', N'Chè khúc bạch',          N'Chén', 'che.jpg',      'L05', N'Hết món');
 GO
 
 -- ============================================================
@@ -745,9 +744,17 @@ GO
 INSERT INTO BangGia (TenBG, LoaiBG, UuTien, TrangThai) VALUES
 (N'Giá niêm yết 2026', N'Thường', 0, N'Hoạt động');
 
--- Đổ toàn bộ giá mặc định từ MonAn sang ChiTietBangGia
-INSERT INTO ChiTietBangGia (MaBG, MaMon, DonGia)
-SELECT 1, MaMon, DonGia FROM MonAn;
+-- Đổ toàn bộ giá vào ChiTietBangGia (giá suốt từ dữ liệu mẫu thủ công vì MonAn không còn DonGia)
+INSERT INTO ChiTietBangGia (MaBG, MaMon, DonGia, GhiChu) VALUES
+(1,'M01',55000,N'Giá gốc'),(1,'M02',95000,N'Giá gốc'),(1,'M03',45000,N'Giá gốc'),
+(1,'M04',85000,N'Giá gốc'),(1,'M05',60000,N'Giá gốc'),(1,'M06',180000,N'Giá gốc'),
+(1,'M07',280000,N'Giá gốc'),(1,'M08',320000,N'Giá gốc'),(1,'M09',220000,N'Giá gốc'),
+(1,'M10',650000,N'Giá gốc'),(1,'M11',150000,N'Giá gốc'),(1,'M12',25000,N'Giá gốc'),
+(1,'M13',120000,N'Giá gốc'),(1,'M14',110000,N'Giá gốc'),(1,'M15',160000,N'Giá gốc'),
+(1,'M16',22000,N'Giá gốc'),(1,'M17',25000,N'Giá gốc'),(1,'M18',18000,N'Giá gốc'),
+(1,'M19',15000,N'Giá gốc'),(1,'M20',45000,N'Giá gốc'),(1,'M21',55000,N'Giá gốc'),
+(1,'M22',70000,N'Giá gốc'),(1,'M23',120000,N'Giá gốc'),(1,'M24',45000,N'Giá gốc'),
+(1,'M25',35000,N'Giá gốc');
 
 -- Bảng giá Happy Hour (Giảm giá bia, giờ vàng)
 INSERT INTO BangGia (TenBG, LoaiBG, GioBatDau, GioKetThuc, UuTien, TrangThai) VALUES
