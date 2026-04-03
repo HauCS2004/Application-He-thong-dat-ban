@@ -16,10 +16,10 @@ public class ConnectDB {
         // Thông số kết nối SQL Server
         String databaseName = "QuanLyNhaHang_V3";
         String user = "sa";
-        String password = "11111"; // SỬA LẠI NẾU KHÁC
+        String password = "sapassword"; // SỬA LẠI NẾU KHÁC
 
         // Dùng SQL Server Authentication (không cần DLL)
-        String url = "jdbc:sqlserver://localhost\\SQLEXPRESS:1433;"
+        String url = "jdbc:sqlserver://localhost:1433;"
                 + "databaseName=" + databaseName + ";"
                 + "user=" + user + ";password=" + password + ";"
                 + "encrypt=true;trustServerCertificate=true;";
