@@ -715,7 +715,8 @@ public class ManHinhHoaDon extends JPanel {
                     SwingConstants.CENTER);
             lblInfo.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-            JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "XÁC NHẬN ĐÃ THANH TOÁN XONG");
+            JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS,
+                    "XÁC NHẬN ĐÃ THANH TOÁN XONG");
             btnConfirm.setPreferredSize(new Dimension(280, 40));
             btnConfirm.addActionListener(e -> {
                 dialog.dispose();
@@ -743,7 +744,6 @@ public class ManHinhHoaDon extends JPanel {
                 "Xác nhận thanh toán cho bàn " + selectedMaBan + "?\nTổng tiền: " + lblThanhTien.getText(),
                 "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            double finalTotal = parseMoney(lblThanhTien.getText());
             // [GĐ4] Pass VAT/fee from spinners + customer SDT + voucher code
             double vatVal = (double) spnVAT.getValue();
             double phiVal = (double) spnPhiPhucVu.getValue();
@@ -751,14 +751,6 @@ public class ManHinhHoaDon extends JPanel {
             String sdtKH = (currentKhachHang != null) ? currentKhachHang.getSoDienThoai() : null;
             boolean success = hdDAO.thanhToan(currentMaHD, maKM, sdtKH, vatVal, phiVal);
             if (success) {
-                // Tích điểm cho khách hàng
-                HoaDon hd = hdDAO.getThongTinHoaDon(currentMaHD);
-                if (hd != null && hd.getSdtKhach() != null && !hd.getSdtKhach().isEmpty()) {
-                    System.out.println(
-                            "DEBUG: ManHinhHoaDon Tich Diem - SDT: " + hd.getSdtKhach() + " Total: " + finalTotal);
-                    khDAO.tichDiem(hd.getSdtKhach(), finalTotal);
-                }
-
                 banDAO.updateTrangThai(selectedMaBan, "Trống");
                 banDAO.huyGopBan(selectedMaBan); // Giải phóng các bàn đang gộp
                 new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
@@ -825,7 +817,8 @@ public class ManHinhHoaDon extends JPanel {
                     hd.getMaHD(),
                     "Bàn " + hd.getMaBan() + mergedInfo,
                     new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()),
-                    formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng Tiền
+                    formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng
+                                                             // Tiền
                     tenKhach,
                     hd.getMaNV()
             });
@@ -863,7 +856,7 @@ public class ManHinhHoaDon extends JPanel {
         pnlInfo.add(new JLabel("Mã Hóa Đơn: #" + hd.getMaHD()));
         pnlInfo.add(
                 new JLabel("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
-        
+
         String mergedInfo = "";
         if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
             mergedInfo = hd.getGhiChu();
@@ -893,15 +886,15 @@ public class ManHinhHoaDon extends JPanel {
         pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
 
         pnlInfo.add(new JLabel("Tiền hàng: " + formatMoney(hd.getTongTien()) + " VNĐ"));
-        
+
         // [Bug 3] Fix VAT, Phi Phuc Vu, Giam Gia display
         double vat = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
         double phi = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
-        
+
         pnlInfo.add(new JLabel("VAT (" + hd.getPhanTramVAT() + "%): +" + formatMoney(vat)));
         pnlInfo.add(new JLabel("Phí PV (" + hd.getPhiPhucVu() + "%): +" + formatMoney(phi)));
         pnlInfo.add(new JLabel("Giảm giá: -" + formatMoney(hd.getTienGiamGia())));
-        
+
         JLabel lblThanhTienHD = new JLabel("Thành tiền: " + formatMoney(hd.getThanhTien()) + " VNĐ");
         lblThanhTienHD.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblThanhTienHD.setForeground(Color.RED);

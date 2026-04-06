@@ -11,10 +11,20 @@ public class KhachHangDAO {
 
     // 1. Lấy tất cả khách hàng (chỉ lấy khách hàng đang hoạt động, TrangThai = 1)
     public ArrayList<KhachHang> getAll() {
+        return getAll("Đang hoạt động");
+    }
+
+    public ArrayList<KhachHang> getAll(String statusFilter) {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM KhachHang WHERE TrangThai = 1";
+            String sql = "SELECT * FROM KhachHang";
+            if (statusFilter.equals("Đang hoạt động")) {
+                sql += " WHERE TrangThai = 1";
+            } else if (statusFilter.equals("Ngừng hoạt động")) {
+                sql += " WHERE TrangThai = 0";
+            }
+            
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -84,10 +94,21 @@ public class KhachHangDAO {
 
     // 5. Tìm kiếm (Theo Tên hoặc SĐT)
     public ArrayList<KhachHang> timKiem(String keyword) {
+        return timKiem(keyword, "Đang hoạt động");
+    }
+
+    public ArrayList<KhachHang> timKiem(String keyword, String statusFilter) {
         ArrayList<KhachHang> list = new ArrayList<>();
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT * FROM KhachHang WHERE (TenKhach LIKE ? OR SoDienThoai LIKE ?) AND TrangThai = 1";
+            String sql = "SELECT * FROM KhachHang WHERE (TenKhach LIKE ? OR SoDienThoai LIKE ?)";
+            
+            if (statusFilter.equals("Đang hoạt động")) {
+                sql += " AND TrangThai = 1";
+            } else if (statusFilter.equals("Ngừng hoạt động")) {
+                sql += " AND TrangThai = 0";
+            }
+
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, "%" + keyword + "%");
             ps.setString(2, "%" + keyword + "%");
@@ -116,7 +137,7 @@ public class KhachHangDAO {
     public boolean checkTonTai(String sdt) {
         try {
             Connection con = ConnectDB.getConnection();
-            String sql = "SELECT 1 FROM KhachHang WHERE SoDienThoai=? AND TrangThai = 1";
+            String sql = "SELECT 1 FROM KhachHang WHERE SoDienThoai=?";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, sdt);
             ResultSet rs = ps.executeQuery();
@@ -218,10 +239,10 @@ public class KhachHangDAO {
             Connection con = ConnectDB.getConnection();
             String sqlCalc = "UPDATE KhachHang " +
                     "SET DiemTichLuy = ( " +
-                    "    SELECT ISNULL(SUM(CAST(TongTien / 10000 AS INT)), 0) " +
+                    "    SELECT ISNULL(SUM(CAST(ThanhTien / 10000 AS INT)), 0) " +
                     "    FROM HoaDon " +
                     "    WHERE HoaDon.SDT_Khach = KhachHang.SoDienThoai " +
-                    "    AND HoaDon.TrangThai = 1 " + // Chỉ tính đã thanh toán
+                    "    AND HoaDon.TrangThai = N'Đã thanh toán' " + // Fix TrangThai condition
                     ")";
 
             int rows = con.createStatement().executeUpdate(sqlCalc);
@@ -231,5 +252,31 @@ public class KhachHangDAO {
             e.printStackTrace();
             return false;
         }
+    }
+
+    // 12. Lấy lịch sử tích điểm của khách hàng
+    public ArrayList<Object[]> getLichSuTichDiem(String sdt) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT MaHD, NgayTao, ThanhTien, FLOOR(ThanhTien / 10000) as DiemCong " +
+                         "FROM HoaDon " +
+                         "WHERE SDT_Khach = ? AND TrangThai = N'Đã thanh toán' " +
+                         "ORDER BY NgayTao DESC";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{
+                    rs.getInt("MaHD"),
+                    rs.getTimestamp("NgayTao"),
+                    rs.getDouble("ThanhTien"),
+                    rs.getInt("DiemCong")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

@@ -10,6 +10,7 @@ import java.awt.event.KeyEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -25,6 +26,7 @@ import Entity.KhachHang;
 public class ManHinhKhachHang extends JPanel {
 
     private JTextField txtTim;
+    private JComboBox<String> cmbTrangThai;
     private JTable table;
     private DefaultTableModel model;
 
@@ -46,7 +48,8 @@ public class ManHinhKhachHang extends JPanel {
         // Search
         JPanel pnlSearch = new JPanel(new FlowLayout(FlowLayout.LEFT));
         pnlSearch.setBackground(new Color(243, 244, 246));
-        JLabel lblTim = new JLabel("Tìm kiếm (SĐT/Tên): ");
+
+        JLabel lblTim = new JLabel("  Tìm (SĐT/Tên): ");
         lblTim.setFont(fontLabel);
         pnlSearch.add(lblTim);
 
@@ -55,21 +58,29 @@ public class ManHinhKhachHang extends JPanel {
         txtTim.setPreferredSize(new Dimension(200, 35));
         pnlSearch.add(txtTim);
 
+        // Lọc trạng thái
+        cmbTrangThai = new JComboBox<>(new String[] { "Đang hoạt động", "Ngừng hoạt động", "Tất cả" });
+        cmbTrangThai.setFont(fontInput);
+        cmbTrangThai.setPreferredSize(new Dimension(150, 35));
+        pnlSearch.add(cmbTrangThai);
+
         JButton btnTim = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "Tìm Kiếm");
         pnlSearch.add(btnTim);
 
         // Action Buttons
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setBackground(new Color(243, 244, 246));
-        
+
         JButton btnThem = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
         JButton btnSua = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "SỬA");
         JButton btnXoa = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "XÓA");
+        JButton btnLichSu = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "LỊCH SỬ ĐIỂM");
         JButton btnTinhLai = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "TÍNH LẠI ĐIỂM");
 
         pnlActions.add(btnThem);
         pnlActions.add(btnSua);
         pnlActions.add(btnXoa);
+        pnlActions.add(btnLichSu);
         pnlActions.add(btnTinhLai);
 
         pnlToolbar.add(pnlSearch, BorderLayout.WEST);
@@ -117,9 +128,9 @@ public class ManHinhKhachHang extends JPanel {
             String sdt = table.getValueAt(row, 0).toString();
             String ten = table.getValueAt(row, 1).toString();
             int diem = Integer.parseInt(table.getValueAt(row, 2).toString());
-            
+
             KhachHang kh = new KhachHang(sdt, ten, diem);
-            
+
             KhachHangDialog dialog = new KhachHangDialog(this, kh, dao);
             dialog.setVisible(true);
             if (dialog.isSaved()) {
@@ -136,7 +147,8 @@ public class ManHinhKhachHang extends JPanel {
             String sdt = table.getValueAt(row, 0).toString();
             String ten = table.getValueAt(row, 1).toString();
 
-            if (JOptionPane.showConfirmDialog(this, "Bạn chắc chắn muốn xóa khách hàng " + ten + "?") == JOptionPane.YES_OPTION) {
+            if (JOptionPane.showConfirmDialog(this,
+                    "Bạn chắc chắn muốn xóa khách hàng " + ten + "?") == JOptionPane.YES_OPTION) {
                 if (dao.delete(sdt)) {
                     JOptionPane.showMessageDialog(this, "Đã ngừng hoạt động khách hàng thành công!");
                     loadData();
@@ -161,6 +173,19 @@ public class ManHinhKhachHang extends JPanel {
             }
         });
 
+        btnLichSu.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng để xem lịch sử!");
+                return;
+            }
+            String sdt = table.getValueAt(row, 0).toString();
+            String ten = table.getValueAt(row, 1).toString();
+
+            LichSuDiemDialog dialog = new LichSuDiemDialog(this, sdt, ten, dao);
+            dialog.setVisible(true);
+        });
+
         txtTim.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) {
                 loadDataTimKiem(txtTim.getText());
@@ -168,6 +193,15 @@ public class ManHinhKhachHang extends JPanel {
         });
 
         btnTim.addActionListener(e -> loadDataTimKiem(txtTim.getText()));
+
+        cmbTrangThai.addActionListener(e -> {
+            String keyword = txtTim.getText().trim();
+            if (keyword.isEmpty()) {
+                loadData();
+            } else {
+                loadDataTimKiem(keyword);
+            }
+        });
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentShown(java.awt.event.ComponentEvent e) {
@@ -178,14 +212,16 @@ public class ManHinhKhachHang extends JPanel {
 
     void loadData() {
         model.setRowCount(0);
-        for (KhachHang kh : dao.getAll()) {
+        String status = cmbTrangThai.getSelectedItem().toString();
+        for (KhachHang kh : dao.getAll(status)) {
             addModel(kh);
         }
     }
 
     void loadDataTimKiem(String keyword) {
         model.setRowCount(0);
-        for (KhachHang kh : dao.timKiem(keyword)) {
+        String status = cmbTrangThai.getSelectedItem().toString();
+        for (KhachHang kh : dao.timKiem(keyword, status)) {
             addModel(kh);
         }
     }

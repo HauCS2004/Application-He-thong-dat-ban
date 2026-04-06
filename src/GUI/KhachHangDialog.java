@@ -67,6 +67,8 @@ public class KhachHangDialog extends JDialog {
 
         txtDiem = UIStyle.textField("", 20);
         txtDiem.setText("0");
+        txtDiem.setEditable(false);
+        txtDiem.setEnabled(false);
         addRow(pnlInputs, gbc, row++, "Điểm:", txtDiem);
 
         add(pnlInputs, BorderLayout.CENTER);
