@@ -27,7 +27,9 @@ public class ManHinhTrangChu extends JPanel {
     private JLabel lblKhach;
     private JLabel lblBanMo;
 
+        
     public ManHinhTrangChu() {
+        
         setLayout(new BorderLayout(20, 20));
         setBackground(new Color(240, 240, 240));
         setBorder(new EmptyBorder(30, 30, 30, 30));
@@ -64,6 +66,7 @@ public class ManHinhTrangChu extends JPanel {
         final Image imgBot = (icon != null) ? icon.getImage() : null;
 
         JPanel pnlBackground = new JPanel() {
+            
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 super.paintComponent(g);
@@ -85,7 +88,9 @@ public class ManHinhTrangChu extends JPanel {
 
         add(pnlBackground, BorderLayout.CENTER);
 
+
         // --- AUTO REFRESH khi panel được show ---
+        refreshCards();
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {

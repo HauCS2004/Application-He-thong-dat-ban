@@ -1,6 +1,14 @@
 package GUI;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,14 +18,29 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 
-import DAO.BanDAO;
-import DAO.HoaDonDAO;
-import DAO.KhuyenMaiDAO;
-import DAO.KhachHangDAO;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
 import Entity.Ban;
 import Entity.HoaDon;
+import Entity.KhachHang;
 import Entity.KhuyenMai;
 import Entity.NhanVien;
+import DAO.KhuyenMaiDAO;
+import DAO.KhachHangDAO;
+import DAO.NhanVienDAO;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import DAO.BanDAO;
+import DAO.HoaDonDAO;
+
 
 public class ManHinhHoaDon extends JPanel {
 
@@ -354,6 +377,7 @@ public class ManHinhHoaDon extends JPanel {
 
         btnInHoaDon = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "In Hóa Đơn");
         btnInHoaDon.setPreferredSize(new Dimension(140, 40));
+        btnInHoaDon.addActionListener(e -> exportToPDF());
 
         JButton btnThanhToanQR = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "THANH TOÁN QR");
         btnThanhToanQR.setPreferredSize(new Dimension(180, 40));
@@ -688,7 +712,7 @@ public class ManHinhHoaDon extends JPanel {
                 protected ImageIcon doInBackground() throws Exception {
                     java.net.URL qrUrl = java.net.URI.create(url).toURL();
                     java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(qrUrl);
-                    return new ImageIcon(image.getScaledInstance(350, 350, Image.SCALE_SMOOTH));
+                    return new ImageIcon(image.getScaledInstance(350, 350, java.awt.Image.SCALE_SMOOTH));
                 }
 
                 @Override
@@ -927,5 +951,85 @@ public class ManHinhHoaDon extends JPanel {
         dialog.add(pnlBot, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+    }
+
+    private void exportToPDF() {
+        if (currentMaHD == -1) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn hóa đơn để in!");
+            return;
+        }
+
+        try {
+            // Tạo file PDF
+            String fileName = "HoaDon_" + currentMaHD + ".pdf";
+            Document document = new Document();
+            PdfWriter.getInstance(document, new FileOutputStream(fileName));
+            document.open();
+
+            // Font hỗ trợ tiếng Việt - sử dụng Arial từ Windows
+            BaseFont baseFont = BaseFont.createFont("C:/Windows/Fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(baseFont, 20, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font headerFont = new com.itextpdf.text.Font(baseFont, 14, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font normalFont = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.NORMAL);
+
+            // Tiêu đề
+            Paragraph title = new Paragraph("NHÀ HÀNG HẬU", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+
+            Paragraph address = new Paragraph("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM", normalFont);
+            address.setAlignment(Element.ALIGN_CENTER);
+            document.add(address);
+            document.add(new Paragraph("\n"));
+
+            // Thông tin hóa đơn
+            document.add(new Paragraph("Mã Hóa Đơn: " + currentMaHD, headerFont));
+            document.add(new Paragraph("Bàn: " + selectedMaBan, normalFont));
+            document.add(new Paragraph("Ngày: " + lblNgayTao.getText().replace("Ngày: ", ""), normalFont));
+            document.add(new Paragraph("Thu ngân: " + lblNhanVien.getText().replace("Thu ngân: ", ""), normalFont));
+            document.add(new Paragraph("Khách hàng: " + lblKhachHang.getText().replace("Khách hàng: ", ""), normalFont));
+            document.add(new Paragraph("\n"));
+
+            // Bảng chi tiết
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{3, 1, 2, 2});
+
+            // Header
+            PdfPCell cell = new PdfPCell(new Phrase("Món Ăn", headerFont));
+            table.addCell(cell);
+            cell = new PdfPCell(new Phrase("SL", headerFont));
+            table.addCell(cell);
+            cell = new PdfPCell(new Phrase("Đơn Giá", headerFont));
+            table.addCell(cell);
+            cell = new PdfPCell(new Phrase("Thành Tiền", headerFont));
+            table.addCell(cell);
+
+            // Dữ liệu từ bảng
+            for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 0).toString(), normalFont));
+                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 1).toString(), normalFont));
+                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 2).toString(), normalFont));
+                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 3).toString(), normalFont));
+            }
+
+            document.add(table);
+            document.add(new Paragraph("\n"));
+
+            // Tổng tiền
+            document.add(new Paragraph("Tiền hàng: " + lblTongTienHang.getText(), normalFont));
+            document.add(new Paragraph("Giảm giá: " + lblTienGiam.getText(), normalFont));
+            document.add(new Paragraph("VAT: " + lblVATAmount.getText(), normalFont));
+            document.add(new Paragraph("Phí phục vụ: " + lblPhiAmount.getText(), normalFont));
+            document.add(new Paragraph("Thành tiền: " + lblThanhTien.getText(), headerFont));
+
+            document.close();
+
+            JOptionPane.showMessageDialog(this, "Đã xuất PDF thành công: " + fileName);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi xuất PDF: " + e.getMessage());
+        }
     }
 }
