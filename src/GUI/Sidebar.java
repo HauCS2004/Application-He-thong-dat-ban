@@ -78,7 +78,7 @@ public class Sidebar extends JPanel {
         pnlFooter.setBackground(new Color(34, 49, 63));
         pnlFooter.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        JLabel lblUser = new JLabel("▸ " + SessionManager.getDisplayName());
+        JLabel lblUser = new JLabel(SessionManager.getDisplayName());
         lblUser.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblUser.setForeground(colorText);
 

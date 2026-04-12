@@ -377,7 +377,7 @@ public class ManHinhHoaDon extends JPanel {
 
         btnInHoaDon = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "In Hóa Đơn");
         btnInHoaDon.setPreferredSize(new Dimension(140, 40));
-        btnInHoaDon.addActionListener(e -> exportToPDF());
+        btnInHoaDon.addActionListener(e -> showPrintPreview());
 
         JButton btnThanhToanQR = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "THANH TOÁN QR");
         btnThanhToanQR.setPreferredSize(new Dimension(180, 40));
@@ -863,165 +863,374 @@ public class ManHinhHoaDon extends JPanel {
     }
 
     private void showInvoiceDetailDialog(int maHD) {
+        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
+        if (hd == null) return;
+
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi Tiết Hóa Đơn #" + maHD, true);
-        dialog.setSize(600, 500);
+        dialog.setSize(825, 750);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
-        if (hd == null)
-            return;
+        JEditorPane previewPane = new JEditorPane();
+        previewPane.setContentType("text/html");
+        previewPane.setEditable(false);
+        previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
 
-        // Header Info
-        JPanel pnlInfo = new JPanel(new GridLayout(6, 2, 10, 5)); // Tăng lên 6 dòng
-        pnlInfo.setBorder(new EmptyBorder(10, 10, 10, 10));
-        pnlInfo.setBackground(Color.WHITE);
-
-        pnlInfo.add(new JLabel("Mã Hóa Đơn: #" + hd.getMaHD()));
-        pnlInfo.add(
-                new JLabel("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
-
+        // Format data
         String mergedInfo = "";
         if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
             mergedInfo = hd.getGhiChu();
         }
-        pnlInfo.add(new JLabel("Bàn: " + hd.getMaBan() + mergedInfo));
-
+        
         String tenNV = "---";
         if (hd.getMaNV() != null) {
             NhanVien nv = nvDAO.getByMaNV(hd.getMaNV());
-            if (nv != null)
-                tenNV = nv.getTenNV();
-            else
-                tenNV = hd.getMaNV();
+            tenNV = (nv != null) ? nv.getTenNV() : hd.getMaNV();
         }
-        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
 
         String sdt = hd.getSdtKhach();
-        String tenKhach = "Khách lẻ";
+        String tenKhach = "Khách vãng lai";
         if (sdt != null && !sdt.isEmpty()) {
             String name = khDAO.getTenKhachHang(sdt);
-            if (name != null)
-                tenKhach = name + " (" + sdt + ")";
-            else
-                tenKhach = sdt;
+            tenKhach = (name != null) ? name + " (" + sdt + ")" : sdt;
         }
-        pnlInfo.add(new JLabel("Khách hàng: " + tenKhach));
-        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
 
-        pnlInfo.add(new JLabel("Tiền hàng: " + formatMoney(hd.getTongTien()) + " VNĐ"));
+        double vatAmount = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
+        double phiAmount = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
 
-        // [Bug 3] Fix VAT, Phi Phuc Vu, Giam Gia display
-        double vat = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
-        double phi = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
-
-        pnlInfo.add(new JLabel("VAT (" + hd.getPhanTramVAT() + "%): +" + formatMoney(vat)));
-        pnlInfo.add(new JLabel("Phí PV (" + hd.getPhiPhucVu() + "%): +" + formatMoney(phi)));
-        pnlInfo.add(new JLabel("Giảm giá: -" + formatMoney(hd.getTienGiamGia())));
-
-        JLabel lblThanhTienHD = new JLabel("Thành tiền: " + formatMoney(hd.getThanhTien()) + " VNĐ");
-        lblThanhTienHD.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblThanhTienHD.setForeground(Color.RED);
-        pnlInfo.add(lblThanhTienHD);
-
-        dialog.add(pnlInfo, BorderLayout.NORTH);
-
-        // Details Table
-        String[] headers = { "Món Ăn", "Số Lượng", "Đơn Giá", "Thành Tiền" };
-        DefaultTableModel model = new DefaultTableModel(headers, 0);
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
-
+        // Build HTML
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family: Arial, sans-serif; font-size: 13px; color: #333;'>");
+        
+        html.append("<div style='text-align: center; margin-bottom: 20px;'>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>NHÀ HÀNG HẬU</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: 0123.456.789</p>");
+        html.append("</div>");
+        
+        html.append("<hr style='border: 1px dashed #ccc;'/>");
+        html.append("<h2 style='text-align: center; font-size: 20px; color: #000;'>HÓA ĐƠN THANH TOÁN (LỊCH SỬ)</h2>");
+        
+        html.append("<table width='100%' style='margin-bottom: 10px;'>");
+        html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(hd.getMaHD()).append("</td>");
+        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(hd.getMaBan()).append(" ").append(mergedInfo).append("</td></tr>");
+        html.append("<tr><td><b>K.Hàng:</b> ").append(tenKhach).append("</td>");
+        html.append("<td align='right'><b>Thu ngân:</b> ").append(tenNV).append("</td></tr>");
+        html.append("<tr><td colspan='2'><b>Ngày:</b> ").append(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())).append("</td></tr>");
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px double #999;'/>");
+        
+        html.append("<table width='100%' style='border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'>");
+        html.append("<tr style='border-bottom: 1px solid #000;'>");
+        html.append("<th align='left' style='padding-bottom: 5px;'>Món Ăn</th>");
+        html.append("<th align='center' style='padding-bottom: 5px;'>SL</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Đơn Giá</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Thành Tiền</th>");
+        html.append("</tr>");
+        
         ArrayList<String[]> details = hdDAO.getChiTietHoaDon(maHD);
         for (String[] row : details) {
-            String ten = row[0];
-            double sl = Double.parseDouble(row[1]);
-            double gia = Double.parseDouble(row[2]);
-            double thanhTien = Double.parseDouble(row[3]);
-            model.addRow(new Object[] { ten, (int) sl, formatMoney(gia), formatMoney(thanhTien) });
+            html.append("<tr>");
+            html.append("<td style='padding: 5px 0;'>").append(row[0]).append("</td>");
+            html.append("<td align='center' style='padding: 5px 0;'>").append((int) Double.parseDouble(row[1])).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(formatMoney(Double.parseDouble(row[2]))).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(formatMoney(Double.parseDouble(row[3]))).append("</td>");
+            html.append("</tr>");
         }
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px solid #000;'/>");
+        
+        html.append("<table width='100%' style='margin-top: 10px;'>");
+        html.append("<tr><td align='right' width='60%'>Tiền hàng:</td><td align='right'>").append(formatMoney(hd.getTongTien())).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>Giảm giá:</td><td align='right'>- ").append(formatMoney(hd.getTienGiamGia())).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>VAT (" + hd.getPhanTramVAT() + "%):</td><td align='right'>+ ").append(formatMoney(vatAmount)).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>Phí phục vụ (" + hd.getPhiPhucVu() + "%):</td><td align='right'>+ ").append(formatMoney(phiAmount)).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right' style='padding-top: 10px;'><b style='font-size: 16px;'>TỔNG THANH TOÁN:</b></td>");
+        html.append("<td align='right' style='padding-top: 10px;'><b style='font-size: 18px; color: #b91c1c;'>").append(formatMoney(hd.getThanhTien())).append(" VNĐ</b></td></tr>");
+        html.append("</table>");
 
-        dialog.add(new JScrollPane(table), BorderLayout.CENTER);
+        html.append("</body></html>");
 
-        // Close Button
-        JButton btnClose = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.NEUTRAL, "Đóng");
+        previewPane.setText(html.toString());
+        previewPane.setCaretPosition(0);
+
+        JScrollPane scroll = new JScrollPane(previewPane);
+        scroll.setBorder(null);
+        dialog.add(scroll, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel pnlBot = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+        pnlBot.setBackground(Color.WHITE);
+        pnlBot.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(229, 231, 235)));
+        
+        JButton btnClose = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "Đóng");
+        btnClose.setPreferredSize(new Dimension(150, 40));
         btnClose.addActionListener(e -> dialog.dispose());
-        JPanel pnlBot = new JPanel();
+        
         pnlBot.add(btnClose);
         dialog.add(pnlBot, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
     }
 
-    private void exportToPDF() {
+    private void showPrintPreview() {
         if (currentMaHD == -1) {
             JOptionPane.showMessageDialog(this, "Chưa chọn hóa đơn để in!");
             return;
         }
 
+        JDialog previewDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Xem Trước Hóa Đơn", true);
+        previewDialog.setSize(550, 750);
+        previewDialog.setLocationRelativeTo(this);
+        previewDialog.setLayout(new BorderLayout());
+
+        JEditorPane previewPane = new JEditorPane();
+        previewPane.setContentType("text/html");
+        previewPane.setEditable(false);
+        previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
+
+        // Build HTML content for preview
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family: Arial, sans-serif; font-size: 13px; color: #333;'>");
+        
+        // Header
+        html.append("<div style='text-align: center; margin-bottom: 20px;'>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>NHÀ HÀNG HẬU</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: 0123.456.789</p>");
+        html.append("</div>");
+        
+        html.append("<hr style='border: 1px dashed #ccc;'/>");
+        html.append("<h2 style='text-align: center; font-size: 20px; color: #000;'>HÓA ĐƠN THANH TOÁN</h2>");
+        
+        // Info
+        html.append("<table width='100%' style='margin-bottom: 10px;'>");
+        html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(currentMaHD).append("</td>");
+        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(selectedMaBan).append("</td></tr>");
+        html.append("<tr><td><b>K.Hàng:</b> ").append(lblKhachHang.getText().replace("Khách hàng: ", "")).append("</td>");
+        html.append("<td align='right'><b>Thu ngân:</b> ").append(lblNhanVien.getText().replace("Thu ngân: ", "")).append("</td></tr>");
+        html.append("<tr><td colspan='2'><b>Ngày:</b> ").append(lblNgayTao.getText().replace("Ngày: ", "")).append("</td></tr>");
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px double #999;'/>");
+        
+        // Details Table
+        html.append("<table width='100%' style='border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'>");
+        html.append("<tr style='border-bottom: 1px solid #000;'>");
+        html.append("<th align='left' style='padding-bottom: 5px;'>Món Ăn</th>");
+        html.append("<th align='center' style='padding-bottom: 5px;'>SL</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Đơn Giá</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Thành Tiền</th>");
+        html.append("</tr>");
+        
+        for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+            html.append("<tr>");
+            html.append("<td style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 0)).append("</td>");
+            html.append("<td align='center' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 1)).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 2)).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 3)).append("</td>");
+            html.append("</tr>");
+        }
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px solid #000;'/>");
+        
+        // Summary
+        html.append("<table width='100%' style='margin-top: 10px;'>");
+        html.append("<tr><td align='right' width='60%'>Tiền hàng:</td><td align='right'>").append(lblTongTienHang.getText()).append("</td></tr>");
+        html.append("<tr><td align='right'>Giảm giá:</td><td align='right'>").append(lblTienGiam.getText().replace("<html>", "").replace("<br>", " + ").replace("</html>", "")).append("</td></tr>");
+        html.append("<tr><td align='right'>VAT:</td><td align='right'>").append(lblVATAmount.getText()).append("</td></tr>");
+        html.append("<tr><td align='right'>Phí phục vụ:</td><td align='right'>").append(lblPhiAmount.getText()).append("</td></tr>");
+        html.append("<tr><td align='right' style='padding-top: 10px;'><b style='font-size: 16px;'>TỔNG THANH TOÁN:</b></td>");
+        html.append("<td align='right' style='padding-top: 10px;'><b style='font-size: 18px; color: #b91c1c;'>").append(lblThanhTien.getText()).append("</b></td></tr>");
+        html.append("</table>");
+
+        html.append("<p style='text-align: center; margin-top: 40px; font-style: italic; color: #666;'>Cảm ơn quý khách và hẹn gặp lại!</p>");
+        html.append("</body></html>");
+
+        previewPane.setText(html.toString());
+        previewPane.setCaretPosition(0);
+
+        JScrollPane scroll = new JScrollPane(previewPane);
+        scroll.setBorder(null);
+        previewDialog.add(scroll, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel pnlBot = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+        pnlBot.setBackground(Color.WHITE);
+        pnlBot.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(229, 231, 235)));
+        
+        JButton btnHuy = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "Hủy");
+        btnHuy.setPreferredSize(new Dimension(120, 40));
+        btnHuy.addActionListener(e -> previewDialog.dispose());
+        
+        JButton btnIn = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "Xuất PDF");
+        btnIn.setPreferredSize(new Dimension(180, 40));
+        btnIn.addActionListener(e -> {
+            previewDialog.dispose();
+            exportToPDF();
+        });
+
+        pnlBot.add(btnHuy);
+        pnlBot.add(btnIn);
+        previewDialog.add(pnlBot, BorderLayout.SOUTH);
+
+        previewDialog.setVisible(true);
+    }
+
+    private void exportToPDF() {
+        if (currentMaHD == -1) return;
+
         try {
-            // Tạo file PDF
             String fileName = "HoaDon_" + currentMaHD + ".pdf";
             Document document = new Document();
-            PdfWriter.getInstance(document, new FileOutputStream(fileName));
+            PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(fileName));
             document.open();
 
-            // Font hỗ trợ tiếng Việt - sử dụng Arial từ Windows
+            // Setup fonts
             BaseFont baseFont = BaseFont.createFont("C:/Windows/Fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(baseFont, 20, com.itextpdf.text.Font.BOLD);
-            com.itextpdf.text.Font headerFont = new com.itextpdf.text.Font(baseFont, 14, com.itextpdf.text.Font.BOLD);
-            com.itextpdf.text.Font normalFont = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fTitle = new com.itextpdf.text.Font(baseFont, 24, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fHeader = new com.itextpdf.text.Font(baseFont, 14, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fNormal = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fSmall = new com.itextpdf.text.Font(baseFont, 10, com.itextpdf.text.Font.ITALIC);
+            com.itextpdf.text.Font fBold = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.BOLD);
 
-            // Tiêu đề
-            Paragraph title = new Paragraph("NHÀ HÀNG HẬU", titleFont);
+            // Restaurant Header
+            Paragraph title = new Paragraph("NHÀ HÀNG HẬU", fTitle);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
 
-            Paragraph address = new Paragraph("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM", normalFont);
+            Paragraph address = new Paragraph("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM\nHotline: 0123.456.789\n", fNormal);
             address.setAlignment(Element.ALIGN_CENTER);
             document.add(address);
+            
+            // Dotted line
+            com.itextpdf.text.pdf.draw.DottedLineSeparator separator = new com.itextpdf.text.pdf.draw.DottedLineSeparator();
+            separator.setPercentage(100);
+            document.add(new com.itextpdf.text.Chunk(separator));
+
+            Paragraph invoiceTitle = new Paragraph("\nHÓA ĐƠN THANH TOÁN\n", fHeader);
+            invoiceTitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(invoiceTitle);
             document.add(new Paragraph("\n"));
 
-            // Thông tin hóa đơn
-            document.add(new Paragraph("Mã Hóa Đơn: " + currentMaHD, headerFont));
-            document.add(new Paragraph("Bàn: " + selectedMaBan, normalFont));
-            document.add(new Paragraph("Ngày: " + lblNgayTao.getText().replace("Ngày: ", ""), normalFont));
-            document.add(new Paragraph("Thu ngân: " + lblNhanVien.getText().replace("Thu ngân: ", ""), normalFont));
-            document.add(new Paragraph("Khách hàng: " + lblKhachHang.getText().replace("Khách hàng: ", ""), normalFont));
+            // Info Table
+            PdfPTable infoTable = new PdfPTable(2);
+            infoTable.setWidthPercentage(100);
+            infoTable.getDefaultCell().setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            
+            infoTable.addCell(new Phrase("Mã HĐ: #" + currentMaHD, fNormal));
+            PdfPCell cBan = new PdfPCell(new Phrase("Bàn: " + selectedMaBan, fNormal));
+            cBan.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cBan.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            infoTable.addCell(cBan);
+            
+            infoTable.addCell(new Phrase("Khách: " + lblKhachHang.getText().replace("Khách hàng: ", ""), fNormal));
+            PdfPCell cThuNgan = new PdfPCell(new Phrase("Thu ngân: " + lblNhanVien.getText().replace("Thu ngân: ", ""), fNormal));
+            cThuNgan.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cThuNgan.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            infoTable.addCell(cThuNgan);
+            
+            PdfPCell cNgay = new PdfPCell(new Phrase("Ngày: " + lblNgayTao.getText().replace("Ngày: ", ""), fNormal));
+            cNgay.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cNgay.setColspan(2);
+            infoTable.addCell(cNgay);
+            
+            document.add(infoTable);
             document.add(new Paragraph("\n"));
 
-            // Bảng chi tiết
+            // Details Table
             PdfPTable table = new PdfPTable(4);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{3, 1, 2, 2});
+            table.setWidths(new float[]{4f, 1.5f, 2.5f, 3f});
 
-            // Header
-            PdfPCell cell = new PdfPCell(new Phrase("Món Ăn", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("SL", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("Đơn Giá", headerFont));
-            table.addCell(cell);
-            cell = new PdfPCell(new Phrase("Thành Tiền", headerFont));
-            table.addCell(cell);
+            // Headers
+            String[] headersArr = {"Món Ăn", "SL", "Đơn Giá", "Thành Tiền"};
+            for (int i = 0; i < headersArr.length; i++) {
+                PdfPCell hCell = new PdfPCell(new Phrase(headersArr[i], fBold));
+                hCell.setPaddingBottom(8);
+                hCell.setBorderWidthLeft(0);
+                hCell.setBorderWidthRight(0);
+                hCell.setBorderWidthTop(1);
+                hCell.setBorderWidthBottom(1);
+                if (i == 0) hCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                else if (i == 1) hCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                else hCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                table.addCell(hCell);
+            }
 
-            // Dữ liệu từ bảng
+            // Data rows
             for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
-                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 0).toString(), normalFont));
-                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 1).toString(), normalFont));
-                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 2).toString(), normalFont));
-                table.addCell(new Phrase(modelChiTiet.getValueAt(i, 3).toString(), normalFont));
+                PdfPCell c1 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 0).toString(), fNormal));
+                c1.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c1.setPaddingTop(5);
+                c1.setPaddingBottom(5);
+                
+                PdfPCell c2 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 1).toString(), fNormal));
+                c2.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c2.setHorizontalAlignment(Element.ALIGN_CENTER);
+                c2.setPaddingTop(5);
+                
+                PdfPCell c3 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 2).toString(), fNormal));
+                c3.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c3.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                c3.setPaddingTop(5);
+                
+                PdfPCell c4 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 3).toString(), fNormal));
+                c4.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c4.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                c4.setPaddingTop(5);
+
+                table.addCell(c1);
+                table.addCell(c2);
+                table.addCell(c3);
+                table.addCell(c4);
             }
 
             document.add(table);
+            document.add(new com.itextpdf.text.Chunk(separator));
             document.add(new Paragraph("\n"));
 
-            // Tổng tiền
-            document.add(new Paragraph("Tiền hàng: " + lblTongTienHang.getText(), normalFont));
-            document.add(new Paragraph("Giảm giá: " + lblTienGiam.getText(), normalFont));
-            document.add(new Paragraph("VAT: " + lblVATAmount.getText(), normalFont));
-            document.add(new Paragraph("Phí phục vụ: " + lblPhiAmount.getText(), normalFont));
-            document.add(new Paragraph("Thành tiền: " + lblThanhTien.getText(), headerFont));
+            // Summary Table
+            PdfPTable sumTable = new PdfPTable(2);
+            sumTable.setWidthPercentage(100);
+            sumTable.setWidths(new float[]{7f, 3f});
+            sumTable.getDefaultCell().setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+
+            sumTable.addCell(new Phrase("Tiền hàng:", fNormal));
+            PdfPCell r1 = new PdfPCell(new Phrase(lblTongTienHang.getText(), fNormal));
+            r1.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r1.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r1);
+
+            sumTable.addCell(new Phrase("Giảm giá:", fNormal));
+            String giamGiaClean = lblTienGiam.getText().replace("<html>", "").replace("<br>", " + ").replace("</html>", "");
+            PdfPCell r2 = new PdfPCell(new Phrase(giamGiaClean, fNormal));
+            r2.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r2.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r2);
+
+            sumTable.addCell(new Phrase("VAT:", fNormal));
+            PdfPCell r3 = new PdfPCell(new Phrase(lblVATAmount.getText(), fNormal));
+            r3.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r3.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r3);
+
+            sumTable.addCell(new Phrase("Phí phục vụ:", fNormal));
+            PdfPCell r4 = new PdfPCell(new Phrase(lblPhiAmount.getText(), fNormal));
+            r4.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r4.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r4);
+            
+            // Total Row
+            PdfPCell tLabel = new PdfPCell(new Phrase("\nTỔNG THANH TOÁN:", fBold));
+            tLabel.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            sumTable.addCell(tLabel);
+
+            PdfPCell tAmount = new PdfPCell(new Phrase("\n" + lblThanhTien.getText(), fHeader));
+            tAmount.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            tAmount.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            sumTable.addCell(tAmount);
+
+            document.add(sumTable);
+            
+            Paragraph footer = new Paragraph("\nCảm ơn quý khách và hẹn gặp lại!", fSmall);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            document.add(footer);
 
             document.close();
 

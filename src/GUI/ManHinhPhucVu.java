@@ -492,6 +492,14 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                     return;
                 }
 
+                if (soLuongKhach > table.getSoGhe()) {
+                    JOptionPane.showMessageDialog(this,
+                            "Số lượng khách vượt quá số ghế của bàn (" + table.getSoGhe() + " ghế).\n" +
+                                    "Vui lòng chọn bàn khác hoặc sử dụng chức năng GHÉP BÀN để gộp thêm bàn!",
+                            "Lỗi Sức Chứa", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 String maNV = connectDB.SessionManager.getCurrentUser() != null
                         ? connectDB.SessionManager.getCurrentUser().getMaNV()
                         : null;
@@ -527,6 +535,15 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void processCheckInObj(DatBan db, Ban table) {
+        if (db.getSoLuongKhach() > table.getSoGhe()) {
+            JOptionPane.showMessageDialog(this,
+                    "Số lượng khách đặt (" + db.getSoLuongKhach() + ") vượt quá số ghế của bàn này (" + table.getSoGhe()
+                            + " ghế).\n" +
+                            "Vui lòng chọn bàn khác lớn hơn hoặc nhận bàn xong rồi dùng chức năng GHÉP BÀN để gộp thêm bàn!",
+                    "Lỗi Sức Chứa", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         int choice = JOptionPane.showConfirmDialog(this,
                 "Xác nhận nhận bàn cho khách: " + db.getTenKhach() + "\nSĐT: " + db.getSdt() + "\nSố khách: "
                         + db.getSoLuongKhach(),
