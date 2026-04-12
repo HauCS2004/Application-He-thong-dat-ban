@@ -64,6 +64,52 @@ public class ThongKeDAO {
         return total;
     }
 
+    // 3.1 So sánh Hôm qua
+    public double getDoanhThuHomQua(Date date) {
+        double total = 0;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND CAST(NgayTao AS DATE) = CAST(DATEADD(day, -1, ?) AS DATE)";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setDate(1, new java.sql.Date(date.getTime()));
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) total = rs.getDouble(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
+
+    // 3.2 So sánh Tháng trước
+    public double getDoanhThuThangTruoc(int month, int year) {
+        double total = 0;
+        try {
+            Connection con = ConnectDB.getConnection();
+            // Nếu tháng 1 thì lùi về tháng 12 năm trước
+            int prevMonth = (month == 1) ? 12 : month - 1;
+            int prevYear = (month == 1) ? year - 1 : year;
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND MONTH(NgayTao) = ? AND YEAR(NgayTao) = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, prevMonth);
+            ps.setInt(2, prevYear);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) total = rs.getDouble(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
+
+    // 3.3 So sánh Năm trước
+    public double getDoanhThuNamTruoc(int year) {
+        double total = 0;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT SUM(TongTien) FROM HoaDon WHERE TrangThai = N'Đã thanh toán' AND YEAR(NgayTao) = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, year - 1);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) total = rs.getDouble(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return total;
+    }
+
     // 4. Lấy doanh thu 7 ngày gần nhất (để vẽ biểu đồ)
     // Trả về List object[] {Date, Double}
     public ArrayList<Object[]> getDoanhThu7NgayGanNhat() {

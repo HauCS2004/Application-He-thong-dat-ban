@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="C:/Projects/Application-He-thong-dat-ban/libs/jcalendar-1.4.jar"/>
 	<classpathentry kind="lib" path="C:/Projects/Application-He-thong-dat-ban/libs/flatlaf-3.7.jar"/>
 	<classpathentry kind="lib" path="C:/Projects/Application-He-thong-dat-ban/libs/itextpdf-5.5.13.3.jar"/>
+	<classpathentry kind="lib" path="C:/Projects/Application-He-thong-dat-ban/libs/jfreechart-1.5.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
