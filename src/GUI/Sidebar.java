@@ -32,7 +32,18 @@ public class Sidebar extends JPanel {
     private void initGUI() {
         setLayout(new BorderLayout());
         setBackground(colorBg);
-        setPreferredSize(new Dimension(220, 0));
+        
+        // ── KÊ THUẬT AUTO-SCALE THEO KÍCH THƯỚC MÀN HÌNH (RESPONSIVE) ──
+        // Lấy kích thước Logical của màn hình hiện tại thay vì đặt cứng 220px
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        // Cho Sidebar chiếm ~12.5% chiều rộng màn hình (tỷ lệ vàng để không bị cướp không gian)
+        int dynamicWidth = (int) (screenSize.width * 0.125);
+        
+        // Khống chế không cho Sidebar chật quá hoặc béo quá
+        if (dynamicWidth < 200) dynamicWidth = 200;
+        if (dynamicWidth > 300) dynamicWidth = 300;
+        
+        setPreferredSize(new Dimension(dynamicWidth, 0));
 
         // Header
         JPanel pnlHeader = new JPanel();

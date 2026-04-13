@@ -93,18 +93,9 @@ public class MainLayout extends JFrame {
     }
 
     public static void main(String[] args) {
-        // ── KẾT HỢP CUỐI CÚNG: KHÓA TỈ LỆ VỀ CHUẨN 1.15X CỦA MÁY BẠN ──
-        // Do máy bạn đang chạy tốt nhất ở 115% (1.15), nếu để các máy 100% 
-        // tự chạy scale của họ thì Java sẽ tính toán padding bị lệch.
-        // Giải pháp hoàn hảo nhất: Bắt TẤT CẢ các máy khi mở phần mềm này
-        // đều phải dựng giao diện ở tỉ lệ 1.15 (115%) bất kể Windows của họ là bao nhiêu!
-        // Như vậy, máy bạn sẽ không bị nhỏ, máy bạn của bạn sẽ không bị to.
+        // Trả lại toàn quyền quản lý Scale cho Hệ điều hành và FlatLaf.
+        // HĐH bao nhiêu % thì Java sẽ nội suy đúng bấy nhiêu %.
         
-        System.setProperty("sun.java2d.uiScale", "1.15");
-
-        // Đồng thời bật tính năng cho FlatLaf tự canh chỉnh Font theo scale mới
-        System.setProperty("flatlaf.uiScale", "1.15");
-
         // Setup FlatLaf theme
         try {
             Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
