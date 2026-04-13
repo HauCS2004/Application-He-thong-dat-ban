@@ -38,7 +38,7 @@ public class Sidebar extends JPanel {
         JPanel pnlHeader = new JPanel();
         pnlHeader.setBackground(colorBg);
         pnlHeader.setLayout(new BoxLayout(pnlHeader, BoxLayout.Y_AXIS));
-        pnlHeader.setBorder(new EmptyBorder(20, 15, 20, 15));
+        pnlHeader.setBorder(new EmptyBorder(12, 15, 12, 15)); // Đã giảm padding trên/dưới để bớt to
 
         JLabel lblTitle = new JLabel("QUẢN LÝ");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
@@ -76,7 +76,7 @@ public class Sidebar extends JPanel {
         // Footer - User info
         JPanel pnlFooter = new JPanel(new BorderLayout());
         pnlFooter.setBackground(new Color(34, 49, 63));
-        pnlFooter.setBorder(new EmptyBorder(15, 15, 15, 15));
+        pnlFooter.setBorder(new EmptyBorder(10, 15, 10, 15)); // Đã giảm padding
 
         JLabel lblUser = new JLabel(SessionManager.getDisplayName());
         lblUser.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -88,6 +88,7 @@ public class Sidebar extends JPanel {
         btnLogout.setBackground(colorBg);
         btnLogout.setBorderPainted(false);
         btnLogout.setFocusPainted(false);
+        btnLogout.setMargin(new Insets(2, 5, 2, 5)); // Xóa margin lớn mặc định của nút
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.addActionListener(e -> {
             int choice = JOptionPane.showConfirmDialog(this,
