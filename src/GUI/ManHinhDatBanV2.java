@@ -1376,7 +1376,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
                     JPanel pItem = new JPanel(new BorderLayout());
                     pItem.setBackground(Color.WHITE);
-                    pItem.setMaximumSize(new Dimension(300, 40));
+                    // Đã bỏ pItem.setMaximumSize
                     pItem.setBorder(new EmptyBorder(5, 0, 5, 0));
                     pItem.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -1409,8 +1409,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         btnBook.setBackground(new Color(34, 197, 94));
         btnBook.setForeground(Color.WHITE);
         btnBook.setFocusPainted(false);
-        // Set maximum width
-        btnBook.setMaximumSize(new Dimension(280, 35));
+        // Đã bỏ setMaximumSize
 
         btnBook.addActionListener(e -> {
             // Open dialog with pre-filled ID

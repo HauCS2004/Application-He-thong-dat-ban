@@ -32,7 +32,7 @@ public class TableCard extends JPanel {
     private void initUI() {
         setLayout(new BorderLayout(5, 5));
         setPreferredSize(new Dimension(140, 160));
-        setMaximumSize(new Dimension(140, 160));
+        // Đã bỏ setMaximumSize(new Dimension(140, 160)); để chống lỗi scale DPI cao
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 2));
 

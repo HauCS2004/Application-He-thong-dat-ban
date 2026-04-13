@@ -462,7 +462,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45)); // FIXED HEIGHT SMALLER
+        // Đã bỏ setMaximumSize
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         return btn;
     }

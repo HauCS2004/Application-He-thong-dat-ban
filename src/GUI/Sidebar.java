@@ -141,7 +141,7 @@ public class Sidebar extends JPanel {
         item.setBackground(colorBg);
         item.setBorder(new EmptyBorder(12, 15, 12, 15));
         item.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        // Đã bỏ setMaximumSize để tránh lỗi trên màn scale cao
 
         // Load icon từ file
         JLabel lblIcon = new JLabel();
@@ -199,7 +199,7 @@ public class Sidebar extends JPanel {
         JPanel separator = new JPanel(new BorderLayout());
         separator.setBackground(colorBg);
         separator.setBorder(new EmptyBorder(15, 15, 8, 15));
-        separator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        // Đã bỏ setMaximumSize để tránh lỗi ép kích thước trên màn scale cao
 
         JLabel lblSeparator = new JLabel(label);
         lblSeparator.setFont(new Font("Segoe UI", Font.BOLD, 11));
