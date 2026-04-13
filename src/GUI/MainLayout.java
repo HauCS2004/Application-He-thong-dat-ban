@@ -93,6 +93,12 @@ public class MainLayout extends JFrame {
     }
 
     public static void main(String[] args) {
+        // ── Khóa DPI scaling — giúp UI nhất quán trên mọi màn hình ──────────
+        // Nếu không có dòng này, máy tính có Windows Scale 125%/150% sẽ làm
+        // sidebar, button, padding bị phóng to so với máy 100%.
+        System.setProperty("sun.java2d.uiScale", "1");
+        System.setProperty("sun.java2d.uiScale.enabled", "false");
+
         // Setup FlatLaf theme
         try {
             Class.forName("com.formdev.flatlaf.FlatLightLaf").getMethod("setup").invoke(null);
