@@ -320,7 +320,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void updateSidePanel(Ban table) {
-        String baseName = "BÀN " + table.getTenBan();
+        String baseName = table.getTenBan(); // tenBan đã có "Bàn" rồi, không thêm prefix
         String mergeInfo = "";
 
         String displayStatus = table.getTrangThai();
@@ -332,19 +332,27 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             int maHD = tempHdDAO.getMaHDByBan(table.getMaBan());
             if (maHD != -1) {
                 Entity.HoaDon hd = tempHdDAO.getThongTinHoaDon(maHD);
-                if (hd != null && hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-                    // Trích xuất các bàn gộp từ ghi chú: [Ghép từ bàn 03] [Ghép từ bàn 05]
-                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
-                    java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
-                    java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
-                    while (m.find()) {
-                        mergedTables.add(m.group(1));
+                if (hd != null && hd.getGhiChu() != null) {
+                    String ghiChu = hd.getGhiChu();
+                    // Format mới: "Bàn: T2-03 | Ghép: T2-02, T2-04"
+                    if (ghiChu.contains("| Ghép:")) {
+                        int idx = ghiChu.indexOf("| Ghép:");
+                        String banGhep = ghiChu.substring(idx + 8).trim(); // lấy phần sau "| Ghép: "
+                        if (!banGhep.isEmpty()) {
+                            mergeInfo = " (Ghép: " + banGhep + ")";
+                            displayStatus = table.getTrangThai();
+                        }
                     }
-
-                    if (!mergedTables.isEmpty()) {
-                        mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
-                        // Xóa phần thông tin ghép khỏi displayStatus để không bị lặp
-                        displayStatus = table.getTrangThai();
+                    // Format cũ (tương thích ngược): "[Ghép từ bàn X]"
+                    else if (ghiChu.contains("[Ghép")) {
+                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
+                        java.util.regex.Matcher m = p.matcher(ghiChu);
+                        java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
+                        while (m.find()) mergedTables.add(m.group(1));
+                        if (!mergedTables.isEmpty()) {
+                            mergeInfo = " (Ghép: " + String.join(", ", mergedTables) + ")";
+                            displayStatus = table.getTrangThai();
+                        }
                     }
                 }
             }
@@ -431,7 +439,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
 
             // Button: Gán Khách
-            JButton btnAssign = createStyledButton("GÁN KHÁCH (Thành viên)", new Color(13, 148, 136)); // Teal
+            JButton btnAssign = createStyledButton("GÁN KHÁCH", new Color(13, 148, 136)); // Teal
             btnAssign.addActionListener(e -> assignCustomer(table.getMaBan()));
             pnlActionButtons.add(btnAssign);
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
@@ -462,7 +470,10 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        // Đã bỏ setMaximumSize
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // Đồng đều chiều cao và kéo rộng hết panel
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        btn.setPreferredSize(new Dimension(0, 44));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         return btn;
     }

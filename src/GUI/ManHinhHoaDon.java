@@ -75,9 +75,9 @@ public class ManHinhHoaDon extends JPanel {
     private JButton btnThanhToan;
     private JButton btnInHoaDon;
 
-    // [GĐ4] VAT/Fee spinners
-    private JSpinner spnVAT;
-    private JSpinner spnPhiPhucVu;
+    // Thuế & Phí (đọc từ SystemConfig — không chỉnh sửa trực tiếp tại đây)
+    private JLabel lblVATRate;      // Hiển thị % VAT
+    private JLabel lblServiceRate;  // Hiển thị % phí PV
     private JLabel lblVATAmount;
     private JLabel lblPhiAmount;
 
@@ -209,15 +209,15 @@ public class ManHinhHoaDon extends JPanel {
         pnlHeader.setBackground(Color.WHITE);
         pnlHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(229, 231, 235)));
 
-        // Restaurant Name
-        JLabel lblResName = new JLabel("NHÀ HÀNG HẬU");
+        // Restaurant Name (đọc từ SystemConfig)
+        JLabel lblResName = new JLabel(GUI.utils.SystemConfig.getResName());
         lblResName.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        lblResName.setForeground(new Color(185, 28, 28)); // Dark Red
+        lblResName.setForeground(new Color(185, 28, 28));
         lblResName.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlHeader.add(lblResName);
 
         // Address
-        JLabel lblAddress = new JLabel("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM");
+        JLabel lblAddress = new JLabel("ĐC: " + GUI.utils.SystemConfig.getResAddress());
         lblAddress.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblAddress.setForeground(Color.GRAY);
         lblAddress.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -289,32 +289,24 @@ public class ManHinhHoaDon extends JPanel {
         lblTongTienHang.setFont(new Font("Segoe UI", Font.BOLD, 14));
         pnlCalc.add(lblTongTienHang);
 
-        // ROW 2: [GĐ4] VAT
-        JPanel pnlVATLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        pnlVATLabel.setBackground(Color.WHITE);
-        pnlVATLabel.add(new JLabel("+ VAT:"));
-        spnVAT = new JSpinner(new javax.swing.SpinnerNumberModel(10.0, 0.0, 50.0, 0.5));
-        spnVAT.setPreferredSize(new Dimension(60, 25));
-        spnVAT.addChangeListener(e -> updateFinalTotal());
-        pnlVATLabel.add(spnVAT);
-        pnlVATLabel.add(new JLabel("%"));
-        pnlCalc.add(pnlVATLabel);
+        // ROW 2: VAT (đọc từ config, không cho chỉnh sửa)
+        double vatPct = GUI.utils.SystemConfig.getVAT();
+        lblVATRate = new JLabel(String.format("+ VAT: %.1f%%", vatPct), SwingConstants.RIGHT);
+        lblVATRate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblVATRate.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblVATRate);
 
         lblVATAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
         lblVATAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblVATAmount.setForeground(new Color(75, 85, 99));
         pnlCalc.add(lblVATAmount);
 
-        // ROW 3: [GĐ4] Phí phục vụ
-        JPanel pnlPhiLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        pnlPhiLabel.setBackground(Color.WHITE);
-        pnlPhiLabel.add(new JLabel("+ Phí PV:"));
-        spnPhiPhucVu = new JSpinner(new javax.swing.SpinnerNumberModel(5.0, 0.0, 30.0, 0.5));
-        spnPhiPhucVu.setPreferredSize(new Dimension(60, 25));
-        spnPhiPhucVu.addChangeListener(e -> updateFinalTotal());
-        pnlPhiLabel.add(spnPhiPhucVu);
-        pnlPhiLabel.add(new JLabel("%"));
-        pnlCalc.add(pnlPhiLabel);
+        // ROW 3: Phí phục vụ (đọc từ config)
+        double svcPct = GUI.utils.SystemConfig.getServiceFee();
+        lblServiceRate = new JLabel(String.format("+ Phí PV: %.1f%%", svcPct), SwingConstants.RIGHT);
+        lblServiceRate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblServiceRate.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblServiceRate);
 
         lblPhiAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
         lblPhiAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -537,20 +529,21 @@ public class ManHinhHoaDon extends JPanel {
         if (hd == null)
             return;
 
-        String baseBan = "Bàn: " + hd.getMaBan();
-        String mergeInfo = "";
-        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+        String baseBan;
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("| Ghép:")) {
+            // Format mới: "Bàn: T1-06 | Ghép: T1-01, T1-02"
+            baseBan = hd.getGhiChu().trim();
+        } else if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+            // Format cũ
             java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
             java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
-            java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
-            while (m.find()) {
-                mergedTables.add(m.group(1));
-            }
-            if (!mergedTables.isEmpty()) {
-                mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
-            }
+            java.util.ArrayList<String> ml = new java.util.ArrayList<>();
+            while (m.find()) ml.add(m.group(1));
+            baseBan = "Bàn: " + hd.getMaBan() + (ml.isEmpty() ? "" : " | Ghép: " + String.join(", ", ml));
+        } else {
+            baseBan = "Bàn: " + hd.getMaBan();
         }
-        lblTitleBan.setText("<html>" + baseBan + mergeInfo + "</html>");
+        lblTitleBan.setText("<html>" + baseBan + "</html>");
         lblMaHD.setText("Mã HĐ: #" + hd.getMaHD());
         lblNgayTao.setText("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()));
 
@@ -590,11 +583,15 @@ public class ManHinhHoaDon extends JPanel {
         double currentDiscountVIP = 0;
         double currentDiscountVoucher = 0;
 
-        // [GĐ4] Get VAT/fee from spinners
-        double vatPercent = (double) spnVAT.getValue();
-        double phiPercent = (double) spnPhiPhucVu.getValue();
-        double vatAmount = currentTongTienHang * vatPercent / 100.0;
-        double phiAmount = currentTongTienHang * phiPercent / 100.0;
+        // Đọc VAT và phí từ SystemConfig
+        double vatPercent = GUI.utils.SystemConfig.getVAT();
+        double phiPercent = GUI.utils.SystemConfig.getServiceFee();
+        double vatAmount  = currentTongTienHang * vatPercent / 100.0;
+        double phiAmount  = currentTongTienHang * phiPercent / 100.0;
+
+        // Cập nhật label tỷ lệ phòng hợp với config mới nhất
+        lblVATRate.setText(String.format("+ VAT: %.1f%%", vatPercent));
+        lblServiceRate.setText(String.format("+ Phí PV: %.1f%%", phiPercent));
 
         lblVATAmount.setText("+ " + formatMoney(vatAmount) + " VNĐ");
         lblPhiAmount.setText("+ " + formatMoney(phiAmount) + " VNĐ");
@@ -683,19 +680,11 @@ public class ManHinhHoaDon extends JPanel {
             return;
         }
 
-        // Logic show QR Dialog
         try {
+            // Bank info từ SystemConfig
             double amount = parseMoney(lblThanhTien.getText());
             String addInfo = "THANH TOAN HD " + currentMaHD;
-
-            // DEMO BANK INFO: MB Bank
-            String tkNganHang = "88810102004888";
-            String maNganHang = "MB";
-            String tenChuTk = "CAO TRONG NGUYEN";
-
-            String url = String.format(
-                    "https://img.vietqr.io/image/%s-%s-compact.png?amount=%.0f&addInfo=%s&accountName=%s",
-                    maNganHang, tkNganHang, amount, addInfo.replace(" ", "%20"), tenChuTk.replace(" ", "%20"));
+            String url = GUI.utils.SystemConfig.buildQrUrl(amount, addInfo);
 
             JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Quét Mã Thanh Toán QR", true);
             dialog.setSize(400, 550);
@@ -768,9 +757,9 @@ public class ManHinhHoaDon extends JPanel {
                 "Xác nhận thanh toán cho bàn " + selectedMaBan + "?\nTổng tiền: " + lblThanhTien.getText(),
                 "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            // [GĐ4] Pass VAT/fee from spinners + customer SDT + voucher code
-            double vatVal = (double) spnVAT.getValue();
-            double phiVal = (double) spnPhiPhucVu.getValue();
+            // [GĐ4] Pass VAT/fee from config
+            double vatVal = GUI.utils.SystemConfig.getVAT();
+            double phiVal = GUI.utils.SystemConfig.getServiceFee();
             String maKM = (currentVoucher != null) ? txtVoucher.getText().trim() : null;
             String sdtKH = (currentKhachHang != null) ? currentKhachHang.getSoDienThoai() : null;
             boolean success = hdDAO.thanhToan(currentMaHD, maKM, sdtKH, vatVal, phiVal);
@@ -809,9 +798,11 @@ public class ManHinhHoaDon extends JPanel {
         this.currentTongTienHang = 0;
         this.currentKhachHang = null;
         this.currentVoucher = null;
-        // [GĐ4] Reset spinners to defaults
-        spnVAT.setValue(10.0);
-        spnPhiPhucVu.setValue(5.0);
+        // Refresh labels tỷ lệ thuế/phí (có thể đã được thay đổi từ Settings)
+        if (lblVATRate != null)
+            lblVATRate.setText(String.format("+ VAT: %.1f%%", GUI.utils.SystemConfig.getVAT()));
+        if (lblServiceRate != null)
+            lblServiceRate.setText(String.format("+ Phí PV: %.1f%%", GUI.utils.SystemConfig.getServiceFee()));
     }
 
     private void loadHistoryData() {
@@ -832,14 +823,19 @@ public class ManHinhHoaDon extends JPanel {
                 tenKhach = "Vãng lai";
             }
 
-            String mergedInfo = "";
-            if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-                mergedInfo = hd.getGhiChu();
+            String banDisplayValue = hd.getMaBan();
+            if (hd.getGhiChu() != null) {
+                if (hd.getGhiChu().contains("| Ghép:")) {
+                    // Extract just the part after "Bàn:" to avoid duplicate "Bàn"
+                    banDisplayValue = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
+                } else if (hd.getGhiChu().contains("[Ghép")) {
+                    banDisplayValue = hd.getMaBan() + " " + hd.getGhiChu();
+                }
             }
 
             modelHistory.addRow(new Object[] {
                     hd.getMaHD(),
-                    "Bàn " + hd.getMaBan() + mergedInfo,
+                    banDisplayValue,
                     new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()),
                     formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng
                                                              // Tiền
@@ -876,10 +872,13 @@ public class ManHinhHoaDon extends JPanel {
         previewPane.setEditable(false);
         previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
 
-        // Format data
-        String mergedInfo = "";
-        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-            mergedInfo = hd.getGhiChu();
+        String banDisplayPrint = hd.getMaBan();
+        if (hd.getGhiChu() != null) {
+            if (hd.getGhiChu().contains("| Ghép:")) {
+                banDisplayPrint = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
+            } else if (hd.getGhiChu().contains("[Ghép")) {
+                banDisplayPrint = hd.getMaBan() + " " + hd.getGhiChu();
+            }
         }
         
         String tenNV = "---";
@@ -903,9 +902,9 @@ public class ManHinhHoaDon extends JPanel {
         html.append("<html><body style='font-family: Arial, sans-serif; font-size: 13px; color: #333;'>");
         
         html.append("<div style='text-align: center; margin-bottom: 20px;'>");
-        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>NHÀ HÀNG HẬU</h1>");
-        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM</p>");
-        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: 0123.456.789</p>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>").append(GUI.utils.SystemConfig.getResName()).append("</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: ").append(GUI.utils.SystemConfig.getResAddress()).append("</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: ").append(GUI.utils.SystemConfig.getResPhone()).append("</p>");
         html.append("</div>");
         
         html.append("<hr style='border: 1px dashed #ccc;'/>");
@@ -913,10 +912,12 @@ public class ManHinhHoaDon extends JPanel {
         
         html.append("<table width='100%' style='margin-bottom: 10px;'>");
         html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(hd.getMaHD()).append("</td>");
-        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(hd.getMaBan()).append(" ").append(mergedInfo).append("</td></tr>");
-        html.append("<tr><td><b>K.Hàng:</b> ").append(tenKhach).append("</td>");
-        html.append("<td align='right'><b>Thu ngân:</b> ").append(tenNV).append("</td></tr>");
-        html.append("<tr><td colspan='2'><b>Ngày:</b> ").append(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())).append("</td></tr>");
+        html.append("<td width='50%' align='right'><b>Ngày:</b> ").append(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())).append("</td></tr>");
+        
+        html.append("<tr><td colspan='2' style='padding-top: 5px;'><b>Bàn:</b> ").append(banDisplayPrint).append("</td></tr>");
+        
+        html.append("<tr><td style='padding-top: 5px;'><b>Khách hàng:</b> ").append(tenKhach).append("</td>");
+        html.append("<td align='right' style='padding-top: 5px;'><b>Thu ngân:</b> ").append(tenNV).append("</td></tr>");
         html.append("</table>");
         
         html.append("<hr style='border: 1px double #999;'/>");
@@ -997,9 +998,9 @@ public class ManHinhHoaDon extends JPanel {
         
         // Header
         html.append("<div style='text-align: center; margin-bottom: 20px;'>");
-        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>NHÀ HÀNG HẬU</h1>");
-        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM</p>");
-        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: 0123.456.789</p>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>").append(GUI.utils.SystemConfig.getResName()).append("</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: ").append(GUI.utils.SystemConfig.getResAddress()).append("</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: ").append(GUI.utils.SystemConfig.getResPhone()).append("</p>");
         html.append("</div>");
         
         html.append("<hr style='border: 1px dashed #ccc;'/>");

@@ -61,12 +61,30 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         this.banDAO = new BanDAO();
         this.hoaDonDAO = new HoaDonDAO();
 
+        initBtnNotify(); // Khởi tạo chuông trước để có thể đặt vào TopBar
         initUI();
-
         initTablePopupMenu();
-
         loadBookings();
+    }
 
+    /**
+     * Khởi tạo nút chuông thông báo (được đặt ở TopBar bên ngoài).
+     */
+    private void initBtnNotify() {
+        btnNotify = new JButton(GUI.utils.IconHelper.loadIcon("view/icons/bell.png"));
+        btnNotify.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnNotify.setBackground(Color.WHITE);
+        btnNotify.setFocusPainted(false);
+        btnNotify.setBorder(null);
+        btnNotify.setPreferredSize(new Dimension(44, 36));
+        btnNotify.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnNotify.setToolTipText("Thông báo đặt bàn sắp đến");
+        btnNotify.addActionListener(e -> showNotificationDialog());
+    }
+
+    /** Trả về nút chuông để MainLayout đặt lên TopBar. */
+    public JButton getNotifyButton() {
+        return btnNotify;
     }
 
     private void initUI() {
@@ -161,17 +179,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         JPanel pnlActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlActions.setOpaque(false);
 
-        btnNotify = new JButton(GUI.utils.IconHelper.loadIcon("view/icons/bell.png"));
-        btnNotify.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnNotify.setBackground(Color.WHITE);
-        btnNotify.setFocusPainted(false);
-        btnNotify.setBorder(BorderFactory.createLineBorder(new Color(229, 231, 235), 1));
-        btnNotify.setPreferredSize(new Dimension(50, 40));
-        btnNotify.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnNotify.setToolTipText("Thông báo đặt bàn");
-        btnNotify.addActionListener(e -> showNotificationDialog());
-        pnlActions.add(btnNotify);
-
+        // btnNotify đã được chuyển lên TopBar toàn cục (xem MainLayout)
         JButton btnCreate = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM ĐẶT BÀN MỚI");
         btnCreate.setIcon(
                 GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));

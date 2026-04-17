@@ -50,7 +50,7 @@ public class ManHinhGoiMon extends JFrame {
         this.isReadOnly = isReadOnly;
 
         // Load referenced data first
-        listMonAn = monAnDAO.getAll();
+        listMonAn = monAnDAO.getAllForOrder(); // Chỉ CON_MON + HET_MON (bỏ NGUNG_BAN)
         listLoaiMon = loaiMonDAO.getAllLoai();
 
         initGUI();
@@ -170,6 +170,10 @@ public class ManHinhGoiMon extends JFrame {
         }
 
         for (MonAn m : listMonAn) {
+            // Bỏ NGUNG_BAN (không hiển thị)
+            if (Entity.MonAn.NGUNG_BAN.equals(m.getTrangThai()))
+                continue;
+
             boolean matchName = m.getTenMon().toLowerCase().contains(keyword);
             boolean matchType = (mapMaLoai == null) || m.getMaLoai().equals(mapMaLoai);
 
@@ -246,14 +250,23 @@ public class ManHinhGoiMon extends JFrame {
         double displayPrice = 0;
         try {
             displayPrice = bangGiaDAO.getGiaHienTai(m.getMaMon());
-        } catch (Exception ex) { /* giữ giá = 0 */ }
+        } catch (Exception ex) {
+            /* giữ giá = 0 */ }
+        // Xác định trạng thái: HET_MON thì hiển thị nhưng disable
+        boolean isHetMon = Entity.MonAn.HET_MON.equals(m.getTrangThai());
+
+        // Nếu hết món: phủ layer đỏ nhạt lên card
+        if (isHetMon) {
+            card.setBackground(new Color(254, 242, 242));
+        }
+
         final double cardPrice = displayPrice;
         final boolean hasPrice = displayPrice > 0;
 
         JLabel lblPrice;
         if (hasPrice) {
             lblPrice = new JLabel(formatMoney(displayPrice) + " / " + m.getDonViTinh());
-            lblPrice.setForeground(new Color(220, 38, 38));
+            lblPrice.setForeground(isHetMon ? Color.GRAY : new Color(220, 38, 38));
         } else {
             lblPrice = new JLabel("Chưa có giá");
             lblPrice.setForeground(new Color(150, 150, 150));
@@ -264,6 +277,18 @@ public class ManHinhGoiMon extends JFrame {
 
         pnlInfo.add(lblName);
         pnlInfo.add(lblPrice);
+
+        // Báo HET_MON
+        if (isHetMon) {
+            JLabel lblHet = new JLabel(" Hết món ");
+            lblHet.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lblHet.setForeground(Color.WHITE);
+            lblHet.setOpaque(true);
+            lblHet.setBackground(new Color(220, 38, 38));
+            lblHet.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            pnlInfo.setLayout(new java.awt.GridLayout(3, 1));
+            pnlInfo.add(lblHet);
+        }
 
         card.add(pnlInfo, BorderLayout.CENTER);
 
@@ -277,9 +302,11 @@ public class ManHinhGoiMon extends JFrame {
         JButton btnAdd = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.SUCCESS, "THÊM");
         btnAdd.setPreferredSize(new Dimension(80, 30));
 
-        if (isReadOnly || !hasPrice) {
+        if (isReadOnly || !hasPrice || isHetMon) {
             spnQty.setEnabled(false);
             btnAdd.setEnabled(false);
+            if (isHetMon)
+                btnAdd.setText("Hết Món");
         }
 
         btnAdd.addActionListener(e -> {
@@ -359,8 +386,8 @@ public class ManHinhGoiMon extends JFrame {
                             cancelCellEditing();
                             if (editingRow >= 0) {
                                 int confirm = javax.swing.JOptionPane.showConfirmDialog(
-                                    tblOrder, "Số lượng = 0. Xóa món này?", "Xác nhận",
-                                    javax.swing.JOptionPane.YES_NO_OPTION);
+                                        tblOrder, "Số lượng = 0. Xóa món này?", "Xác nhận",
+                                        javax.swing.JOptionPane.YES_NO_OPTION);
                                 if (confirm == javax.swing.JOptionPane.YES_OPTION)
                                     deleteSingleItem(editingRow);
                             }
@@ -368,7 +395,8 @@ public class ManHinhGoiMon extends JFrame {
                         }
                         int editingRow = tblOrder.getEditingRow();
                         boolean ok = super.stopCellEditing();
-                        if (ok && editingRow >= 0) changeQuantityTo(editingRow, newSL);
+                        if (ok && editingRow >= 0)
+                            changeQuantityTo(editingRow, newSL);
                         return ok;
                     } catch (NumberFormatException ex) {
                         tfEditor.setBackground(new Color(255, 220, 220));
