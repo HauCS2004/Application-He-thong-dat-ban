@@ -161,11 +161,11 @@ public class ManHinhQLBanVisual extends JPanel {
 
         btnAction1 = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.WARNING, "Chỉnh Sửa");
         btnAction1.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/edit.png"));
-        btnAction1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        // Đã bỏ setMaximumSize
 
         btnAction2 = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.DANGER, "Xóa Bàn");
         btnAction2.setIcon(GUI.utils.IconHelper.loadIcon("view/icons/delete.png"));
-        btnAction2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        // Đã bỏ setMaximumSize
 
         btnAction1.setVisible(false);
         btnAction2.setVisible(false);

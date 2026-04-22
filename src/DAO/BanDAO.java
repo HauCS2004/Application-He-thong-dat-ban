@@ -147,7 +147,6 @@ public class BanDAO {
         }
     }
 
-    // 7. Ghép Nhiều Bàn (Logic gộp và set trạng thái 'Đang Gộp')
     public boolean ghepNhieuBan(String maBanDich, ArrayList<String> listMaBanNguon) {
         Connection con = ConnectDB.getConnection();
         try {
@@ -158,11 +157,30 @@ public class BanDAO {
             if (maHDDich == -1)
                 return false;
 
+            // Thu thập tên bàn nguồn để ghi chú compact
+            ArrayList<String> tenBanNguonList = new ArrayList<>();
+
+            // Đọc ghi chú CŨ nếu hóa đơn này đã từng ghép bàn trước đó
+            String sqlGetOldGhiChu = "SELECT GhiChu FROM HoaDon WHERE MaHD = ?";
+            PreparedStatement psOld = con.prepareStatement(sqlGetOldGhiChu);
+            psOld.setInt(1, maHDDich);
+            ResultSet rsOld = psOld.executeQuery();
+            if (rsOld.next()) {
+                String oldGhiChu = rsOld.getString("GhiChu");
+                if (oldGhiChu != null && oldGhiChu.contains("| Ghép:")) {
+                    int idxx = oldGhiChu.indexOf("| Ghép:");
+                    String banGhepCu = oldGhiChu.substring(idxx + 8).trim();
+                    if (!banGhepCu.isEmpty()) {
+                        String[] parts = banGhepCu.split(",");
+                        for (String p : parts) tenBanNguonList.add(p.trim());
+                    }
+                }
+            }
+
             for (String maBanNguon : listMaBanNguon) {
                 int maHDNguon = hdDAO.getMaHDByBan(maBanNguon);
 
                 // Chuyển món
-                // Bước 1: Cộng gộp số lượng của các món ăn bị trùng giữa bàn nguồn và bàn đích
                 if (maHDNguon != -1) {
                     String sqlMergeDupe = "UPDATE t SET t.SoLuong = t.SoLuong + s.SoLuong " +
                                           "FROM ChiTietHoaDon t INNER JOIN ChiTietHoaDon s ON t.MaMon = s.MaMon " +
@@ -172,7 +190,6 @@ public class BanDAO {
                     psMerge.setInt(2, maHDNguon);
                     psMerge.executeUpdate();
 
-                    // Bước 2: Xóa những record trùng lặp từ hóa đơn nguồn (vì đã cộng dồn sang đích rồi)
                     String sqlDeleteDupe = "DELETE s " +
                                            "FROM ChiTietHoaDon s INNER JOIN ChiTietHoaDon t ON s.MaMon = t.MaMon " +
                                            "WHERE t.MaHD = ? AND s.MaHD = ?";
@@ -181,49 +198,62 @@ public class BanDAO {
                     psDelDupe.setInt(2, maHDNguon);
                     psDelDupe.executeUpdate();
 
-                    // Bước 3: Chuyển toàn bộ món KHÔNG TRÙNG còn lại từ nguồn sang đích
                     String sqlMove = "UPDATE ChiTietHoaDon SET MaHD = ? WHERE MaHD = ?";
                     PreparedStatement ps = con.prepareStatement(sqlMove);
                     ps.setInt(1, maHDDich);
                     ps.setInt(2, maHDNguon);
                     ps.executeUpdate();
 
-                    // Xóa hóa đơn rỗng
                     String sqlDel = "DELETE FROM HoaDon WHERE MaHD = ?";
                     PreparedStatement psDel = con.prepareStatement(sqlDel);
                     psDel.setInt(1, maHDNguon);
                     psDel.executeUpdate();
                 }
 
-                // Update Bàn Nguồn thành 'Đang Gộp' và trỏ về Bàn Đích
+                // Update Bàn Nguồn thành 'Đang Gộp'
                 String sqlUpBan = "UPDATE Ban SET TrangThai = N'Đang Gộp', MaBanGop = ? WHERE MaBan = ?";
                 PreparedStatement psUp = con.prepareStatement(sqlUpBan);
                 psUp.setString(1, maBanDich);
                 psUp.setString(2, maBanNguon);
                 psUp.executeUpdate();
 
-                // Lưu thông tin ghép vào Ghi Chú của Hóa đơn đích
-                String sqlAppend = "UPDATE HoaDon SET GhiChu = ISNULL(GhiChu, '') + ? WHERE MaHD = ?";
-                PreparedStatement psAppend = con.prepareStatement(sqlAppend);
-                psAppend.setString(1, " [Ghép từ bàn " + maBanNguon + "]");
-                psAppend.setInt(2, maHDDich);
-                psAppend.executeUpdate();
+                // Lấy tên bàn nguồn để ghi vào ghi chú
+                String sqlTenBan = "SELECT TenBan FROM Ban WHERE MaBan = ?";
+                PreparedStatement psTen = con.prepareStatement(sqlTenBan);
+                psTen.setString(1, maBanNguon);
+                ResultSet rsTen = psTen.executeQuery();
+                if (rsTen.next()) {
+                    tenBanNguonList.add(rsTen.getString("TenBan"));
+                } else {
+                    tenBanNguonList.add(maBanNguon); // fallback dùng mã bàn
+                }
             }
+
+            // Lấy tên bàn đích
+            String tenBanDich = maBanDich;
+            try {
+                PreparedStatement psTenDich = con.prepareStatement("SELECT TenBan FROM Ban WHERE MaBan = ?");
+                psTenDich.setString(1, maBanDich);
+                ResultSet rsTenDich = psTenDich.executeQuery();
+                if (rsTenDich.next()) tenBanDich = rsTenDich.getString("TenBan");
+            } catch (Exception ignored) {}
+
+            // Ghi chú compact: "Bàn: T1-06 | Ghép: T1-01, T1-02"
+            String ghiChuGhep = "Bàn: " + tenBanDich + " | Ghép: " + String.join(", ", tenBanNguonList);
+            String sqlAppend = "UPDATE HoaDon SET GhiChu = ? WHERE MaHD = ?";
+            PreparedStatement psAppend = con.prepareStatement(sqlAppend);
+            psAppend.setString(1, ghiChuGhep);
+            psAppend.setInt(2, maHDDich);
+            psAppend.executeUpdate();
 
             con.commit();
             return true;
         } catch (Exception e) {
-            try {
-                con.rollback();
-            } catch (Exception ex) {
-            }
+            try { con.rollback(); } catch (Exception ex) {}
             e.printStackTrace();
             return false;
         } finally {
-            try {
-                con.setAutoCommit(true);
-            } catch (Exception ex) {
-            }
+            try { con.setAutoCommit(true); } catch (Exception ex) {}
         }
     }
 

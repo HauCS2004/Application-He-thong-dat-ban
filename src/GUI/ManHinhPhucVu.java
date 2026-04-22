@@ -320,7 +320,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void updateSidePanel(Ban table) {
-        String baseName = "BÀN " + table.getTenBan();
+        String baseName = table.getTenBan(); // tenBan đã có "Bàn" rồi, không thêm prefix
         String mergeInfo = "";
 
         String displayStatus = table.getTrangThai();
@@ -332,19 +332,27 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             int maHD = tempHdDAO.getMaHDByBan(table.getMaBan());
             if (maHD != -1) {
                 Entity.HoaDon hd = tempHdDAO.getThongTinHoaDon(maHD);
-                if (hd != null && hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-                    // Trích xuất các bàn gộp từ ghi chú: [Ghép từ bàn 03] [Ghép từ bàn 05]
-                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
-                    java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
-                    java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
-                    while (m.find()) {
-                        mergedTables.add(m.group(1));
+                if (hd != null && hd.getGhiChu() != null) {
+                    String ghiChu = hd.getGhiChu();
+                    // Format mới: "Bàn: T2-03 | Ghép: T2-02, T2-04"
+                    if (ghiChu.contains("| Ghép:")) {
+                        int idx = ghiChu.indexOf("| Ghép:");
+                        String banGhep = ghiChu.substring(idx + 8).trim(); // lấy phần sau "| Ghép: "
+                        if (!banGhep.isEmpty()) {
+                            mergeInfo = " (Ghép: " + banGhep + ")";
+                            displayStatus = table.getTrangThai();
+                        }
                     }
-
-                    if (!mergedTables.isEmpty()) {
-                        mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
-                        // Xóa phần thông tin ghép khỏi displayStatus để không bị lặp
-                        displayStatus = table.getTrangThai();
+                    // Format cũ (tương thích ngược): "[Ghép từ bàn X]"
+                    else if (ghiChu.contains("[Ghép")) {
+                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
+                        java.util.regex.Matcher m = p.matcher(ghiChu);
+                        java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
+                        while (m.find()) mergedTables.add(m.group(1));
+                        if (!mergedTables.isEmpty()) {
+                            mergeInfo = " (Ghép: " + String.join(", ", mergedTables) + ")";
+                            displayStatus = table.getTrangThai();
+                        }
                     }
                 }
             }
@@ -431,7 +439,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
 
             // Button: Gán Khách
-            JButton btnAssign = createStyledButton("GÁN KHÁCH (Thành viên)", new Color(13, 148, 136)); // Teal
+            JButton btnAssign = createStyledButton("GÁN KHÁCH", new Color(13, 148, 136)); // Teal
             btnAssign.addActionListener(e -> assignCustomer(table.getMaBan()));
             pnlActionButtons.add(btnAssign);
             pnlActionButtons.add(Box.createVerticalStrut(10)); // Gap
@@ -462,7 +470,10 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45)); // FIXED HEIGHT SMALLER
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // Đồng đều chiều cao và kéo rộng hết panel
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        btn.setPreferredSize(new Dimension(0, 44));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         return btn;
     }
@@ -489,6 +500,14 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                 int soLuongKhach = Integer.parseInt(input);
                 if (soLuongKhach <= 0) {
                     JOptionPane.showMessageDialog(this, "Số lượng khách phải lớn hơn 0!");
+                    return;
+                }
+
+                if (soLuongKhach > table.getSoGhe()) {
+                    JOptionPane.showMessageDialog(this,
+                            "Số lượng khách vượt quá số ghế của bàn (" + table.getSoGhe() + " ghế).\n" +
+                                    "Vui lòng chọn bàn khác hoặc sử dụng chức năng GHÉP BÀN để gộp thêm bàn!",
+                            "Lỗi Sức Chứa", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
@@ -527,6 +546,15 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void processCheckInObj(DatBan db, Ban table) {
+        if (db.getSoLuongKhach() > table.getSoGhe()) {
+            JOptionPane.showMessageDialog(this,
+                    "Số lượng khách đặt (" + db.getSoLuongKhach() + ") vượt quá số ghế của bàn này (" + table.getSoGhe()
+                            + " ghế).\n" +
+                            "Vui lòng chọn bàn khác lớn hơn hoặc nhận bàn xong rồi dùng chức năng GHÉP BÀN để gộp thêm bàn!",
+                    "Lỗi Sức Chứa", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         int choice = JOptionPane.showConfirmDialog(this,
                 "Xác nhận nhận bàn cho khách: " + db.getTenKhach() + "\nSĐT: " + db.getSdt() + "\nSố khách: "
                         + db.getSoLuongKhach(),
@@ -584,7 +612,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         }
 
         // Show current info
-        String curName = "Vãng lai";
+        String curName = "";
         String curSDT = "";
         HoaDon hd = hoaDonDAO.getThongTinHoaDon(maHD);
         if (hd != null && hd.getSdtKhach() != null) {
@@ -594,45 +622,20 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                 curName = n;
         }
 
-        String message = "Khách hiện tại: " + curName + (curSDT.isEmpty() ? "" : " (" + curSDT + ")") +
-                "\n\nNhập số điện thoại khách hàng mới:";
+        GanKhachDialog dialog = new GanKhachDialog(this, curSDT, curName);
+        dialog.setVisible(true);
 
-        String sdt = JOptionPane.showInputDialog(this, message, "Gán Khách Hàng", JOptionPane.QUESTION_MESSAGE);
-        if (sdt == null || sdt.trim().isEmpty())
-            return;
+        if (dialog.isSaved()) {
+            String sdt = dialog.getSDT();
+            String ten = dialog.getTenKhach();
 
-        sdt = sdt.trim();
-        String ten = khachHangDAO.getTenKhachHang(sdt);
-
-        if (ten == null) {
-            // New Customer
-            int confirm = JOptionPane.showConfirmDialog(this, "Khách hàng mới! Bạn có muốn tạo mới?", "Khách Mới",
-                    JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                String newName = JOptionPane.showInputDialog(this, "Nhập tên khách hàng:", "Tạo Khách Mới",
-                        JOptionPane.PLAIN_MESSAGE);
-                if (newName != null && !newName.trim().isEmpty()) {
-                    if (khachHangDAO.themKhachMoi(sdt, newName.trim())) {
-                        ten = newName.trim();
-                        JOptionPane.showMessageDialog(this, "Đã tạo khách hàng mới!");
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Lỗi khi tạo khách hàng!");
-                        return;
-                    }
-                } else {
-                    return;
-                }
+            // Update Invoice
+            if (hoaDonDAO.updateSdtKhach(maHD, sdt)) {
+                JOptionPane.showMessageDialog(this, "Đã cập nhật: " + ten + " (" + sdt + ")");
+                // Refresh logic if needed
             } else {
-                return;
+                JOptionPane.showMessageDialog(this, "Lỗi cập nhật hóa đơn!");
             }
-        }
-
-        // Update Invoice
-        if (hoaDonDAO.updateSdtKhach(maHD, sdt)) {
-            JOptionPane.showMessageDialog(this, "Đã cập nhật: " + ten + " (" + sdt + ")");
-            // Refresh logic if needed?
-        } else {
-            JOptionPane.showMessageDialog(this, "Lỗi cập nhật hóa đơn!");
         }
     }
 

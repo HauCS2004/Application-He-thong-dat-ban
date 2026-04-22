@@ -1,6 +1,14 @@
 package GUI;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.GridLayout;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,14 +18,29 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 
-import DAO.BanDAO;
-import DAO.HoaDonDAO;
-import DAO.KhuyenMaiDAO;
-import DAO.KhachHangDAO;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
 import Entity.Ban;
 import Entity.HoaDon;
+import Entity.KhachHang;
 import Entity.KhuyenMai;
 import Entity.NhanVien;
+import DAO.KhuyenMaiDAO;
+import DAO.KhachHangDAO;
+import DAO.NhanVienDAO;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import DAO.BanDAO;
+import DAO.HoaDonDAO;
+
 
 public class ManHinhHoaDon extends JPanel {
 
@@ -52,9 +75,9 @@ public class ManHinhHoaDon extends JPanel {
     private JButton btnThanhToan;
     private JButton btnInHoaDon;
 
-    // [GĐ4] VAT/Fee spinners
-    private JSpinner spnVAT;
-    private JSpinner spnPhiPhucVu;
+    // Thuế & Phí (đọc từ SystemConfig — không chỉnh sửa trực tiếp tại đây)
+    private JLabel lblVATRate;      // Hiển thị % VAT
+    private JLabel lblServiceRate;  // Hiển thị % phí PV
     private JLabel lblVATAmount;
     private JLabel lblPhiAmount;
 
@@ -186,15 +209,15 @@ public class ManHinhHoaDon extends JPanel {
         pnlHeader.setBackground(Color.WHITE);
         pnlHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(229, 231, 235)));
 
-        // Restaurant Name
-        JLabel lblResName = new JLabel("NHÀ HÀNG HẬU");
+        // Restaurant Name (đọc từ SystemConfig)
+        JLabel lblResName = new JLabel(GUI.utils.SystemConfig.getResName());
         lblResName.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        lblResName.setForeground(new Color(185, 28, 28)); // Dark Red
+        lblResName.setForeground(new Color(185, 28, 28));
         lblResName.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlHeader.add(lblResName);
 
         // Address
-        JLabel lblAddress = new JLabel("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM");
+        JLabel lblAddress = new JLabel("ĐC: " + GUI.utils.SystemConfig.getResAddress());
         lblAddress.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblAddress.setForeground(Color.GRAY);
         lblAddress.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -266,32 +289,24 @@ public class ManHinhHoaDon extends JPanel {
         lblTongTienHang.setFont(new Font("Segoe UI", Font.BOLD, 14));
         pnlCalc.add(lblTongTienHang);
 
-        // ROW 2: [GĐ4] VAT
-        JPanel pnlVATLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        pnlVATLabel.setBackground(Color.WHITE);
-        pnlVATLabel.add(new JLabel("+ VAT:"));
-        spnVAT = new JSpinner(new javax.swing.SpinnerNumberModel(10.0, 0.0, 50.0, 0.5));
-        spnVAT.setPreferredSize(new Dimension(60, 25));
-        spnVAT.addChangeListener(e -> updateFinalTotal());
-        pnlVATLabel.add(spnVAT);
-        pnlVATLabel.add(new JLabel("%"));
-        pnlCalc.add(pnlVATLabel);
+        // ROW 2: VAT (đọc từ config, không cho chỉnh sửa)
+        double vatPct = GUI.utils.SystemConfig.getVAT();
+        lblVATRate = new JLabel(String.format("+ VAT: %.1f%%", vatPct), SwingConstants.RIGHT);
+        lblVATRate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblVATRate.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblVATRate);
 
         lblVATAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
         lblVATAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblVATAmount.setForeground(new Color(75, 85, 99));
         pnlCalc.add(lblVATAmount);
 
-        // ROW 3: [GĐ4] Phí phục vụ
-        JPanel pnlPhiLabel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        pnlPhiLabel.setBackground(Color.WHITE);
-        pnlPhiLabel.add(new JLabel("+ Phí PV:"));
-        spnPhiPhucVu = new JSpinner(new javax.swing.SpinnerNumberModel(5.0, 0.0, 30.0, 0.5));
-        spnPhiPhucVu.setPreferredSize(new Dimension(60, 25));
-        spnPhiPhucVu.addChangeListener(e -> updateFinalTotal());
-        pnlPhiLabel.add(spnPhiPhucVu);
-        pnlPhiLabel.add(new JLabel("%"));
-        pnlCalc.add(pnlPhiLabel);
+        // ROW 3: Phí phục vụ (đọc từ config)
+        double svcPct = GUI.utils.SystemConfig.getServiceFee();
+        lblServiceRate = new JLabel(String.format("+ Phí PV: %.1f%%", svcPct), SwingConstants.RIGHT);
+        lblServiceRate.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblServiceRate.setForeground(new Color(75, 85, 99));
+        pnlCalc.add(lblServiceRate);
 
         lblPhiAmount = new JLabel("+ 0 VNĐ", SwingConstants.RIGHT);
         lblPhiAmount.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -354,6 +369,7 @@ public class ManHinhHoaDon extends JPanel {
 
         btnInHoaDon = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "In Hóa Đơn");
         btnInHoaDon.setPreferredSize(new Dimension(140, 40));
+        btnInHoaDon.addActionListener(e -> showPrintPreview());
 
         JButton btnThanhToanQR = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.PRIMARY, "THANH TOÁN QR");
         btnThanhToanQR.setPreferredSize(new Dimension(180, 40));
@@ -513,20 +529,21 @@ public class ManHinhHoaDon extends JPanel {
         if (hd == null)
             return;
 
-        String baseBan = "Bàn: " + hd.getMaBan();
-        String mergeInfo = "";
-        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+        String baseBan;
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("| Ghép:")) {
+            // Format mới: "Bàn: T1-06 | Ghép: T1-01, T1-02"
+            baseBan = hd.getGhiChu().trim();
+        } else if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+            // Format cũ
             java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\[Ghép từ bàn (.*?)\\]");
             java.util.regex.Matcher m = p.matcher(hd.getGhiChu());
-            java.util.ArrayList<String> mergedTables = new java.util.ArrayList<>();
-            while (m.find()) {
-                mergedTables.add(m.group(1));
-            }
-            if (!mergedTables.isEmpty()) {
-                mergeInfo = " (Đang gộp với bàn " + String.join(", ", mergedTables) + ")";
-            }
+            java.util.ArrayList<String> ml = new java.util.ArrayList<>();
+            while (m.find()) ml.add(m.group(1));
+            baseBan = "Bàn: " + hd.getMaBan() + (ml.isEmpty() ? "" : " | Ghép: " + String.join(", ", ml));
+        } else {
+            baseBan = "Bàn: " + hd.getMaBan();
         }
-        lblTitleBan.setText("<html>" + baseBan + mergeInfo + "</html>");
+        lblTitleBan.setText("<html>" + baseBan + "</html>");
         lblMaHD.setText("Mã HĐ: #" + hd.getMaHD());
         lblNgayTao.setText("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()));
 
@@ -566,11 +583,15 @@ public class ManHinhHoaDon extends JPanel {
         double currentDiscountVIP = 0;
         double currentDiscountVoucher = 0;
 
-        // [GĐ4] Get VAT/fee from spinners
-        double vatPercent = (double) spnVAT.getValue();
-        double phiPercent = (double) spnPhiPhucVu.getValue();
-        double vatAmount = currentTongTienHang * vatPercent / 100.0;
-        double phiAmount = currentTongTienHang * phiPercent / 100.0;
+        // Đọc VAT và phí từ SystemConfig
+        double vatPercent = GUI.utils.SystemConfig.getVAT();
+        double phiPercent = GUI.utils.SystemConfig.getServiceFee();
+        double vatAmount  = currentTongTienHang * vatPercent / 100.0;
+        double phiAmount  = currentTongTienHang * phiPercent / 100.0;
+
+        // Cập nhật label tỷ lệ phòng hợp với config mới nhất
+        lblVATRate.setText(String.format("+ VAT: %.1f%%", vatPercent));
+        lblServiceRate.setText(String.format("+ Phí PV: %.1f%%", phiPercent));
 
         lblVATAmount.setText("+ " + formatMoney(vatAmount) + " VNĐ");
         lblPhiAmount.setText("+ " + formatMoney(phiAmount) + " VNĐ");
@@ -659,19 +680,11 @@ public class ManHinhHoaDon extends JPanel {
             return;
         }
 
-        // Logic show QR Dialog
         try {
+            // Bank info từ SystemConfig
             double amount = parseMoney(lblThanhTien.getText());
             String addInfo = "THANH TOAN HD " + currentMaHD;
-
-            // DEMO BANK INFO: MB Bank
-            String tkNganHang = "88810102004888";
-            String maNganHang = "MB";
-            String tenChuTk = "CAO TRONG NGUYEN";
-
-            String url = String.format(
-                    "https://img.vietqr.io/image/%s-%s-compact.png?amount=%.0f&addInfo=%s&accountName=%s",
-                    maNganHang, tkNganHang, amount, addInfo.replace(" ", "%20"), tenChuTk.replace(" ", "%20"));
+            String url = GUI.utils.SystemConfig.buildQrUrl(amount, addInfo);
 
             JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Quét Mã Thanh Toán QR", true);
             dialog.setSize(400, 550);
@@ -688,7 +701,7 @@ public class ManHinhHoaDon extends JPanel {
                 protected ImageIcon doInBackground() throws Exception {
                     java.net.URL qrUrl = java.net.URI.create(url).toURL();
                     java.awt.image.BufferedImage image = javax.imageio.ImageIO.read(qrUrl);
-                    return new ImageIcon(image.getScaledInstance(350, 350, Image.SCALE_SMOOTH));
+                    return new ImageIcon(image.getScaledInstance(350, 350, java.awt.Image.SCALE_SMOOTH));
                 }
 
                 @Override
@@ -715,7 +728,8 @@ public class ManHinhHoaDon extends JPanel {
                     SwingConstants.CENTER);
             lblInfo.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
-            JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "XÁC NHẬN ĐÃ THANH TOÁN XONG");
+            JButton btnConfirm = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS,
+                    "XÁC NHẬN ĐÃ THANH TOÁN XONG");
             btnConfirm.setPreferredSize(new Dimension(280, 40));
             btnConfirm.addActionListener(e -> {
                 dialog.dispose();
@@ -743,22 +757,13 @@ public class ManHinhHoaDon extends JPanel {
                 "Xác nhận thanh toán cho bàn " + selectedMaBan + "?\nTổng tiền: " + lblThanhTien.getText(),
                 "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            double finalTotal = parseMoney(lblThanhTien.getText());
-            // [GĐ4] Pass VAT/fee from spinners + customer SDT + voucher code
-            double vatVal = (double) spnVAT.getValue();
-            double phiVal = (double) spnPhiPhucVu.getValue();
+            // [GĐ4] Pass VAT/fee from config
+            double vatVal = GUI.utils.SystemConfig.getVAT();
+            double phiVal = GUI.utils.SystemConfig.getServiceFee();
             String maKM = (currentVoucher != null) ? txtVoucher.getText().trim() : null;
             String sdtKH = (currentKhachHang != null) ? currentKhachHang.getSoDienThoai() : null;
             boolean success = hdDAO.thanhToan(currentMaHD, maKM, sdtKH, vatVal, phiVal);
             if (success) {
-                // Tích điểm cho khách hàng
-                HoaDon hd = hdDAO.getThongTinHoaDon(currentMaHD);
-                if (hd != null && hd.getSdtKhach() != null && !hd.getSdtKhach().isEmpty()) {
-                    System.out.println(
-                            "DEBUG: ManHinhHoaDon Tich Diem - SDT: " + hd.getSdtKhach() + " Total: " + finalTotal);
-                    khDAO.tichDiem(hd.getSdtKhach(), finalTotal);
-                }
-
                 banDAO.updateTrangThai(selectedMaBan, "Trống");
                 banDAO.huyGopBan(selectedMaBan); // Giải phóng các bàn đang gộp
                 new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
@@ -793,9 +798,11 @@ public class ManHinhHoaDon extends JPanel {
         this.currentTongTienHang = 0;
         this.currentKhachHang = null;
         this.currentVoucher = null;
-        // [GĐ4] Reset spinners to defaults
-        spnVAT.setValue(10.0);
-        spnPhiPhucVu.setValue(5.0);
+        // Refresh labels tỷ lệ thuế/phí (có thể đã được thay đổi từ Settings)
+        if (lblVATRate != null)
+            lblVATRate.setText(String.format("+ VAT: %.1f%%", GUI.utils.SystemConfig.getVAT()));
+        if (lblServiceRate != null)
+            lblServiceRate.setText(String.format("+ Phí PV: %.1f%%", GUI.utils.SystemConfig.getServiceFee()));
     }
 
     private void loadHistoryData() {
@@ -816,16 +823,22 @@ public class ManHinhHoaDon extends JPanel {
                 tenKhach = "Vãng lai";
             }
 
-            String mergedInfo = "";
-            if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-                mergedInfo = hd.getGhiChu();
+            String banDisplayValue = hd.getMaBan();
+            if (hd.getGhiChu() != null) {
+                if (hd.getGhiChu().contains("| Ghép:")) {
+                    // Extract just the part after "Bàn:" to avoid duplicate "Bàn"
+                    banDisplayValue = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
+                } else if (hd.getGhiChu().contains("[Ghép")) {
+                    banDisplayValue = hd.getMaBan() + " " + hd.getGhiChu();
+                }
             }
 
             modelHistory.addRow(new Object[] {
                     hd.getMaHD(),
-                    "Bàn " + hd.getMaBan() + mergedInfo,
+                    banDisplayValue,
                     new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao()),
-                    formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng Tiền
+                    formatMoney(hd.getThanhTien()) + " VNĐ", // [Bug 3] Sử dụng Thành Tiền (đã gồm VAT/Phí) thay vì Tổng
+                                                             // Tiền
                     tenKhach,
                     hd.getMaNV()
             });
@@ -846,93 +859,387 @@ public class ManHinhHoaDon extends JPanel {
     }
 
     private void showInvoiceDetailDialog(int maHD) {
+        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
+        if (hd == null) return;
+
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi Tiết Hóa Đơn #" + maHD, true);
-        dialog.setSize(600, 500);
+        dialog.setSize(825, 750);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        HoaDon hd = hdDAO.getThongTinHoaDon(maHD);
-        if (hd == null)
-            return;
+        JEditorPane previewPane = new JEditorPane();
+        previewPane.setContentType("text/html");
+        previewPane.setEditable(false);
+        previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
 
-        // Header Info
-        JPanel pnlInfo = new JPanel(new GridLayout(6, 2, 10, 5)); // Tăng lên 6 dòng
-        pnlInfo.setBorder(new EmptyBorder(10, 10, 10, 10));
-        pnlInfo.setBackground(Color.WHITE);
-
-        pnlInfo.add(new JLabel("Mã Hóa Đơn: #" + hd.getMaHD()));
-        pnlInfo.add(
-                new JLabel("Ngày: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())));
-        
-        String mergedInfo = "";
-        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
-            mergedInfo = hd.getGhiChu();
+        String banDisplayPrint = hd.getMaBan();
+        if (hd.getGhiChu() != null) {
+            if (hd.getGhiChu().contains("| Ghép:")) {
+                banDisplayPrint = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
+            } else if (hd.getGhiChu().contains("[Ghép")) {
+                banDisplayPrint = hd.getMaBan() + " " + hd.getGhiChu();
+            }
         }
-        pnlInfo.add(new JLabel("Bàn: " + hd.getMaBan() + mergedInfo));
-
+        
         String tenNV = "---";
         if (hd.getMaNV() != null) {
             NhanVien nv = nvDAO.getByMaNV(hd.getMaNV());
-            if (nv != null)
-                tenNV = nv.getTenNV();
-            else
-                tenNV = hd.getMaNV();
+            tenNV = (nv != null) ? nv.getTenNV() : hd.getMaNV();
         }
-        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
 
         String sdt = hd.getSdtKhach();
-        String tenKhach = "Khách lẻ";
+        String tenKhach = "Khách vãng lai";
         if (sdt != null && !sdt.isEmpty()) {
             String name = khDAO.getTenKhachHang(sdt);
-            if (name != null)
-                tenKhach = name + " (" + sdt + ")";
-            else
-                tenKhach = sdt;
+            tenKhach = (name != null) ? name + " (" + sdt + ")" : sdt;
         }
-        pnlInfo.add(new JLabel("Khách hàng: " + tenKhach));
-        pnlInfo.add(new JLabel("Thu ngân: " + tenNV));
 
-        pnlInfo.add(new JLabel("Tiền hàng: " + formatMoney(hd.getTongTien()) + " VNĐ"));
+        double vatAmount = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
+        double phiAmount = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
+
+        // Build HTML
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family: Arial, sans-serif; font-size: 13px; color: #333;'>");
         
-        // [Bug 3] Fix VAT, Phi Phuc Vu, Giam Gia display
-        double vat = hd.getTongTien() * hd.getPhanTramVAT() / 100.0;
-        double phi = hd.getTongTien() * hd.getPhiPhucVu() / 100.0;
+        html.append("<div style='text-align: center; margin-bottom: 20px;'>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>").append(GUI.utils.SystemConfig.getResName()).append("</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: ").append(GUI.utils.SystemConfig.getResAddress()).append("</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: ").append(GUI.utils.SystemConfig.getResPhone()).append("</p>");
+        html.append("</div>");
         
-        pnlInfo.add(new JLabel("VAT (" + hd.getPhanTramVAT() + "%): +" + formatMoney(vat)));
-        pnlInfo.add(new JLabel("Phí PV (" + hd.getPhiPhucVu() + "%): +" + formatMoney(phi)));
-        pnlInfo.add(new JLabel("Giảm giá: -" + formatMoney(hd.getTienGiamGia())));
+        html.append("<hr style='border: 1px dashed #ccc;'/>");
+        html.append("<h2 style='text-align: center; font-size: 20px; color: #000;'>HÓA ĐƠN THANH TOÁN (LỊCH SỬ)</h2>");
         
-        JLabel lblThanhTienHD = new JLabel("Thành tiền: " + formatMoney(hd.getThanhTien()) + " VNĐ");
-        lblThanhTienHD.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblThanhTienHD.setForeground(Color.RED);
-        pnlInfo.add(lblThanhTienHD);
-
-        dialog.add(pnlInfo, BorderLayout.NORTH);
-
-        // Details Table
-        String[] headers = { "Món Ăn", "Số Lượng", "Đơn Giá", "Thành Tiền" };
-        DefaultTableModel model = new DefaultTableModel(headers, 0);
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
-
+        html.append("<table width='100%' style='margin-bottom: 10px;'>");
+        html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(hd.getMaHD()).append("</td>");
+        html.append("<td width='50%' align='right'><b>Ngày:</b> ").append(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(hd.getNgayTao())).append("</td></tr>");
+        
+        html.append("<tr><td colspan='2' style='padding-top: 5px;'><b>Bàn:</b> ").append(banDisplayPrint).append("</td></tr>");
+        
+        html.append("<tr><td style='padding-top: 5px;'><b>Khách hàng:</b> ").append(tenKhach).append("</td>");
+        html.append("<td align='right' style='padding-top: 5px;'><b>Thu ngân:</b> ").append(tenNV).append("</td></tr>");
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px double #999;'/>");
+        
+        html.append("<table width='100%' style='border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'>");
+        html.append("<tr style='border-bottom: 1px solid #000;'>");
+        html.append("<th align='left' style='padding-bottom: 5px;'>Món Ăn</th>");
+        html.append("<th align='center' style='padding-bottom: 5px;'>SL</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Đơn Giá</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Thành Tiền</th>");
+        html.append("</tr>");
+        
         ArrayList<String[]> details = hdDAO.getChiTietHoaDon(maHD);
         for (String[] row : details) {
-            String ten = row[0];
-            double sl = Double.parseDouble(row[1]);
-            double gia = Double.parseDouble(row[2]);
-            double thanhTien = Double.parseDouble(row[3]);
-            model.addRow(new Object[] { ten, (int) sl, formatMoney(gia), formatMoney(thanhTien) });
+            html.append("<tr>");
+            html.append("<td style='padding: 5px 0;'>").append(row[0]).append("</td>");
+            html.append("<td align='center' style='padding: 5px 0;'>").append((int) Double.parseDouble(row[1])).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(formatMoney(Double.parseDouble(row[2]))).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(formatMoney(Double.parseDouble(row[3]))).append("</td>");
+            html.append("</tr>");
         }
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px solid #000;'/>");
+        
+        html.append("<table width='100%' style='margin-top: 10px;'>");
+        html.append("<tr><td align='right' width='60%'>Tiền hàng:</td><td align='right'>").append(formatMoney(hd.getTongTien())).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>Giảm giá:</td><td align='right'>- ").append(formatMoney(hd.getTienGiamGia())).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>VAT (" + hd.getPhanTramVAT() + "%):</td><td align='right'>+ ").append(formatMoney(vatAmount)).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right'>Phí phục vụ (" + hd.getPhiPhucVu() + "%):</td><td align='right'>+ ").append(formatMoney(phiAmount)).append(" VNĐ</td></tr>");
+        html.append("<tr><td align='right' style='padding-top: 10px;'><b style='font-size: 16px;'>TỔNG THANH TOÁN:</b></td>");
+        html.append("<td align='right' style='padding-top: 10px;'><b style='font-size: 18px; color: #b91c1c;'>").append(formatMoney(hd.getThanhTien())).append(" VNĐ</b></td></tr>");
+        html.append("</table>");
 
-        dialog.add(new JScrollPane(table), BorderLayout.CENTER);
+        html.append("</body></html>");
 
-        // Close Button
-        JButton btnClose = GUI.utils.UIStyle.buttonSm(GUI.utils.UIStyle.BtnType.NEUTRAL, "Đóng");
+        previewPane.setText(html.toString());
+        previewPane.setCaretPosition(0);
+
+        JScrollPane scroll = new JScrollPane(previewPane);
+        scroll.setBorder(null);
+        dialog.add(scroll, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel pnlBot = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+        pnlBot.setBackground(Color.WHITE);
+        pnlBot.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(229, 231, 235)));
+        
+        JButton btnClose = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "Đóng");
+        btnClose.setPreferredSize(new Dimension(150, 40));
         btnClose.addActionListener(e -> dialog.dispose());
-        JPanel pnlBot = new JPanel();
+        
         pnlBot.add(btnClose);
         dialog.add(pnlBot, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+    }
+
+    private void showPrintPreview() {
+        if (currentMaHD == -1) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn hóa đơn để in!");
+            return;
+        }
+
+        JDialog previewDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Xem Trước Hóa Đơn", true);
+        previewDialog.setSize(550, 750);
+        previewDialog.setLocationRelativeTo(this);
+        previewDialog.setLayout(new BorderLayout());
+
+        JEditorPane previewPane = new JEditorPane();
+        previewPane.setContentType("text/html");
+        previewPane.setEditable(false);
+        previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
+
+        // Build HTML content for preview
+        StringBuilder html = new StringBuilder();
+        html.append("<html><body style='font-family: Arial, sans-serif; font-size: 13px; color: #333;'>");
+        
+        // Header
+        html.append("<div style='text-align: center; margin-bottom: 20px;'>");
+        html.append("<h1 style='color: #b91c1c; margin: 0; font-size: 26px;'>").append(GUI.utils.SystemConfig.getResName()).append("</h1>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>ĐC: ").append(GUI.utils.SystemConfig.getResAddress()).append("</p>");
+        html.append("<p style='margin: 5px 0 0 0; color: #666;'>Hotline: ").append(GUI.utils.SystemConfig.getResPhone()).append("</p>");
+        html.append("</div>");
+        
+        html.append("<hr style='border: 1px dashed #ccc;'/>");
+        html.append("<h2 style='text-align: center; font-size: 20px; color: #000;'>HÓA ĐƠN THANH TOÁN</h2>");
+        
+        // Info
+        html.append("<table width='100%' style='margin-bottom: 10px;'>");
+        html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(currentMaHD).append("</td>");
+        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(selectedMaBan).append("</td></tr>");
+        html.append("<tr><td><b>K.Hàng:</b> ").append(lblKhachHang.getText().replace("Khách hàng: ", "")).append("</td>");
+        html.append("<td align='right'><b>Thu ngân:</b> ").append(lblNhanVien.getText().replace("Thu ngân: ", "")).append("</td></tr>");
+        html.append("<tr><td colspan='2'><b>Ngày:</b> ").append(lblNgayTao.getText().replace("Ngày: ", "")).append("</td></tr>");
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px double #999;'/>");
+        
+        // Details Table
+        html.append("<table width='100%' style='border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'>");
+        html.append("<tr style='border-bottom: 1px solid #000;'>");
+        html.append("<th align='left' style='padding-bottom: 5px;'>Món Ăn</th>");
+        html.append("<th align='center' style='padding-bottom: 5px;'>SL</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Đơn Giá</th>");
+        html.append("<th align='right' style='padding-bottom: 5px;'>Thành Tiền</th>");
+        html.append("</tr>");
+        
+        for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+            html.append("<tr>");
+            html.append("<td style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 0)).append("</td>");
+            html.append("<td align='center' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 1)).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 2)).append("</td>");
+            html.append("<td align='right' style='padding: 5px 0;'>").append(modelChiTiet.getValueAt(i, 3)).append("</td>");
+            html.append("</tr>");
+        }
+        html.append("</table>");
+        
+        html.append("<hr style='border: 1px solid #000;'/>");
+        
+        // Summary
+        html.append("<table width='100%' style='margin-top: 10px;'>");
+        html.append("<tr><td align='right' width='60%'>Tiền hàng:</td><td align='right'>").append(lblTongTienHang.getText()).append("</td></tr>");
+        html.append("<tr><td align='right'>Giảm giá:</td><td align='right'>").append(lblTienGiam.getText().replace("<html>", "").replace("<br>", " + ").replace("</html>", "")).append("</td></tr>");
+        html.append("<tr><td align='right'>VAT:</td><td align='right'>").append(lblVATAmount.getText()).append("</td></tr>");
+        html.append("<tr><td align='right'>Phí phục vụ:</td><td align='right'>").append(lblPhiAmount.getText()).append("</td></tr>");
+        html.append("<tr><td align='right' style='padding-top: 10px;'><b style='font-size: 16px;'>TỔNG THANH TOÁN:</b></td>");
+        html.append("<td align='right' style='padding-top: 10px;'><b style='font-size: 18px; color: #b91c1c;'>").append(lblThanhTien.getText()).append("</b></td></tr>");
+        html.append("</table>");
+
+        html.append("<p style='text-align: center; margin-top: 40px; font-style: italic; color: #666;'>Cảm ơn quý khách và hẹn gặp lại!</p>");
+        html.append("</body></html>");
+
+        previewPane.setText(html.toString());
+        previewPane.setCaretPosition(0);
+
+        JScrollPane scroll = new JScrollPane(previewPane);
+        scroll.setBorder(null);
+        previewDialog.add(scroll, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel pnlBot = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+        pnlBot.setBackground(Color.WHITE);
+        pnlBot.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(229, 231, 235)));
+        
+        JButton btnHuy = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.NEUTRAL, "Hủy");
+        btnHuy.setPreferredSize(new Dimension(120, 40));
+        btnHuy.addActionListener(e -> previewDialog.dispose());
+        
+        JButton btnIn = GUI.utils.UIStyle.button(GUI.utils.UIStyle.BtnType.SUCCESS, "Xuất PDF");
+        btnIn.setPreferredSize(new Dimension(180, 40));
+        btnIn.addActionListener(e -> {
+            previewDialog.dispose();
+            exportToPDF();
+        });
+
+        pnlBot.add(btnHuy);
+        pnlBot.add(btnIn);
+        previewDialog.add(pnlBot, BorderLayout.SOUTH);
+
+        previewDialog.setVisible(true);
+    }
+
+    private void exportToPDF() {
+        if (currentMaHD == -1) return;
+
+        try {
+            String fileName = "HoaDon_" + currentMaHD + ".pdf";
+            Document document = new Document();
+            PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(fileName));
+            document.open();
+
+            // Setup fonts
+            BaseFont baseFont = BaseFont.createFont("C:/Windows/Fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            com.itextpdf.text.Font fTitle = new com.itextpdf.text.Font(baseFont, 24, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fHeader = new com.itextpdf.text.Font(baseFont, 14, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font fNormal = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fSmall = new com.itextpdf.text.Font(baseFont, 10, com.itextpdf.text.Font.ITALIC);
+            com.itextpdf.text.Font fBold = new com.itextpdf.text.Font(baseFont, 12, com.itextpdf.text.Font.BOLD);
+
+            // Restaurant Header
+            Paragraph title = new Paragraph("NHÀ HÀNG HẬU", fTitle);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+
+            Paragraph address = new Paragraph("ĐC: 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM\nHotline: 0123.456.789\n", fNormal);
+            address.setAlignment(Element.ALIGN_CENTER);
+            document.add(address);
+            
+            // Dotted line
+            com.itextpdf.text.pdf.draw.DottedLineSeparator separator = new com.itextpdf.text.pdf.draw.DottedLineSeparator();
+            separator.setPercentage(100);
+            document.add(new com.itextpdf.text.Chunk(separator));
+
+            Paragraph invoiceTitle = new Paragraph("\nHÓA ĐƠN THANH TOÁN\n", fHeader);
+            invoiceTitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(invoiceTitle);
+            document.add(new Paragraph("\n"));
+
+            // Info Table
+            PdfPTable infoTable = new PdfPTable(2);
+            infoTable.setWidthPercentage(100);
+            infoTable.getDefaultCell().setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            
+            infoTable.addCell(new Phrase("Mã HĐ: #" + currentMaHD, fNormal));
+            PdfPCell cBan = new PdfPCell(new Phrase("Bàn: " + selectedMaBan, fNormal));
+            cBan.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cBan.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            infoTable.addCell(cBan);
+            
+            infoTable.addCell(new Phrase("Khách: " + lblKhachHang.getText().replace("Khách hàng: ", ""), fNormal));
+            PdfPCell cThuNgan = new PdfPCell(new Phrase("Thu ngân: " + lblNhanVien.getText().replace("Thu ngân: ", ""), fNormal));
+            cThuNgan.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cThuNgan.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            infoTable.addCell(cThuNgan);
+            
+            PdfPCell cNgay = new PdfPCell(new Phrase("Ngày: " + lblNgayTao.getText().replace("Ngày: ", ""), fNormal));
+            cNgay.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            cNgay.setColspan(2);
+            infoTable.addCell(cNgay);
+            
+            document.add(infoTable);
+            document.add(new Paragraph("\n"));
+
+            // Details Table
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{4f, 1.5f, 2.5f, 3f});
+
+            // Headers
+            String[] headersArr = {"Món Ăn", "SL", "Đơn Giá", "Thành Tiền"};
+            for (int i = 0; i < headersArr.length; i++) {
+                PdfPCell hCell = new PdfPCell(new Phrase(headersArr[i], fBold));
+                hCell.setPaddingBottom(8);
+                hCell.setBorderWidthLeft(0);
+                hCell.setBorderWidthRight(0);
+                hCell.setBorderWidthTop(1);
+                hCell.setBorderWidthBottom(1);
+                if (i == 0) hCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                else if (i == 1) hCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                else hCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                table.addCell(hCell);
+            }
+
+            // Data rows
+            for (int i = 0; i < modelChiTiet.getRowCount(); i++) {
+                PdfPCell c1 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 0).toString(), fNormal));
+                c1.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c1.setPaddingTop(5);
+                c1.setPaddingBottom(5);
+                
+                PdfPCell c2 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 1).toString(), fNormal));
+                c2.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c2.setHorizontalAlignment(Element.ALIGN_CENTER);
+                c2.setPaddingTop(5);
+                
+                PdfPCell c3 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 2).toString(), fNormal));
+                c3.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c3.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                c3.setPaddingTop(5);
+                
+                PdfPCell c4 = new PdfPCell(new Phrase(modelChiTiet.getValueAt(i, 3).toString(), fNormal));
+                c4.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+                c4.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                c4.setPaddingTop(5);
+
+                table.addCell(c1);
+                table.addCell(c2);
+                table.addCell(c3);
+                table.addCell(c4);
+            }
+
+            document.add(table);
+            document.add(new com.itextpdf.text.Chunk(separator));
+            document.add(new Paragraph("\n"));
+
+            // Summary Table
+            PdfPTable sumTable = new PdfPTable(2);
+            sumTable.setWidthPercentage(100);
+            sumTable.setWidths(new float[]{7f, 3f});
+            sumTable.getDefaultCell().setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+
+            sumTable.addCell(new Phrase("Tiền hàng:", fNormal));
+            PdfPCell r1 = new PdfPCell(new Phrase(lblTongTienHang.getText(), fNormal));
+            r1.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r1.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r1);
+
+            sumTable.addCell(new Phrase("Giảm giá:", fNormal));
+            String giamGiaClean = lblTienGiam.getText().replace("<html>", "").replace("<br>", " + ").replace("</html>", "");
+            PdfPCell r2 = new PdfPCell(new Phrase(giamGiaClean, fNormal));
+            r2.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r2.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r2);
+
+            sumTable.addCell(new Phrase("VAT:", fNormal));
+            PdfPCell r3 = new PdfPCell(new Phrase(lblVATAmount.getText(), fNormal));
+            r3.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r3.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r3);
+
+            sumTable.addCell(new Phrase("Phí phục vụ:", fNormal));
+            PdfPCell r4 = new PdfPCell(new Phrase(lblPhiAmount.getText(), fNormal));
+            r4.setBorder(com.itextpdf.text.Rectangle.NO_BORDER); r4.setHorizontalAlignment(Element.ALIGN_RIGHT); sumTable.addCell(r4);
+            
+            // Total Row
+            PdfPCell tLabel = new PdfPCell(new Phrase("\nTỔNG THANH TOÁN:", fBold));
+            tLabel.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            sumTable.addCell(tLabel);
+
+            PdfPCell tAmount = new PdfPCell(new Phrase("\n" + lblThanhTien.getText(), fHeader));
+            tAmount.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+            tAmount.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            sumTable.addCell(tAmount);
+
+            document.add(sumTable);
+            
+            Paragraph footer = new Paragraph("\nCảm ơn quý khách và hẹn gặp lại!", fSmall);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            document.add(footer);
+
+            document.close();
+
+            JOptionPane.showMessageDialog(this, "Đã xuất PDF thành công: " + fileName);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi xuất PDF: " + e.getMessage());
+        }
     }
 }

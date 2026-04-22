@@ -32,13 +32,24 @@ public class Sidebar extends JPanel {
     private void initGUI() {
         setLayout(new BorderLayout());
         setBackground(colorBg);
-        setPreferredSize(new Dimension(220, 0));
+        
+        // ── KÊ THUẬT AUTO-SCALE THEO KÍCH THƯỚC MÀN HÌNH (RESPONSIVE) ──
+        // Lấy kích thước Logical của màn hình hiện tại thay vì đặt cứng 220px
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        // Cho Sidebar chiếm ~12.5% chiều rộng màn hình (tỷ lệ vàng để không bị cướp không gian)
+        int dynamicWidth = (int) (screenSize.width * 0.125);
+        
+        // Khống chế không cho Sidebar chật quá hoặc béo quá
+        if (dynamicWidth < 200) dynamicWidth = 200;
+        if (dynamicWidth > 300) dynamicWidth = 300;
+        
+        setPreferredSize(new Dimension(dynamicWidth, 0));
 
         // Header
         JPanel pnlHeader = new JPanel();
         pnlHeader.setBackground(colorBg);
         pnlHeader.setLayout(new BoxLayout(pnlHeader, BoxLayout.Y_AXIS));
-        pnlHeader.setBorder(new EmptyBorder(20, 15, 20, 15));
+        pnlHeader.setBorder(new EmptyBorder(12, 15, 12, 15)); // Đã giảm padding trên/dưới để bớt to
 
         JLabel lblTitle = new JLabel("QUẢN LÝ");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
@@ -76,9 +87,9 @@ public class Sidebar extends JPanel {
         // Footer - User info
         JPanel pnlFooter = new JPanel(new BorderLayout());
         pnlFooter.setBackground(new Color(34, 49, 63));
-        pnlFooter.setBorder(new EmptyBorder(15, 15, 15, 15));
+        pnlFooter.setBorder(new EmptyBorder(10, 15, 10, 15)); // Đã giảm padding
 
-        JLabel lblUser = new JLabel("▸ " + SessionManager.getDisplayName());
+        JLabel lblUser = new JLabel(SessionManager.getDisplayName());
         lblUser.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblUser.setForeground(colorText);
 
@@ -88,6 +99,7 @@ public class Sidebar extends JPanel {
         btnLogout.setBackground(colorBg);
         btnLogout.setBorderPainted(false);
         btnLogout.setFocusPainted(false);
+        btnLogout.setMargin(new Insets(2, 5, 2, 5)); // Xóa margin lớn mặc định của nút
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLogout.addActionListener(e -> {
             int choice = JOptionPane.showConfirmDialog(this,
@@ -141,7 +153,7 @@ public class Sidebar extends JPanel {
         item.setBackground(colorBg);
         item.setBorder(new EmptyBorder(12, 15, 12, 15));
         item.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        // Đã bỏ setMaximumSize để tránh lỗi trên màn scale cao
 
         // Load icon từ file
         JLabel lblIcon = new JLabel();
@@ -199,7 +211,7 @@ public class Sidebar extends JPanel {
         JPanel separator = new JPanel(new BorderLayout());
         separator.setBackground(colorBg);
         separator.setBorder(new EmptyBorder(15, 15, 8, 15));
-        separator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        // Đã bỏ setMaximumSize để tránh lỗi ép kích thước trên màn scale cao
 
         JLabel lblSeparator = new JLabel(label);
         lblSeparator.setFont(new Font("Segoe UI", Font.BOLD, 11));
