@@ -99,7 +99,7 @@ public class ManHinhDatBan extends JPanel {
         dateChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         dateChooser.addPropertyChangeListener("date", e -> loadBookingsByDate());
 
-        btnViewDetail = new JButton("👁 Xem chi tiết");
+        btnViewDetail = new JButton(" Xem chi tiết");
         btnViewDetail.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btnViewDetail.addActionListener(e -> viewBookingDetail());
 
@@ -258,7 +258,7 @@ public class ManHinhDatBan extends JPanel {
         c.gridwidth = 2;
         c.insets = new Insets(20, 5, 8, 5);
 
-        btnXacNhan = new JButton("✅ XÁC NHẬN ĐẶT BÀN");
+        btnXacNhan = new JButton(" XÁC NHẬN ĐẶT BÀN");
         btnXacNhan.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnXacNhan.setBackground(new Color(46, 204, 113));
         btnXacNhan.setForeground(Color.WHITE);
@@ -462,13 +462,13 @@ public class ManHinhDatBan extends JPanel {
                     txtGhiChu.getText().trim());
 
             if (datBanDAO.insertDatBan(db)) {
-                JOptionPane.showMessageDialog(this, "✅ Đặt bàn thành công!", "Thành công",
+                JOptionPane.showMessageDialog(this, " Đặt bàn thành công!", "Thành công",
                         JOptionPane.INFORMATION_MESSAGE);
                 clearForm();
                 loadBookingsByDate(); // Refresh
                 tabbedPane.setSelectedIndex(0); // Switch to calendar tab
             } else {
-                JOptionPane.showMessageDialog(this, "❌ Đặt bàn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, " Đặt bàn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (Exception ex) {

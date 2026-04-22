@@ -185,11 +185,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));
         btnCreate.setPreferredSize(new Dimension(190, 40));
         btnCreate.addActionListener(e -> {
-            if (isFilterActive) {
-                showCreateBookingDialog(null, filterDate, filterHour, filterMinute);
-            } else {
-                showCreateBookingDialog(null);
-            }
+            showCreateBookingDialog(null);
         });
         pnlActions.add(btnCreate);
 
@@ -250,7 +246,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlFilters.add(txtSearch);
         pnlFilters.add(chkEnableDateFilter); // Add toggle
         pnlFilters.add(dateChooser);
-        pnlFilters.add(new JLabel("🕐"));
+        pnlFilters.add(new JLabel(" Giờ:"));
         pnlFilters.add(cboTimeFilter);
 
         pnl.add(pnlFilters, BorderLayout.NORTH);
@@ -389,7 +385,15 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
         JPopupMenu popup = new JPopupMenu();
 
+        // Luôn hiển thị "Xem chi tiết"
+        JMenuItem itemDetail = new JMenuItem(" Xem chi tiết");
+        itemDetail.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        itemDetail.addActionListener(ev -> showBookingDetailDialog(row));
+        popup.add(itemDetail);
+
         if ("Chờ xác nhận".equals(status) || "Đã xác nhận".equals(status)) {
+            popup.addSeparator();
+
             JMenuItem itemCheckIn = new JMenuItem("Nhận Bàn (Check-in)");
             itemCheckIn.addActionListener(ev -> checkInBookingFromTable(row));
             popup.add(itemCheckIn);
@@ -399,8 +403,216 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             popup.add(itemCancel);
         }
 
-        if (popup.getComponentCount() > 0)
-            popup.show(e.getComponent(), e.getX(), e.getY());
+        popup.show(e.getComponent(), e.getX(), e.getY());
+    }
+
+    /**
+     * Hiển thị dialog chi tiết thông tin đặt bàn.
+     */
+    private void showBookingDetailDialog(int row) {
+        int maDat = Integer.parseInt(modelBookings.getValueAt(row, 0).toString());
+        DatBan booking = datBanDAO.getDatBanByID(maDat);
+        if (booking == null) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy thông tin đặt bàn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi tiết đặt bàn #" + maDat,
+                true);
+        dialog.setSize(520, 520);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        // ── Header ──────────────────────────────────────────────────
+        JPanel pnlHeader = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint gp = new GradientPaint(0, 0, new Color(59, 130, 246), getWidth(), 0,
+                        new Color(37, 99, 235));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
+        pnlHeader.setBorder(new EmptyBorder(18, 24, 18, 24));
+
+        JLabel lblHeaderTitle = new JLabel(" Đặt bàn #" + maDat);
+        lblHeaderTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblHeaderTitle.setForeground(Color.WHITE);
+
+        // Status badge
+        String trangThai = booking.getTrangThai();
+        Color statusBg, statusFg;
+        if (trangThai.startsWith("Đã hủy")) {
+            statusBg = new Color(254, 226, 226);
+            statusFg = new Color(239, 68, 68);
+        } else if ("Đã nhận bàn".equals(trangThai)) {
+            statusBg = new Color(220, 252, 231);
+            statusFg = new Color(34, 197, 94);
+        } else if (trangThai.contains("hoàn") || trangThai.contains("Hoàn")) {
+            statusBg = new Color(219, 234, 254);
+            statusFg = new Color(59, 130, 246);
+        } else {
+            statusBg = new Color(254, 243, 199);
+            statusFg = new Color(245, 158, 11);
+        }
+        JLabel lblStatus = new JLabel(" " + trangThai + " ") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(statusBg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblStatus.setForeground(statusFg);
+        lblStatus.setOpaque(false);
+        lblStatus.setBorder(new EmptyBorder(4, 10, 4, 10));
+
+        pnlHeader.add(lblHeaderTitle, BorderLayout.WEST);
+        pnlHeader.add(lblStatus, BorderLayout.EAST);
+
+        dialog.add(pnlHeader, BorderLayout.NORTH);
+
+        // ── Content ─────────────────────────────────────────────────
+        JPanel pnlContent = new JPanel();
+        pnlContent.setLayout(new BoxLayout(pnlContent, BoxLayout.Y_AXIS));
+        pnlContent.setBackground(Color.WHITE);
+        pnlContent.setBorder(new EmptyBorder(20, 28, 20, 28));
+
+        // Thông tin khách
+        addDetailSection(pnlContent, " Thông tin khách hàng");
+        addDetailRow(pnlContent, "Tên khách:", booking.getTenKhach());
+        addDetailRow(pnlContent, "Số điện thoại:", booking.getSdt());
+        addDetailRow(pnlContent, "Số lượng khách:", booking.getSoLuongKhach() + " người");
+        pnlContent.add(Box.createVerticalStrut(16));
+
+        // Thông tin thời gian
+        addDetailSection(pnlContent, " Thời gian");
+        java.text.SimpleDateFormat sdfDate = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        java.text.SimpleDateFormat sdfTime = new java.text.SimpleDateFormat("HH:mm");
+        addDetailRow(pnlContent, "Ngày đặt:", sdfDate.format(booking.getThoiGianBatDau()));
+        addDetailRow(pnlContent, "Giờ bắt đầu:", sdfTime.format(booking.getThoiGianBatDau()));
+        addDetailRow(pnlContent, "Giờ kết thúc:", sdfTime.format(booking.getThoiGianKetThuc()));
+
+        // Tính thời lượng
+        long durationMinutes = (booking.getThoiGianKetThuc().getTime() - booking.getThoiGianBatDau().getTime()) / 60000;
+        addDetailRow(pnlContent, "Thời lượng:",
+                durationMinutes / 60 + " giờ " + (durationMinutes % 60 > 0 ? durationMinutes % 60 + " phút" : ""));
+        pnlContent.add(Box.createVerticalStrut(16));
+
+        // Thông tin bàn
+        addDetailSection(pnlContent, " Thông tin bàn");
+        java.util.List<String> dsBan = booking.getDanhSachBan();
+        if (dsBan != null && !dsBan.isEmpty()) {
+            // Lấy thông tin chi tiết từng bàn
+            int totalCapacity = 0;
+            StringBuilder banInfo = new StringBuilder();
+            for (String maBan : dsBan) {
+                ArrayList<Ban> allBan = banDAO.getAllBan();
+                for (Ban b : allBan) {
+                    if (b.getMaBan().equals(maBan)) {
+                        totalCapacity += b.getSoGhe();
+                        if (banInfo.length() > 0)
+                            banInfo.append(", ");
+                        banInfo.append(b.getTenBan()).append(" (").append(b.getSoGhe()).append(" chỗ, ")
+                                .append(getZoneNameStatic(b.getMaKV())).append(")");
+                        break;
+                    }
+                }
+            }
+            addDetailRow(pnlContent, "Số bàn:", dsBan.size() + " bàn");
+            addDetailRow(pnlContent, "Chi tiết:", banInfo.toString());
+            addDetailRow(pnlContent, "Tổng sức chứa:", totalCapacity + " chỗ");
+        } else {
+            addDetailRow(pnlContent, "Bàn:", "(Không có thông tin)");
+        }
+        pnlContent.add(Box.createVerticalStrut(16));
+
+        // Thông tin bổ sung
+        addDetailSection(pnlContent, " Thông tin bổ sung");
+        addDetailRow(pnlContent, "Tiền cọc:", String.format("%,.0f VNĐ", booking.getTienCoc()));
+        addDetailRow(pnlContent, "Ghi chú:",
+                booking.getGhiChu() != null && !booking.getGhiChu().isEmpty() ? booking.getGhiChu() : "(Không có)");
+        if (booking.getNgayTao() != null) {
+            addDetailRow(pnlContent, "Ngày tạo:",
+                    new java.text.SimpleDateFormat("HH:mm dd/MM/yyyy").format(booking.getNgayTao()));
+        }
+
+        JScrollPane scrollContent = new JScrollPane(pnlContent);
+        scrollContent.setBorder(null);
+        scrollContent.getVerticalScrollBar().setUnitIncrement(12);
+        dialog.add(scrollContent, BorderLayout.CENTER);
+
+        // ── Footer ──────────────────────────────────────────────────
+        JPanel pnlFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        pnlFooter.setBackground(new Color(249, 250, 251));
+        pnlFooter.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(229, 231, 235)));
+
+        JButton btnClose = new JButton("Đóng");
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnClose.setBackground(new Color(107, 114, 128));
+        btnClose.setForeground(Color.WHITE);
+        btnClose.setFocusPainted(false);
+        btnClose.setPreferredSize(new Dimension(100, 36));
+        btnClose.addActionListener(ev -> dialog.dispose());
+        pnlFooter.add(btnClose);
+
+        dialog.add(pnlFooter, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    private void addDetailSection(JPanel parent, String title) {
+        JLabel lbl = new JLabel(title);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lbl.setForeground(new Color(31, 41, 55));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lbl.setBorder(new EmptyBorder(0, 0, 8, 0));
+        parent.add(lbl);
+    }
+
+    private void addDetailRow(JPanel parent, String label, String value) {
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        row.setBorder(new EmptyBorder(2, 12, 2, 0));
+
+        JLabel lblKey = new JLabel(label);
+        lblKey.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblKey.setForeground(new Color(107, 114, 128));
+        lblKey.setPreferredSize(new Dimension(130, 22));
+
+        JLabel lblVal = new JLabel("<html>" + (value != null ? value : "") + "</html>");
+        lblVal.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblVal.setForeground(new Color(31, 41, 55));
+
+        row.add(lblKey, BorderLayout.WEST);
+        row.add(lblVal, BorderLayout.CENTER);
+        parent.add(row);
+    }
+
+    private String getZoneNameStatic(String maKV) {
+        if (maKV == null)
+            return "";
+        switch (maKV) {
+            case "KV01":
+                return "Tầng G";
+            case "KV02":
+                return "Tầng 1";
+            case "KV03":
+                return "VIP";
+            case "KV04":
+                return "Ngoài trời";
+            default:
+                return maKV;
+        }
     }
 
     private void openOrderUIFromTable(int row) {
@@ -956,27 +1168,22 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         return new java.text.SimpleDateFormat("HH:mm").format(date);
     }
 
-    private void showCreateBookingDialog(String preSelectedTable, Date date, int hour, int min) {
+    private void showCreateBookingDialog(String preSelectedTable) {
         Window win = SwingUtilities.getWindowAncestor(this);
         BookingFormDialog dialog = new BookingFormDialog((Frame) win, preSelectedTable);
-        if (date != null && hour >= 0) {
-            dialog.setPreFilledTime(date, hour, min);
+        // Pre-fill nếu đang ở chế độ filter
+        if (isFilterActive && filterDate != null && filterHour >= 0) {
+            dialog.setPreFilledTime(filterDate, filterHour, filterMinute);
         }
         dialog.setOnSuccessCallback(() -> {
             loadBookings();
             if (isFilterActive) {
-                // Re-check map availability to refresh view
                 checkMapAvailability(filterDate, filterHour, filterMinute);
             } else {
                 refreshAllFloors();
             }
         });
         dialog.setVisible(true);
-    }
-
-    // Overload for backward compatibility / button click
-    private void showCreateBookingDialog(String preSelectedTable) {
-        showCreateBookingDialog(preSelectedTable, null, -1, -1);
     }
 
     // --- TABLE INTERACTIONS ---
@@ -992,41 +1199,32 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
     @Override
     public void onTableCardClicked(Ban table) {
-        // REFINEMENT: Smart Click Logic
-        if (isFilterActive) {
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Đặt bàn " + table.getTenBan() + " vào lúc " +
-                            String.format("%02d:%02d", filterHour, filterMinute) + " ngày " +
-                            new java.text.SimpleDateFormat("dd/MM").format(filterDate) + "?",
-                    "Đặt Bàn Theo Lịch",
-                    JOptionPane.YES_NO_OPTION);
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                showCreateBookingDialog(table.getMaBan(), filterDate, filterHour, filterMinute);
-            }
-            return;
-        }
-
-        // Standard Logic (Real-time)
         String status = table.getTrangThai();
+
         if ("Trống".equals(status)) {
-            int confirm = JOptionPane.showConfirmDialog(this, "Bạn muốn đặt bàn " + table.getTenBan() + "?", "Đặt Bàn",
-                    JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                showCreateBookingDialog(table.getMaBan());
-            }
+            // Mở wizard đặt bàn hiện đại — pre-select bàn này
+            showCreateBookingDialog(table.getMaBan());
         } else if ("Đã Đặt".equals(status)) {
-            // Find booking info
+            // Hiển thị thông tin booking hiện tại
             DatBan db = DatBanDAO.getDatBanGanNhat(table.getMaBan());
             if (db != null) {
-                JOptionPane.showMessageDialog(this,
-                        "Thông tin đặt bàn:\n" +
-                                "Khách: " + db.getTenKhach() + "\n" +
-                                "SĐT: " + db.getSdt() + "\n" +
-                                "Giờ: " + formatDateTime(db.getThoiGianBatDau()));
+                String info = String.format(
+                        "<html><div style='padding:8px;'>" +
+                                "<h3>Thông tin đặt bàn — %s</h3>" +
+                                "<p><b>Khách:</b> %s</p>" +
+                                "<p><b>SĐT:</b> %s</p>" +
+                                "<p><b>Giờ:</b> %s — %s</p>" +
+                                "<p><b>Số khách:</b> %d</p>" +
+                                "<p><b>Trạng thái:</b> %s</p>" +
+                                "</div></html>",
+                        table.getTenBan(), db.getTenKhach(), db.getSdt(),
+                        formatDateTime(db.getThoiGianBatDau()),
+                        formatDateTime(db.getThoiGianKetThuc()),
+                        db.getSoLuongKhach(), db.getTrangThai());
+                JOptionPane.showMessageDialog(this, info, "Thông tin đặt bàn", JOptionPane.INFORMATION_MESSAGE);
             }
-        } else if ("Có Khách".equals(status)) {
-            JOptionPane.showMessageDialog(this, "Bàn đang có khách ngồi.");
+        } else if ("Có Khách".equals(status) || "Có khách".equals(status)) {
+            JOptionPane.showMessageDialog(this, "Bàn " + table.getTenBan() + " đang có khách ngồi.");
         }
     }
 
@@ -1218,6 +1416,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
     // --- NEW: Split View Logic ---
 
+    // Panel chứa nút đặt bàn nổi bật ở phần dưới
+    private JPanel pnlBookingAction;
+    private Ban currentDetailTable; // Lưu bàn đang xem chi tiết
+
     private JPanel createDetailPanel() {
         pnlDetailContainer = new JPanel(new BorderLayout());
         pnlDetailContainer.setPreferredSize(new Dimension(300, 0));
@@ -1234,17 +1436,108 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlHeader.add(lblTitle, BorderLayout.CENTER);
         pnlDetailContainer.add(pnlHeader, BorderLayout.NORTH);
 
-        // Content
+        // Content (scrollable)
         pnlDetailContent = new JPanel();
         pnlDetailContent.setLayout(new BoxLayout(pnlDetailContent, BoxLayout.Y_AXIS));
         pnlDetailContent.setBackground(Color.WHITE);
         pnlDetailContent.setBorder(new EmptyBorder(15, 15, 15, 15));
 
+        JScrollPane scrollDetail = new JScrollPane(pnlDetailContent);
+        scrollDetail.setBorder(null);
+        scrollDetail.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollDetail.getVerticalScrollBar().setUnitIncrement(10);
+        pnlDetailContainer.add(scrollDetail, BorderLayout.CENTER);
+
+        // ── PHẦN NỔI BẬT: Nút Đặt Bàn (Fixed Bottom Section) ──
+        pnlBookingAction = createBookingActionPanel();
+        pnlDetailContainer.add(pnlBookingAction, BorderLayout.SOUTH);
+
         // Initial Empty State
         showEmptyDetailState();
 
-        pnlDetailContainer.add(pnlDetailContent, BorderLayout.CENTER);
         return pnlDetailContainer;
+    }
+
+    /**
+     * Tạo panel nút đặt bàn nổi bật ở phần dưới, luôn hiển thị.
+     */
+    private JPanel createBookingActionPanel() {
+        JPanel pnl = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Gradient nền từ xanh nhạt sang xanh đậm
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(236, 253, 245),
+                        0, getHeight(), new Color(209, 250, 229));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                // Đường kẻ trên (shadow effect)
+                g2.setColor(new Color(167, 243, 208));
+                g2.drawLine(0, 0, getWidth(), 0);
+                g2.dispose();
+            }
+        };
+        pnl.setBorder(new EmptyBorder(16, 15, 16, 15));
+        pnl.setOpaque(false);
+
+        // Nút đặt bàn chính — to, nổi bật
+        JButton btnBook = new JButton("  ĐẶT BÀN MỚI") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Gradient nút từ xanh lá đậm sang xanh lá sáng
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(22, 163, 74),
+                        0, getHeight(), new Color(34, 197, 94));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnBook.setIcon(
+                GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 22, 22));
+        btnBook.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btnBook.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnBook.setForeground(Color.WHITE);
+        btnBook.setFocusPainted(false);
+        btnBook.setContentAreaFilled(false);
+        btnBook.setBorderPainted(false);
+        btnBook.setOpaque(false);
+        btnBook.setPreferredSize(new Dimension(0, 48));
+
+        // Hover effect
+        btnBook.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btnBook.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btnBook.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            }
+        });
+
+        btnBook.addActionListener(e -> {
+            String maBan = (currentDetailTable != null) ? currentDetailTable.getMaBan() : null;
+            showCreateBookingDialog(maBan);
+        });
+
+        pnl.add(btnBook, BorderLayout.CENTER);
+
+        // Label gợi ý
+        JLabel lblHint = new JLabel("Nhấn để tạo đặt bàn mới", SwingConstants.CENTER);
+        lblHint.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblHint.setForeground(new Color(22, 163, 74));
+        lblHint.setBorder(new EmptyBorder(6, 0, 0, 0));
+        pnl.add(lblHint, BorderLayout.SOUTH);
+
+        return pnl;
     }
 
     private void showEmptyDetailState() {
@@ -1271,6 +1564,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         if (pnlDetailContent == null)
             return;
         pnlDetailContent.removeAll();
+        currentDetailTable = table; // Lưu bàn đang xem
 
         // 1. Table Header
         String baseName = table.getTenBan();
@@ -1302,6 +1596,14 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlDetailContent.add(lblName);
+
+        // Hiển thị sức chứa
+        JLabel lblCapacity = new JLabel("💺 Sức chứa: " + table.getSoGhe() + " khách");
+        lblCapacity.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblCapacity.setForeground(new Color(107, 114, 128));
+        lblCapacity.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlDetailContent.add(lblCapacity);
+        pnlDetailContent.add(Box.createVerticalStrut(5));
 
         // If filtering, we double-check availability for the specific time slot
         if (isFilterActive) {
@@ -1348,7 +1650,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 14));
         if ("Trống".equals(displayStatus))
             lblStatus.setForeground(new Color(34, 197, 94));
-        else if ("Có Khách".equals(displayStatus) || "Có khách".equals(displayStatus)) // Handle likely casing
+        else if ("Có Khách".equals(displayStatus) || "Có khách".equals(displayStatus))
             lblStatus.setForeground(new Color(239, 68, 68));
         else
             lblStatus.setForeground(new Color(245, 158, 11));
@@ -1384,7 +1686,6 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
                     JPanel pItem = new JPanel(new BorderLayout());
                     pItem.setBackground(Color.WHITE);
-                    // Đã bỏ pItem.setMaximumSize
                     pItem.setBorder(new EmptyBorder(5, 0, 5, 0));
                     pItem.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -1404,39 +1705,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             pnlDetailContent.add(l);
         }
 
-        pnlDetailContent.add(Box.createVerticalStrut(20));
-
-        // 3. Actions
-        // "Đặt Bàn Mới" - Always visible
-        JButton btnBook = new JButton(" Đặt Bàn Mới");
-        btnBook.setIcon(
-                GUI.utils.IconHelper.resize(GUI.utils.IconHelper.loadIcon("view/icons/add_datban.png"), 20, 20));
-        btnBook.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        btnBook.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnBook.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btnBook.setBackground(new Color(34, 197, 94));
-        btnBook.setForeground(Color.WHITE);
-        btnBook.setFocusPainted(false);
-        // Đã bỏ setMaximumSize
-
-        btnBook.addActionListener(e -> {
-            // Open dialog with pre-filled ID
-            BookingFormDialog dialog = new BookingFormDialog((Frame) SwingUtilities.getWindowAncestor(this),
-                    table.getMaBan());
-
-            if (isFilterActive) {
-                dialog.setPreFilledTime(filterDate, filterHour, filterMinute);
-            }
-
-            dialog.setVisible(true);
-            loadBookings();
-            // Re-check availability to refresh data
-            if (isFilterActive)
-                checkMapAvailability(filterDate, filterHour, filterMinute);
-            else
-                refreshAllFloors();
-        });
-        pnlDetailContent.add(btnBook);
+        // Nút đặt bàn đã được chuyển xuống phần bottom cố định (pnlBookingAction)
+        // Không cần thêm nút ở đây nữa
 
         pnlDetailContent.add(Box.createVerticalGlue());
         pnlDetailContent.revalidate();

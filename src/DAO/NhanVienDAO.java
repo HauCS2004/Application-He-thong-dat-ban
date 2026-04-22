@@ -429,4 +429,60 @@ public class NhanVienDAO {
         }
         return false;
     }
+
+    // ----------------------------------------------------------------
+    // 12. Lấy thông tin chi tiết nhân viên (số hóa đơn, tổng doanh thu, lần phục vụ cuối)
+    // ----------------------------------------------------------------
+    public Object[] getThongTinChiTiet(String maNV) {
+        int soHoaDon = 0;
+        double tongDoanhThu = 0;
+        java.sql.Timestamp lanLamCuoi = null;
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT COUNT(*) as SoHD, ISNULL(SUM(TongTien), 0) as TongTien, MAX(NgayTao) as LanCuoi " +
+                    "FROM HoaDon WHERE MaNV = ? AND TrangThai = N'Đã thanh toán'";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maNV);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                soHoaDon = rs.getInt("SoHD");
+                tongDoanhThu = rs.getDouble("TongTien");
+                lanLamCuoi = rs.getTimestamp("LanCuoi");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new Object[]{soHoaDon, tongDoanhThu, lanLamCuoi};
+    }
+
+    // ----------------------------------------------------------------
+    // 13. Lấy danh sách hóa đơn nhân viên đã phục vụ (top 10 gần nhất)
+    // ----------------------------------------------------------------
+    public ArrayList<Object[]> getHoaDonPhucVu(String maNV) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT TOP 10 hd.MaHD, hd.NgayTao, hd.TongTien, hd.MaBan, " +
+                    "kh.TenKhach " +
+                    "FROM HoaDon hd " +
+                    "LEFT JOIN KhachHang kh ON hd.SDT_Khach = kh.SoDienThoai " +
+                    "WHERE hd.MaNV = ? AND hd.TrangThai = N'Đã thanh toán' " +
+                    "ORDER BY hd.NgayTao DESC";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maNV);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{
+                    rs.getInt("MaHD"),
+                    rs.getTimestamp("NgayTao"),
+                    rs.getDouble("TongTien"),
+                    rs.getString("MaBan"),
+                    rs.getString("TenKhach")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="d:/ptud2/Application-He-thong-dat-ban/libs/mssql-jdbc-13.2.1.jre11.jar"/>
-	<classpathentry kind="lib" path="d:/ptud2/Application-He-thong-dat-ban/libs/jcalendar-1.4.jar"/>
-	<classpathentry kind="lib" path="d:/ptud2/Application-He-thong-dat-ban/libs/flatlaf-3.7.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17"/>
+	<classpathentry kind="lib" path="libs/mssql-jdbc-13.2.1.jre11.jar"/>
+	<classpathentry kind="lib" path="libs/flatlaf-3.7.jar"/>
+	<classpathentry kind="lib" path="libs/jcalendar-1.4.jar"/>
+	<classpathentry kind="lib" path="libs/jfreechart-1.5.4.jar"/>
+	<classpathentry kind="lib" path="libs/itextpdf-5.5.13.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

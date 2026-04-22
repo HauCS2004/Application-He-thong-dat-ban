@@ -279,4 +279,68 @@ public class KhachHangDAO {
         }
         return list;
     }
+
+    // 13. Lấy thông tin chi tiết khách hàng (số lần ăn, tổng chi tiêu, lần ăn cuối, món yêu thích)
+    public Object[] getThongTinChiTiet(String sdt) {
+        int soLanAn = 0;
+        double tongChiTieu = 0;
+        java.sql.Timestamp lanAnCuoi = null;
+        String monYeuThich = "Chưa có";
+        try {
+            Connection con = ConnectDB.getConnection();
+            // Số lần ăn + tổng chi tiêu + lần ăn cuối
+            String sql1 = "SELECT COUNT(*) as SoLan, ISNULL(SUM(TongTien), 0) as TongTien, MAX(NgayTao) as LanCuoi " +
+                    "FROM HoaDon WHERE SDT_Khach = ? AND TrangThai = N'Đã thanh toán'";
+            PreparedStatement ps1 = con.prepareStatement(sql1);
+            ps1.setString(1, sdt);
+            ResultSet rs1 = ps1.executeQuery();
+            if (rs1.next()) {
+                soLanAn = rs1.getInt("SoLan");
+                tongChiTieu = rs1.getDouble("TongTien");
+                lanAnCuoi = rs1.getTimestamp("LanCuoi");
+            }
+
+            // Món yêu thích (món gọi nhiều nhất)
+            String sql2 = "SELECT TOP 1 m.TenMon FROM ChiTietHoaDon ct " +
+                    "JOIN HoaDon hd ON ct.MaHD = hd.MaHD " +
+                    "JOIN MonAn m ON ct.MaMon = m.MaMon " +
+                    "WHERE hd.SDT_Khach = ? AND hd.TrangThai = N'Đã thanh toán' " +
+                    "GROUP BY m.TenMon ORDER BY SUM(ct.SoLuong) DESC";
+            PreparedStatement ps2 = con.prepareStatement(sql2);
+            ps2.setString(1, sdt);
+            ResultSet rs2 = ps2.executeQuery();
+            if (rs2.next()) {
+                monYeuThich = rs2.getString("TenMon");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new Object[]{soLanAn, tongChiTieu, lanAnCuoi, monYeuThich};
+    }
+
+    // 14. Lấy danh sách hóa đơn gần đây của khách hàng (top 10)
+    public ArrayList<Object[]> getHoaDonGanDay(String sdt) {
+        ArrayList<Object[]> list = new ArrayList<>();
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT TOP 10 hd.MaHD, hd.NgayTao, hd.TongTien, hd.MaBan " +
+                    "FROM HoaDon hd " +
+                    "WHERE hd.SDT_Khach = ? AND hd.TrangThai = N'Đã thanh toán' " +
+                    "ORDER BY hd.NgayTao DESC";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, sdt);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{
+                    rs.getInt("MaHD"),
+                    rs.getTimestamp("NgayTao"),
+                    rs.getDouble("TongTien"),
+                    rs.getString("MaBan")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
