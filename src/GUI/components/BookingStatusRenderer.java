@@ -20,19 +20,19 @@ public class BookingStatusRenderer extends DefaultTableCellRenderer {
         if ("Đã nhận bàn".equals(status) || "Hoàn tất".equals(status)) {
             label.setBackground(new Color(220, 252, 231)); // Light Green
             label.setForeground(new Color(22, 163, 74)); // Dark Green
-            label.setText("✔ " + status);
+            label.setText(status);
         } else if ("Đã xác nhận".equals(status)) {
             label.setBackground(new Color(219, 234, 254)); // Light Blue
             label.setForeground(new Color(37, 99, 235)); // Dark Blue
-            label.setText("ℹ " + status);
+            label.setText(status);
         } else if ("Chờ xác nhận".equals(status)) {
             label.setBackground(new Color(254, 243, 199)); // Light Orange
             label.setForeground(new Color(217, 119, 6)); // Dark Orange
-            label.setText("⏳ " + status);
+            label.setText(status);
         } else if ("Đã hủy".equals(status)) {
             label.setBackground(new Color(254, 226, 226)); // Light Red
             label.setForeground(new Color(220, 38, 38)); // Dark Red
-            label.setText("✕ " + status);
+            label.setText(status);
         } else {
             label.setBackground(Color.WHITE);
             label.setForeground(Color.BLACK);
