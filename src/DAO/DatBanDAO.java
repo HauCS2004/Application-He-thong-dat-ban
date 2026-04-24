@@ -299,7 +299,7 @@ public class DatBanDAO {
             String sql = "SELECT DISTINCT db.* FROM DatBan db " +
                     "LEFT JOIN ChiTietDatBan ctdb ON db.MaDat=ctdb.MaDat " +
                     "WHERE db.TrangThai IN (N'Đã xác nhận', N'Chờ xác nhận') " +
-                    "AND DATEDIFF(MINUTE, GETDATE(), db.ThoiGianBatDau) BETWEEN -15 AND ?";
+                    "AND DATEDIFF(MINUTE, GETDATE(), db.ThoiGianBatDau) BETWEEN 0 AND ?;";
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, minutes);
             ResultSet rs = ps.executeQuery();

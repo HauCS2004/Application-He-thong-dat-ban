@@ -41,7 +41,7 @@ public class HoaDon {
     // Constructor đầy đủ (lúc đọc từ SQL)
     public HoaDon(int maHD, java.util.Date ngayTao, double tongTien,
             double phanTramVAT, double phiPhucVu, double tienGiamGia, double thanhTien,
-            String trangThai, String phuongThucThanhToan, java.util.Date thoiGianThanhToan, 
+            String trangThai, String phuongThucThanhToan, java.util.Date thoiGianThanhToan,
             String maBan, int soLuongKhach,
             String sdtKhach, String ghiChu, String maNV) {
         this.maHD = maHD;

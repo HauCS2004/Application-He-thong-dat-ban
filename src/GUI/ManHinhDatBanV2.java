@@ -1234,7 +1234,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         pnlHeader.add(lblTitle, BorderLayout.CENTER);
         pnlDetailContainer.add(pnlHeader, BorderLayout.NORTH);
 
-        // Content
+        // Content - dùng BoxLayout.Y_AXIS
         pnlDetailContent = new JPanel();
         pnlDetailContent.setLayout(new BoxLayout(pnlDetailContent, BoxLayout.Y_AXIS));
         pnlDetailContent.setBackground(Color.WHITE);
@@ -1243,7 +1243,13 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         // Initial Empty State
         showEmptyDetailState();
 
-        pnlDetailContainer.add(pnlDetailContent, BorderLayout.CENTER);
+        // Wrap trong JScrollPane để tránh content bị cắt khi có nhiều booking
+        JScrollPane scrollDetail = new JScrollPane(pnlDetailContent,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollDetail.setBorder(null);
+        scrollDetail.getViewport().setBackground(Color.WHITE);
+        pnlDetailContainer.add(scrollDetail, BorderLayout.CENTER);
         return pnlDetailContainer;
     }
 
@@ -1383,9 +1389,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                             db.getTrangThai());
 
                     JPanel pItem = new JPanel(new BorderLayout());
-                    pItem.setBackground(Color.WHITE);
-                    // Đã bỏ pItem.setMaximumSize
-                    pItem.setBorder(new EmptyBorder(5, 0, 5, 0));
+                    pItem.setBackground(new Color(248, 250, 252));
+                    pItem.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+                    pItem.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createMatteBorder(0, 3, 0, 0, new Color(59, 130, 246)),
+                            new EmptyBorder(6, 8, 6, 8)));
                     pItem.setAlignmentX(Component.LEFT_ALIGNMENT);
 
                     JLabel l = new JLabel(info);
@@ -1393,6 +1401,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                     pItem.add(l, BorderLayout.CENTER);
 
                     pnlDetailContent.add(pItem);
+                    pnlDetailContent.add(Box.createVerticalStrut(5));
                 }
             }
         }
@@ -1417,7 +1426,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         btnBook.setBackground(new Color(34, 197, 94));
         btnBook.setForeground(Color.WHITE);
         btnBook.setFocusPainted(false);
-        // Đã bỏ setMaximumSize
+        btnBook.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        btnBook.setPreferredSize(new Dimension(200, 45));
 
         btnBook.addActionListener(e -> {
             // Open dialog with pre-filled ID

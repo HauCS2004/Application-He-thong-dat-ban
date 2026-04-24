@@ -17,6 +17,7 @@ import DAO.BangGiaDAO;
 import Entity.MonAn;
 import Entity.LoaiMon;
 import Entity.ChiTietHoaDon;
+import UTILS.XImage;
 
 public class ManHinhGoiMon extends JFrame {
 
@@ -216,17 +217,11 @@ public class ManHinhGoiMon extends JFrame {
         lblImage.setBackground(new Color(243, 244, 246));
         lblImage.setOpaque(true);
 
-        // Load Image
-        ImageIcon icon = null;
-        if (m.getHinhAnh() != null && !m.getHinhAnh().isEmpty()) {
-            // Use IconHelper to load (supports src/ fallback)
-            icon = GUI.utils.IconHelper.loadIcon("view/image/" + m.getHinhAnh());
-
-            if (icon != null) {
-                // Resize
-                Image img = icon.getImage().getScaledInstance(180, 140, Image.SCALE_SMOOTH);
-                icon = new ImageIcon(img);
-            }
+        // Load Image - dùng XImage.read() để lấy từ thư mục images/ bên ngoài (đồng nhất với ManHinhMonAn)
+        ImageIcon icon = XImage.read(m.getHinhAnh());
+        if (icon != null) {
+            Image img = icon.getImage().getScaledInstance(180, 140, Image.SCALE_SMOOTH);
+            icon = new ImageIcon(img);
         }
 
         if (icon != null) {
