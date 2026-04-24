@@ -175,6 +175,12 @@ public class MainLayout extends JFrame {
     }
 
     private void showSystemSettingsDialog() {
+        if (!connectDB.SessionManager.isManager()) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Bạn không có quyền truy cập chức năng này!\nChỉ Quản lý mới được phép thay đổi cài đặt hệ thống.",
+                    "Từ chối truy cập", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         new ManHinhCaiDat(this).setVisible(true);
     }
 

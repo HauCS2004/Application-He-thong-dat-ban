@@ -22,7 +22,7 @@ import Entity.Ban;
  * BookingFormDialog — Wizard đặt bàn theo phong cách nhà hàng hiện đại.
  * 
  * Flow: Bước 1 (Số khách + Ngày + Giờ) → Bước 2 (Chọn bàn trống)
- *     → Bước 3 (Thông tin khách + Xác nhận)
+ * → Bước 3 (Thông tin khách + Xác nhận)
  */
 public class BookingFormDialog extends JDialog {
 
@@ -112,7 +112,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  INIT UI
+    // INIT UI
     // ═══════════════════════════════════════════════════════════════════
     private void initUI() {
         setLayout(new BorderLayout());
@@ -139,7 +139,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  STEPPER (Progress Indicator)
+    // STEPPER (Progress Indicator)
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStepper() {
         JPanel pnl = new JPanel(new BorderLayout());
@@ -151,8 +151,8 @@ public class BookingFormDialog extends JDialog {
         JPanel pnlSteps = new JPanel(new GridLayout(1, 3, 0, 0));
         pnlSteps.setOpaque(false);
 
-        String[] titles = {"Thời gian", "Chọn bàn", "Thông tin"};
-        String[] subtitles = {"Ngày, giờ & số khách", "Bàn phù hợp", "Xác nhận đặt bàn"};
+        String[] titles = { "Thời gian", "Chọn bàn", "Thông tin" };
+        String[] subtitles = { "Ngày, giờ & số khách", "Bàn phù hợp", "Xác nhận đặt bàn" };
 
         stepLabels = new JLabel[3];
         stepDots = new JPanel[3];
@@ -248,7 +248,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  STEP 1: Thời gian + Số khách
+    // STEP 1: Thời gian + Số khách
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStep1() {
         JPanel pnl = new JPanel(new BorderLayout(0, 0));
@@ -269,7 +269,7 @@ public class BookingFormDialog extends JDialog {
         lblGuests.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblGuests.setForeground(TEXT_PRIMARY);
 
-        spinGuests = new JSpinner(new SpinnerNumberModel(2, 1, 50, 1));
+        spinGuests = new JSpinner(new SpinnerNumberModel(2, 1, 500, 1));
         spinGuests.setFont(new Font("Segoe UI", Font.BOLD, 16));
         spinGuests.setPreferredSize(new Dimension(80, 40));
         JComponent editor = spinGuests.getEditor();
@@ -287,7 +287,7 @@ public class BookingFormDialog extends JDialog {
         pnlGuests.add(Box.createHorizontalStrut(30));
         pnlGuests.add(lblDuration);
 
-        cboThoiLuong = new JComboBox<>(new String[]{"1 giờ", "1.5 giờ", "2 giờ", "3 giờ", "4 giờ"});
+        cboThoiLuong = new JComboBox<>(new String[] { "1 giờ", "1.5 giờ", "2 giờ", "3 giờ", "4 giờ" });
         cboThoiLuong.setSelectedIndex(2);
         cboThoiLuong.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         cboThoiLuong.setPreferredSize(new Dimension(100, 40));
@@ -431,6 +431,7 @@ public class BookingFormDialog extends JDialog {
                 btn.setBackground(ACCENT_LIGHT);
                 btn.setForeground(ACCENT);
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 btn.setBackground(new Color(243, 244, 246));
@@ -496,6 +497,7 @@ public class BookingFormDialog extends JDialog {
                     btn.setForeground(ACCENT);
                 }
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 if (btn.isEnabled()) {
@@ -520,11 +522,12 @@ public class BookingFormDialog extends JDialog {
 
     private boolean isSameDay(Calendar c1, Calendar c2) {
         return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
-               c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
+                c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
     }
 
     private void refreshTimeSlots() {
-        if (pnlTimeSlots == null) return;
+        if (pnlTimeSlots == null)
+            return;
         // Rebuild all time slot buttons with updated selection state
         for (Component comp : pnlTimeSlots.getComponents()) {
             if (comp instanceof JPanel) {
@@ -567,7 +570,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  STEP 2: Chọn bàn
+    // STEP 2: Chọn bàn
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStep2() {
         JPanel pnl = new JPanel(new BorderLayout(0, 8));
@@ -629,7 +632,8 @@ public class BookingFormDialog extends JDialog {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(245, 158, 11), getWidth(), 0, new Color(251, 191, 36));
+                GradientPaint gp = new GradientPaint(0, 0, new Color(245, 158, 11), getWidth(), 0,
+                        new Color(251, 191, 36));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.dispose();
@@ -727,7 +731,8 @@ public class BookingFormDialog extends JDialog {
 
         int soKhach = (int) spinGuests.getValue();
         Date date = dateChooser.getDate();
-        if (date == null || selectedHour < 0) return;
+        if (date == null || selectedHour < 0)
+            return;
 
         Calendar calStart = Calendar.getInstance();
         calStart.setTime(date);
@@ -794,7 +799,8 @@ public class BookingFormDialog extends JDialog {
             boolean bBooked = bookedTableIds.contains(b.getMaBan())
                     || "Có Khách".equals(b.getTrangThai()) || "Đang Gộp".equals(b.getTrangThai());
 
-            if (aBooked != bBooked) return aBooked ? 1 : -1;
+            if (aBooked != bBooked)
+                return aBooked ? 1 : -1;
 
             // Sort available tables by best capacity match
             int aDiff = Math.abs(a.getSoGhe() - soKhach);
@@ -809,7 +815,8 @@ public class BookingFormDialog extends JDialog {
             boolean isAvailable = !isBooked && !isOccupied;
             boolean isFit = table.getSoGhe() >= soKhach;
 
-            if (isAvailable) availableCount++;
+            if (isAvailable)
+                availableCount++;
 
             pnlTableGrid.add(createTableCard(table, isAvailable, isFit, isBooked));
         }
@@ -818,30 +825,14 @@ public class BookingFormDialog extends JDialog {
         boolean needMultiTable = soKhach > maxSingleTableCapacity;
 
         // Update info
-        String multiHint = needMultiTable 
-                ? String.format("  •  <b style='color:#f59e0b'>Cần chọn nhiều bàn (%d > %d/bàn)</b>", soKhach, maxSingleTableCapacity)
+        String multiHint = needMultiTable
+                ? String.format("  •  <b style='color:#f59e0b'>Cần chọn nhiều bàn (%d > %d/bàn)</b>", soKhach,
+                        maxSingleTableCapacity)
                 : "";
         lblTableInfo.setText(String.format(
                 "<html>Ngày: %s  •  Giờ: %s  •  Số khách: %d  •  Thời lượng: %s  •  <b style='color:#22c55e'>%d bàn trống</b>%s</html>",
                 dateStr, timeStr, soKhach, cboThoiLuong.getSelectedItem(), availableCount, multiHint));
 
-        // Auto-select first fit available table if none selected
-        if (selectedTableIds.isEmpty()) {
-            for (Ban table : allTables) {
-                boolean isBooked = bookedTableIds.contains(table.getMaBan());
-                boolean isOccupied = "Có Khách".equals(table.getTrangThai()) || "Đang Gộp".equals(table.getTrangThai());
-                if (!isBooked && !isOccupied && table.getSoGhe() >= soKhach) {
-                    selectedTableIds.add(table.getMaBan());
-                    selectedTableNames.add(table.getTenBan());
-                    break;
-                }
-            }
-            // Refresh UI to show selection
-            if (!selectedTableIds.isEmpty()) {
-                refreshTableSelection();
-                return; // refreshTableSelection calls loadAvailableTables recursively
-            }
-        }
 
         // Update capacity status
         updateCapacityStatus(allTables);
@@ -854,7 +845,8 @@ public class BookingFormDialog extends JDialog {
      * Cập nhật label hiển thị sức chứa tổng cộng vs số khách cần.
      */
     private void updateCapacityStatus(ArrayList<Ban> allTables) {
-        if (lblCapacityStatus == null) return;
+        if (lblCapacityStatus == null)
+            return;
         int soKhach = (int) spinGuests.getValue();
         int tongSucChua = getTotalSelectedCapacity(allTables);
         int soBanChon = selectedTableIds.size();
@@ -1001,24 +993,17 @@ public class BookingFormDialog extends JDialog {
             card.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (multiMode || isMultiTableMode()) {
-                        // CHẾ ĐỘ NHIỀU BÀN: toggle chọn/bỏ chọn
-                        if (selectedTableIds.contains(table.getMaBan())) {
-                            selectedTableIds.remove(table.getMaBan());
-                            selectedTableNames.remove(table.getTenBan());
-                        } else {
-                            selectedTableIds.add(table.getMaBan());
-                            selectedTableNames.add(table.getTenBan());
-                        }
+                    // Luôn cho phép chọn/bỏ chọn nhiều bàn (toggle)
+                    if (selectedTableIds.contains(table.getMaBan())) {
+                        selectedTableIds.remove(table.getMaBan());
+                        selectedTableNames.remove(table.getTenBan());
                     } else {
-                        // CHẾ ĐỘ 1 BÀN: chỉ chọn 1
-                        selectedTableIds.clear();
-                        selectedTableNames.clear();
                         selectedTableIds.add(table.getMaBan());
                         selectedTableNames.add(table.getTenBan());
                     }
                     refreshTableSelection();
                 }
+
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     if (!selectedTableIds.contains(table.getMaBan())) {
@@ -1026,11 +1011,14 @@ public class BookingFormDialog extends JDialog {
                         card.repaint();
                     }
                 }
+
                 @Override
                 public void mouseExited(MouseEvent e) {
                     if (!selectedTableIds.contains(table.getMaBan())) {
-                        if (fits || multiMode) card.setBackground(SUCCESS_LIGHT);
-                        else card.setBackground(WARNING_LIGHT);
+                        if (fits || multiMode)
+                            card.setBackground(SUCCESS_LIGHT);
+                        else
+                            card.setBackground(WARNING_LIGHT);
                         card.repaint();
                     }
                 }
@@ -1039,7 +1027,7 @@ public class BookingFormDialog extends JDialog {
 
         // Selected indicator
         if (isSelected) {
-            JLabel lblCheck = new JLabel(selectedTableIds.size() > 1 
+            JLabel lblCheck = new JLabel(selectedTableIds.size() > 1
                     ? "Chọn [" + (selectedTableIds.indexOf(table.getMaBan()) + 1) + "]"
                     : "Đã chọn");
             lblCheck.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -1057,24 +1045,31 @@ public class BookingFormDialog extends JDialog {
     }
 
     /**
-     * Trả về mã khu vực (KV01, KV02, ...) tương ứng với lựa chọn trong cboZoneFilter.
+     * Trả về mã khu vực (KV01, KV02, ...) tương ứng với lựa chọn trong
+     * cboZoneFilter.
      * Trả về null nếu chọn "Tất cả".
      */
     private String getSelectedZoneId() {
-        if (cboZoneFilter == null) return null;
+        if (cboZoneFilter == null)
+            return null;
         int idx = cboZoneFilter.getSelectedIndex();
         switch (idx) {
-            case 1: return "KV01"; // Tầng G
-            case 2: return "KV02"; // Tầng 1
-            case 3: return "KV03"; // VIP
-            case 4: return "KV04"; // Ngoài trời
-            default: return null;  // Tất cả
+            case 1:
+                return "KV01"; // Tầng G
+            case 2:
+                return "KV02"; // Tầng 1
+            case 3:
+                return "KV03"; // VIP
+            case 4:
+                return "KV04"; // Ngoài trời
+            default:
+                return null; // Tất cả
         }
     }
 
     /**
      * Gợi ý tổ hợp bàn tối ưu cho số khách.
-     * Thuật toán: ưu tiên 1 bàn phù hợp nhất, nếu không đủ thì 
+     * Thuật toán: ưu tiên 1 bàn phù hợp nhất, nếu không đủ thì
      * chọn tổ hợp bàn trống có tổng sức chứa ≥ số khách với ít bàn nhất.
      */
     private void suggestTables() {
@@ -1115,7 +1110,8 @@ public class BookingFormDialog extends JDialog {
                 long tS = calStart.getTimeInMillis(), tE = calEnd.getTimeInMillis();
                 long bS = db.getThoiGianBatDau().getTime(), bE = db.getThoiGianKetThuc().getTime();
                 if (tS < bE && tE > bS) {
-                    for (String mb : db.getDanhSachBan()) bookedIds.add(mb);
+                    for (String mb : db.getDanhSachBan())
+                        bookedIds.add(mb);
                 }
             }
         }
@@ -1125,7 +1121,8 @@ public class BookingFormDialog extends JDialog {
         for (Ban t : allTables) {
             boolean isBooked = bookedIds.contains(t.getMaBan());
             boolean isOccupied = "Có Khách".equals(t.getTrangThai()) || "Đang Gộp".equals(t.getTrangThai());
-            if (!isBooked && !isOccupied) available.add(t);
+            if (!isBooked && !isOccupied)
+                available.add(t);
         }
 
         if (available.isEmpty()) {
@@ -1156,7 +1153,8 @@ public class BookingFormDialog extends JDialog {
             available.sort((a, b) -> Integer.compare(b.getSoGhe(), a.getSoGhe()));
             int remaining = soKhach;
             for (Ban t : available) {
-                if (remaining <= 0) break;
+                if (remaining <= 0)
+                    break;
                 selectedTableIds.add(t.getMaBan());
                 selectedTableNames.add(t.getTenBan());
                 remaining -= t.getSoGhe();
@@ -1172,18 +1170,24 @@ public class BookingFormDialog extends JDialog {
     }
 
     private String getZoneName(String maKV) {
-        if (maKV == null) return "";
+        if (maKV == null)
+            return "";
         switch (maKV) {
-            case "KV01": return "Tầng G";
-            case "KV02": return "Tầng 1";
-            case "KV03": return "VIP";
-            case "KV04": return "Ngoài trời";
-            default: return maKV;
+            case "KV01":
+                return "Tầng G";
+            case "KV02":
+                return "Tầng 1";
+            case "KV03":
+                return "VIP";
+            case "KV04":
+                return "Ngoài trời";
+            default:
+                return maKV;
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  STEP 3: Thông tin khách + Xác nhận
+    // STEP 3: Thông tin khách + Xác nhận
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStep3() {
         JPanel pnl = new JPanel(new BorderLayout(0, 15));
@@ -1299,8 +1303,8 @@ public class BookingFormDialog extends JDialog {
         String timeStr = selectedHour >= 0
                 ? String.format("%02d:%02d", selectedHour, selectedMinute)
                 : "...";
-        String tableNamesStr = !selectedTableNames.isEmpty() 
-                ? String.join(", ", selectedTableNames) 
+        String tableNamesStr = !selectedTableNames.isEmpty()
+                ? String.join(", ", selectedTableNames)
                 : "...";
 
         pnlSummary.add(createSummaryBadge("Ngày:", dateStr));
@@ -1322,7 +1326,8 @@ public class BookingFormDialog extends JDialog {
 
     private void checkKhachHang() {
         String sdt = txtSDT.getText().trim();
-        if (sdt.isEmpty()) return;
+        if (sdt.isEmpty())
+            return;
 
         String ten = khachHangDAO.getTenKhachHang(sdt);
         if (ten != null && !ten.isEmpty()) {
@@ -1340,7 +1345,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  NAVIGATION
+    // NAVIGATION
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createNavigation() {
         JPanel pnl = new JPanel(new BorderLayout());
@@ -1409,6 +1414,7 @@ public class BookingFormDialog extends JDialog {
                     btnNext.setBackground(ACCENT_DARK);
                 }
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 if (currentStep == TOTAL_STEPS) {
@@ -1468,7 +1474,7 @@ public class BookingFormDialog extends JDialog {
             if (tongSucChua < soKhach) {
                 showError(String.format(
                         "Tổng sức chứa các bàn đã chọn (%d chỗ) không đủ cho %d khách!\n" +
-                        "Vui lòng chọn thêm bàn hoặc giảm số khách.",
+                                "Vui lòng chọn thêm bàn hoặc giảm số khách.",
                         tongSucChua, soKhach));
                 return;
             }
@@ -1500,7 +1506,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  SAVE BOOKING
+    // SAVE BOOKING
     // ═══════════════════════════════════════════════════════════════════
     private void saveBooking() {
         // 1. Validate
@@ -1560,7 +1566,8 @@ public class BookingFormDialog extends JDialog {
 
         if (datBanDAO.insertDatBan(db)) {
             showSuccessDialog();
-            if (onSuccessCallback != null) onSuccessCallback.run();
+            if (onSuccessCallback != null)
+                onSuccessCallback.run();
             dispose();
         } else {
             showError("Lỗi khi lưu đặt bàn! Vui lòng thử lại.");
@@ -1569,11 +1576,16 @@ public class BookingFormDialog extends JDialog {
 
     private double getDurationHours() {
         String sel = cboThoiLuong.getSelectedItem().toString();
-        if (sel.contains("1.5")) return 1.5;
-        if (sel.contains("1 ")) return 1;
-        if (sel.contains("2")) return 2;
-        if (sel.contains("3")) return 3;
-        if (sel.contains("4")) return 4;
+        if (sel.contains("1.5"))
+            return 1.5;
+        if (sel.contains("1 "))
+            return 1;
+        if (sel.contains("2"))
+            return 2;
+        if (sel.contains("3"))
+            return 3;
+        if (sel.contains("4"))
+            return 4;
         return 2;
     }
 
@@ -1588,12 +1600,12 @@ public class BookingFormDialog extends JDialog {
 
         String msg = String.format(
                 "<html><div style='text-align:center; padding:10px;'>" +
-                "<h2 style='color:#22c55e;'>Đặt bàn thành công!</h2>" +
-                "<p style='font-size:12px;'>Bàn: <b>%s</b></p>" +
-                "<p style='font-size:12px;'>Ngày: <b>%s</b> — Giờ: <b>%s</b></p>" +
-                "<p style='font-size:12px;'>Số khách: <b>%s</b></p>" +
-                "<p style='font-size:12px;'>Khách: <b>%s</b> — SĐT: <b>%s</b></p>" +
-                "</div></html>",
+                        "<h2 style='color:#22c55e;'>Đặt bàn thành công!</h2>" +
+                        "<p style='font-size:12px;'>Bàn: <b>%s</b></p>" +
+                        "<p style='font-size:12px;'>Ngày: <b>%s</b> — Giờ: <b>%s</b></p>" +
+                        "<p style='font-size:12px;'>Số khách: <b>%s</b></p>" +
+                        "<p style='font-size:12px;'>Khách: <b>%s</b> — SĐT: <b>%s</b></p>" +
+                        "</div></html>",
                 tableNamesStr, dateStr, timeStr,
                 spinGuests.getValue(), txtTenKH.getText().trim(), txtSDT.getText().trim());
 
@@ -1601,7 +1613,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  HELPER CLASS
+    // HELPER CLASS
     // ═══════════════════════════════════════════════════════════════════
     static class ComboItem {
         private String label;
@@ -1612,9 +1624,13 @@ public class BookingFormDialog extends JDialog {
             this.value = value;
         }
 
-        public String getValue() { return value; }
+        public String getValue() {
+            return value;
+        }
 
         @Override
-        public String toString() { return label; }
+        public String toString() {
+            return label;
+        }
     }
 }

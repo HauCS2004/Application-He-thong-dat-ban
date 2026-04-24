@@ -516,6 +516,36 @@ public class ManHinhHoaDon extends JPanel {
         this.selectedMaBan = maBan;
         this.currentMaHD = hdDAO.getMaHDByBan(maBan);
 
+        // Bàn phụ trong booking nhiều bàn — tìm hóa đơn của bàn chính
+        if (currentMaHD == -1) {
+            try {
+                java.sql.Connection con = connectDB.ConnectDB.getConnection();
+                String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                        "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                        "WHERE ctdb.MaBan = ? AND db.TrangThai = N'Đã nhận bàn' " +
+                        "ORDER BY db.ThoiGianBatDau DESC";
+                java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, maBan);
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    int maDat = rs.getInt("MaDat");
+                    Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(maDat);
+                    if (booking != null) {
+                        for (String mb : booking.getDanhSachBan()) {
+                            int hdChinh = hdDAO.getMaHDByBan(mb);
+                            if (hdChinh != -1) {
+                                this.currentMaHD = hdChinh;
+                                this.selectedMaBan = mb; // Trỏ về bàn chính
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         if (currentMaHD == -1) {
             JOptionPane.showMessageDialog(this, "Bàn này chưa có hóa đơn (Chưa gọi món)!");
             resetInvoiceUI();
@@ -541,7 +571,25 @@ public class ManHinhHoaDon extends JPanel {
             while (m.find()) ml.add(m.group(1));
             baseBan = "Bàn: " + hd.getMaBan() + (ml.isEmpty() ? "" : " | Ghép: " + String.join(", ", ml));
         } else {
-            baseBan = "Bàn: " + hd.getMaBan();
+            // Kiểm tra nếu bàn thuộc booking nhiều bàn → hiện tất cả
+            String allBanStr = hd.getMaBan();
+            try {
+                java.sql.Connection con = connectDB.ConnectDB.getConnection();
+                String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                        "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                        "WHERE ctdb.MaBan = ? AND db.TrangThai IN (N'Đã nhận bàn', N'Đã hoàn tất') " +
+                        "ORDER BY db.ThoiGianBatDau DESC";
+                java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, hd.getMaBan());
+                java.sql.ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(rs.getInt("MaDat"));
+                    if (booking != null && booking.getDanhSachBan().size() > 1) {
+                        allBanStr = String.join(", ", booking.getDanhSachBan());
+                    }
+                }
+            } catch (Exception ex) { /* ignore */ }
+            baseBan = "Bàn: " + allBanStr;
         }
         lblTitleBan.setText("<html>" + baseBan + "</html>");
         lblMaHD.setText("Mã HĐ: #" + hd.getMaHD());
@@ -764,9 +812,35 @@ public class ManHinhHoaDon extends JPanel {
             String sdtKH = (currentKhachHang != null) ? currentKhachHang.getSoDienThoai() : null;
             boolean success = hdDAO.thanhToan(currentMaHD, maKM, sdtKH, vatVal, phiVal);
             if (success) {
-                banDAO.updateTrangThai(selectedMaBan, "Trống");
-                banDAO.huyGopBan(selectedMaBan); // Giải phóng các bàn đang gộp
+                // 1. Tìm tất cả bàn trong booking TRƯỚC khi thay đổi trạng thái
+                java.util.List<String> allBanToReset = new java.util.ArrayList<>();
+                allBanToReset.add(selectedMaBan);
+                try {
+                    java.sql.Connection con = connectDB.ConnectDB.getConnection();
+                    String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                            "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                            "WHERE ctdb.MaBan = ? AND db.TrangThai IN (N'Đã nhận bàn', N'Đã hoàn tất')";
+                    java.sql.PreparedStatement ps = con.prepareStatement(sql);
+                    ps.setString(1, selectedMaBan);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (rs.next()) {
+                        Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(rs.getInt("MaDat"));
+                        if (booking != null) {
+                            allBanToReset = booking.getDanhSachBan();
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                // 2. Reset TẤT CẢ bàn về Trống cùng lúc (không delay)
+                for (String mb : allBanToReset) {
+                    banDAO.updateTrangThai(mb, "Trống");
+                }
+                banDAO.huyGopBan(selectedMaBan);
                 new DAO.DatBanDAO().completeBookingOfTable(selectedMaBan);
+
+                // 3. UI refresh SAU khi tất cả DB đã xong
                 JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
                 loadTableList();
                 resetInvoiceUI();
@@ -823,15 +897,7 @@ public class ManHinhHoaDon extends JPanel {
                 tenKhach = "Vãng lai";
             }
 
-            String banDisplayValue = hd.getMaBan();
-            if (hd.getGhiChu() != null) {
-                if (hd.getGhiChu().contains("| Ghép:")) {
-                    // Extract just the part after "Bàn:" to avoid duplicate "Bàn"
-                    banDisplayValue = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
-                } else if (hd.getGhiChu().contains("[Ghép")) {
-                    banDisplayValue = hd.getMaBan() + " " + hd.getGhiChu();
-                }
-            }
+            String banDisplayValue = getMultiTableDisplay(hd);
 
             modelHistory.addRow(new Object[] {
                     hd.getMaHD(),
@@ -843,6 +909,38 @@ public class ManHinhHoaDon extends JPanel {
                     hd.getMaNV()
             });
         }
+    }
+
+    /**
+     * Lấy chuỗi hiển thị tất cả bàn cho hóa đơn (hỗ trợ ghép bàn + đặt nhiều bàn).
+     */
+    private String getMultiTableDisplay(HoaDon hd) {
+        // 1. Ghép bàn (format mới)
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("| Ghép:")) {
+            return hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
+        }
+        // 2. Ghép bàn (format cũ)
+        if (hd.getGhiChu() != null && hd.getGhiChu().contains("[Ghép")) {
+            return hd.getMaBan() + " " + hd.getGhiChu();
+        }
+        // 3. Kiểm tra booking nhiều bàn qua ChiTietDatBan
+        try {
+            java.sql.Connection con = connectDB.ConnectDB.getConnection();
+            String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                    "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                    "WHERE ctdb.MaBan = ? AND db.TrangThai IN (N'Đã nhận bàn', N'Đã hoàn tất') " +
+                    "ORDER BY db.ThoiGianBatDau DESC";
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, hd.getMaBan());
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(rs.getInt("MaDat"));
+                if (booking != null && booking.getDanhSachBan().size() > 1) {
+                    return String.join(", ", booking.getDanhSachBan());
+                }
+            }
+        } catch (Exception ex) { /* ignore */ }
+        return hd.getMaBan();
     }
 
     private String formatMoney(double amount) {
@@ -872,14 +970,7 @@ public class ManHinhHoaDon extends JPanel {
         previewPane.setEditable(false);
         previewPane.setMargin(new java.awt.Insets(10, 20, 10, 20));
 
-        String banDisplayPrint = hd.getMaBan();
-        if (hd.getGhiChu() != null) {
-            if (hd.getGhiChu().contains("| Ghép:")) {
-                banDisplayPrint = hd.getGhiChu().replaceFirst("^Bàn:\\s*", "").replace("Bàn: Bàn", "Bàn");
-            } else if (hd.getGhiChu().contains("[Ghép")) {
-                banDisplayPrint = hd.getMaBan() + " " + hd.getGhiChu();
-            }
-        }
+        String banDisplayPrint = getMultiTableDisplay(hd);
         
         String tenNV = "---";
         if (hd.getMaNV() != null) {
@@ -1009,7 +1100,7 @@ public class ManHinhHoaDon extends JPanel {
         // Info
         html.append("<table width='100%' style='margin-bottom: 10px;'>");
         html.append("<tr><td width='50%'><b>Mã HĐ:</b> #").append(currentMaHD).append("</td>");
-        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(selectedMaBan).append("</td></tr>");
+        html.append("<td width='50%' align='right'><b>Bàn:</b> ").append(lblTitleBan.getText().replaceAll("<[^>]*>", "").replace("Bàn: ", "")).append("</td></tr>");
         html.append("<tr><td><b>K.Hàng:</b> ").append(lblKhachHang.getText().replace("Khách hàng: ", "")).append("</td>");
         html.append("<td align='right'><b>Thu ngân:</b> ").append(lblNhanVien.getText().replace("Thu ngân: ", "")).append("</td></tr>");
         html.append("<tr><td colspan='2'><b>Ngày:</b> ").append(lblNgayTao.getText().replace("Ngày: ", "")).append("</td></tr>");

@@ -222,7 +222,12 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
                 new EmptyBorder(5, 10, 5, 10)));
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc SĐT...");
-        txtSearch.addActionListener(e -> loadBookings()); // Enter to search
+        // Real-time search: lọc ngay khi gõ từng ký tự
+        txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { loadBookings(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { loadBookings(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { loadBookings(); }
+        });
 
         // Date picker toggle
         chkEnableDateFilter = new JCheckBox("Lọc: ");
@@ -322,7 +327,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 new EmptyBorder(10, 10, 10, 10)));
 
         // Table
-        String[] columns = { "MaDat", "", "Tên khách hàng", "Số điện thoại", "SL",
+        String[] columns = { "MaDat", "Tên khách hàng", "Số điện thoại", "SL",
                 "Ngày đặt", "Giờ", "Số bàn", "Trạng thái", "MaBan" };
         modelBookings = new DefaultTableModel(columns, 0) {
             @Override
@@ -344,22 +349,21 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         tblBookings.getColumnModel().getColumn(0).setMaxWidth(0);
         tblBookings.getColumnModel().getColumn(0).setWidth(0);
 
-        tblBookings.getColumnModel().getColumn(9).setMinWidth(0);
-        tblBookings.getColumnModel().getColumn(9).setMaxWidth(0);
-        tblBookings.getColumnModel().getColumn(9).setWidth(0);
+        tblBookings.getColumnModel().getColumn(8).setMinWidth(0);
+        tblBookings.getColumnModel().getColumn(8).setMaxWidth(0);
+        tblBookings.getColumnModel().getColumn(8).setWidth(0);
 
         // Set column widths
-        tblBookings.getColumnModel().getColumn(1).setPreferredWidth(40); // Avatar
-        tblBookings.getColumnModel().getColumn(2).setPreferredWidth(140); // Name
-        tblBookings.getColumnModel().getColumn(3).setPreferredWidth(90); // Phone
-        tblBookings.getColumnModel().getColumn(4).setPreferredWidth(40); // SL
-        tblBookings.getColumnModel().getColumn(5).setPreferredWidth(90); // Date
-        tblBookings.getColumnModel().getColumn(6).setPreferredWidth(60); // Time
-        tblBookings.getColumnModel().getColumn(7).setPreferredWidth(70); // Table
-        tblBookings.getColumnModel().getColumn(8).setPreferredWidth(120); // Status
+        tblBookings.getColumnModel().getColumn(1).setPreferredWidth(140); // Name
+        tblBookings.getColumnModel().getColumn(2).setPreferredWidth(100); // Phone
+        tblBookings.getColumnModel().getColumn(3).setPreferredWidth(40); // SL
+        tblBookings.getColumnModel().getColumn(4).setPreferredWidth(90); // Date
+        tblBookings.getColumnModel().getColumn(5).setPreferredWidth(60); // Time
+        tblBookings.getColumnModel().getColumn(6).setPreferredWidth(90); // Table
+        tblBookings.getColumnModel().getColumn(7).setPreferredWidth(120); // Status
 
         // --- IMPROVEMENT: Apply Custom Status Renderer ---
-        tblBookings.getColumnModel().getColumn(8).setCellRenderer(new GUI.components.BookingStatusRenderer()); // Status
+        tblBookings.getColumnModel().getColumn(7).setCellRenderer(new GUI.components.BookingStatusRenderer()); // Status
                                                                                                                // Column
 
         // Popup Menu Action
@@ -385,7 +389,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
     private void showPopupAction(MouseEvent e) {
         int row = tblBookings.getSelectedRow();
-        String status = modelBookings.getValueAt(row, 8).toString(); // Col 8 is Status
+        String status = modelBookings.getValueAt(row, 7).toString(); // Col 7 is Status
 
         JPopupMenu popup = new JPopupMenu();
 
@@ -404,16 +408,16 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     }
 
     private void openOrderUIFromTable(int row) {
-        String maBan = modelBookings.getValueAt(row, 9).toString();
-        String tenKhach = modelBookings.getValueAt(row, 2).toString();
+        String maBan = modelBookings.getValueAt(row, 8).toString();
+        String tenKhach = modelBookings.getValueAt(row, 1).toString();
 
         // Find or Create Invoice for this table
         int maHD = hoaDonDAO.getMaHDByBan(maBan);
         if (maHD == -1) {
             // Tạo hóa đơn mới
             // Cần thông tin cơ bản. Vì đã có thông tin đặt bàn, ta có thể sử dụng luôn.
-            int soKhach = Integer.parseInt(modelBookings.getValueAt(row, 4).toString());
-            String sdt = modelBookings.getValueAt(row, 3).toString();
+            int soKhach = Integer.parseInt(modelBookings.getValueAt(row, 3).toString());
+            String sdt = modelBookings.getValueAt(row, 2).toString();
 
             String maNV = connectDB.SessionManager.getCurrentUser() != null
                     ? connectDB.SessionManager.getCurrentUser().getMaNV()
@@ -435,9 +439,9 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
     // ACTION HANDLERS
     private void checkInBookingFromTable(int row) {
         int maDat = Integer.parseInt(modelBookings.getValueAt(row, 0).toString());
-        String maBan = modelBookings.getValueAt(row, 9).toString(); // Col 9 is MaBan
-        String tenKhach = modelBookings.getValueAt(row, 2).toString();
-        String sdt = modelBookings.getValueAt(row, 3).toString();
+        String maBanStr = modelBookings.getValueAt(row, 8).toString(); // Col 8 is MaBan (có thể nhiều bàn)
+        String tenKhach = modelBookings.getValueAt(row, 1).toString();
+        String sdt = modelBookings.getValueAt(row, 2).toString();
 
         // Create explicit Current Time
         java.util.Date now = new java.util.Date();
@@ -465,8 +469,12 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             return;
         }
 
+        // Lấy bàn chính (bàn đầu tiên) để tạo hóa đơn
+        String maBanChinh = dbCheck.getMaBan();
+        String allBanDisplay = String.join(", ", dbCheck.getDanhSachBan());
+
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Xác nhận KHÁCH ĐÃ ĐẾN (Check-in) - Bàn " + maBan + "?",
+                "Xác nhận KHÁCH ĐÃ ĐẾN (Check-in) - Bàn " + allBanDisplay + "?",
                 "Check-in", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
@@ -483,11 +491,11 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 }
             }
 
-            // 2. Create Invoice
+            // 2. Create Invoice (dùng bàn chính)
             String maNV = connectDB.SessionManager.getCurrentUser() != null
                     ? connectDB.SessionManager.getCurrentUser().getMaNV()
                     : null;
-            HoaDon hd = new HoaDon(maBan, Integer.parseInt(modelBookings.getValueAt(row, 4).toString()), sdt,
+            HoaDon hd = new HoaDon(maBanChinh, Integer.parseInt(modelBookings.getValueAt(row, 3).toString()), sdt,
                     "Khách đặt: " + tenKhach, maNV);
             int maHD = hoaDonDAO.insert(hd);
 
@@ -497,12 +505,14 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 return;
             }
 
-            // 3. Update Statuses ONLY if Invoice created
-            banDAO.updateTrangThai(maBan, "Có Khách");
+            // 3. Update Statuses — cập nhật TẤT CẢ bàn trong booking
+            for (String mb : dbCheck.getDanhSachBan()) {
+                banDAO.updateTrangThai(mb, "Có Khách");
+            }
             boolean updatedBooking = datBanDAO.capNhatTrangThai(maDat, "Đã nhận bàn");
 
             if (updatedBooking) {
-                JOptionPane.showMessageDialog(this, "Check-in thành công! Hóa đơn #" + maHD + " đã được tạo.");
+                JOptionPane.showMessageDialog(this, "Check-in thành công! Hóa đơn #" + maHD + " đã được tạo.\nBàn: " + allBanDisplay);
                 loadBookings(); // Refresh List
                 refreshAllFloors(); // Refresh Map
             } else {
@@ -513,18 +523,20 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
     private void cancelBookingFromTable(int row) {
         int maDat = Integer.parseInt(modelBookings.getValueAt(row, 0).toString());
-        String maBan = modelBookings.getValueAt(row, 9).toString(); // Col 9 is MaBan
+
+        // Lấy đầy đủ thông tin booking để reset TẤT CẢ bàn
+        Entity.DatBan fullBooking = datBanDAO.getDatBanByID(maDat);
 
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn chắc chắn muốn HỦY đơn đặt này?", "Hủy Đặt",
                 JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (datBanDAO.capNhatTrangThai(maDat, "Đã hủy")) {
-                // Check if need to reset table? No, because table is "Da Dat", but wait,
-                // if datetime is now, table might be "Da Dat".
-                // Logic complex. Simple: Just update Booking status.
-                // Table status update is handled by Timer in Main or here?
-                // For immediate effect:
-                banDAO.updateTrangThai(maBan, "Trống");
+                // Reset TẤT CẢ bàn trong booking về Trống
+                if (fullBooking != null) {
+                    for (String mb : fullBooking.getDanhSachBan()) {
+                        banDAO.updateTrangThai(mb, "Trống");
+                    }
+                }
 
                 JOptionPane.showMessageDialog(this, "Đã hủy đơn đặt!");
                 loadBookings();
@@ -739,8 +751,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                     || status.contains("thanh toán"))
                 continue;
 
-            // In Overview Mode, we map the booking to the table if it exists.
-            bookingMap.put(db.getMaBan(), db);
+            // In Overview Mode, map TẤT CẢ bàn trong booking (hỗ trợ đặt nhiều bàn)
+            for (String maBan : db.getDanhSachBan()) {
+                bookingMap.put(maBan, db);
+            }
         }
 
         // 4. Update UI
@@ -822,7 +836,10 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             long targetMillis = targetTime.getTime();
 
             if (startMillis <= targetMillis && targetMillis < endMillis) {
-                bookingMap.put(db.getMaBan(), db);
+                // Map TẤT CẢ bàn trong booking (hỗ trợ đặt nhiều bàn)
+                for (String maBan : db.getDanhSachBan()) {
+                    bookingMap.put(maBan, db);
+                }
             }
         }
 
@@ -866,7 +883,21 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         // Logic for List Tab Filter
         if (chkEnableDateFilter != null && chkEnableDateFilter.isSelected()) {
             Date selectedDate = dateChooser.getDate();
-            bookings = datBanDAO.getDanhSachDatBan(selectedDate, selectedDate);
+            if (selectedDate != null) {
+                // Tạo range cả ngày: 00:00:00 → 23:59:59
+                java.util.Calendar calS = java.util.Calendar.getInstance();
+                calS.setTime(selectedDate);
+                calS.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                calS.set(java.util.Calendar.MINUTE, 0);
+                calS.set(java.util.Calendar.SECOND, 0);
+                java.util.Calendar calE = (java.util.Calendar) calS.clone();
+                calE.set(java.util.Calendar.HOUR_OF_DAY, 23);
+                calE.set(java.util.Calendar.MINUTE, 59);
+                calE.set(java.util.Calendar.SECOND, 59);
+                bookings = datBanDAO.getDanhSachDatBan(calS.getTime(), calE.getTime());
+            } else {
+                bookings = datBanDAO.getDanhSachDatBanGanDay(100);
+            }
         } else {
             bookings = datBanDAO.getDanhSachDatBanGanDay(100);
         }
@@ -917,23 +948,40 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             if (!matchStatus)
                 continue;
             // Filter by text search
-            String search = txtSearch.getText().toLowerCase();
+            String search = txtSearch.getText().toLowerCase().trim();
             if (!search.isEmpty() && !booking.getTenKhach().toLowerCase().contains(search)
                     && !booking.getSdt().contains(search)) {
                 continue;
             }
 
+            // Filter by time slot
+            if (cboTimeFilter != null && cboTimeFilter.getSelectedIndex() > 0) {
+                int bookHour = -1;
+                if (booking.getThoiGianBatDau() != null) {
+                    java.util.Calendar calH = java.util.Calendar.getInstance();
+                    calH.setTime(booking.getThoiGianBatDau());
+                    bookHour = calH.get(java.util.Calendar.HOUR_OF_DAY);
+                }
+                int idx = cboTimeFilter.getSelectedIndex();
+                boolean matchTime = false;
+                if (idx == 1 && bookHour >= 6 && bookHour < 12) matchTime = true;
+                else if (idx == 2 && bookHour >= 12 && bookHour < 18) matchTime = true;
+                else if (idx == 3 && bookHour >= 18 && bookHour <= 23) matchTime = true;
+                if (!matchTime) continue;
+            }
+
+            // Hiển thị TẤT CẢ bàn đã đặt (hỗ trợ đặt nhiều bàn)
+            String allBanDisplay = String.join(", ", booking.getDanhSachBan());
             Object[] row = {
                     booking.getMaDat(),
-                    getInitials(booking.getTenKhach()),
                     booking.getTenKhach(),
                     booking.getSdt(),
                     booking.getSoLuongKhach(),
                     new java.text.SimpleDateFormat("dd/MM/yyyy").format(booking.getThoiGianBatDau()), // Date
                     new java.text.SimpleDateFormat("HH:mm").format(booking.getThoiGianBatDau()), // Time
-                    booking.getMaBan(),
+                    allBanDisplay,       // Col 6: hiện tất cả bàn
                     booking.getTrangThai(),
-                    booking.getMaBan()
+                    allBanDisplay         // Col 8: dùng cho logic xử lý (hidden)
             };
 
             modelBookings.addRow(row);
@@ -1080,7 +1128,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             };
             for (Entity.DatBan db : upcoming) {
                 model.addRow(new Object[] {
-                        db.getMaDat(), db.getMaBan(), db.getTenKhach(), db.getSdt(),
+                        db.getMaDat(), String.join(", ", db.getDanhSachBan()), db.getTenKhach(), db.getSdt(),
                         new java.text.SimpleDateFormat("HH:mm dd/MM").format(db.getThoiGianBatDau())
                 });
             }
@@ -1114,7 +1162,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 long trezMillis = now - db.getThoiGianBatDau().getTime();
                 int trezPhut = (int) (trezMillis / 60_000);
                 modelOv.addRow(new Object[] {
-                        db.getMaDat(), db.getMaBan(), db.getTenKhach(), db.getSdt(),
+                        db.getMaDat(), String.join(", ", db.getDanhSachBan()), db.getTenKhach(), db.getSdt(),
                         new java.text.SimpleDateFormat("HH:mm dd/MM").format(db.getThoiGianBatDau()),
                         trezPhut
                 });
@@ -1324,7 +1372,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
                 for (Entity.DatBan db : dailyBookings) {
                     // Check for this table and valid status
-                    if (db.getMaBan().equals(table.getMaBan()) && !db.getTrangThai().startsWith("Đã hủy")) {
+                    if (db.getDanhSachBan().contains(table.getMaBan()) && !db.getTrangThai().startsWith("Đã hủy")) {
                         java.util.Calendar calB = java.util.Calendar.getInstance();
                         calB.setTime(db.getThoiGianBatDau());
                         calB.set(java.util.Calendar.SECOND, 0);
@@ -1377,7 +1425,7 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
             for (Entity.DatBan db : dailyBookings) {
                 // Filter: Same Table AND Active Status (Not Canceled, Not Completed)
                 String st = db.getTrangThai().toLowerCase();
-                if (db.getMaBan().equals(table.getMaBan())
+                if (db.getDanhSachBan().contains(table.getMaBan())
                         && !st.startsWith("đã hủy")
                         && !st.contains("hoàn tất")
                         && !st.contains("hoàn thành")) {

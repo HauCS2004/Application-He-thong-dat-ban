@@ -239,13 +239,12 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
 
         for (DatBan db : list) {
-            // FILTER: If table selected, only show bookings for that table
-            if (selectedTable != null && !db.getMaBan().equals(selectedTable.getMaBan())) {
+            // FILTER: If table selected, only show bookings for that table (hỗ trợ nhiều bàn)
+            if (selectedTable != null && !db.getDanhSachBan().contains(selectedTable.getMaBan())) {
                 continue;
             }
 
-            // FILTER: Don't show Cancelled (Though DAO now filters it, good to double check
-            // or if user refreshes)
+            // FILTER: Don't show Cancelled
             if ("Đã hủy".equalsIgnoreCase(db.getTrangThai())) {
                 continue;
             }
@@ -253,7 +252,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             todayBookingsList.add(db);
             modelToday.addRow(new Object[] {
                     sdf.format(db.getThoiGianBatDau()),
-                    db.getMaBan(),
+                    String.join(", ", db.getDanhSachBan()),
                     db.getTenKhach(),
                     db.getSoLuongKhach()
             });
@@ -418,6 +417,20 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
             // Button: Xem Hóa Đơn (Integrated)
             JButton btnPay = createStyledButton("XEM HÓA ĐƠN", new Color(75, 85, 99)); // Gray
             btnPay.addActionListener(e -> {
+                // Tìm bàn chính (có hóa đơn) — hỗ trợ bàn phụ trong booking nhiều bàn
+                String maBanHD = table.getMaBan();
+                if (hoaDonDAO.getMaHDByBan(maBanHD) == -1) {
+                    DatBan bk = findCheckedInBookingForTable(maBanHD);
+                    if (bk != null) {
+                        for (String mb : bk.getDanhSachBan()) {
+                            if (hoaDonDAO.getMaHDByBan(mb) != -1) {
+                                maBanHD = mb;
+                                break;
+                            }
+                        }
+                    }
+                }
+                final String finalMaBan = maBanHD;
                 // NAVIGATION LOGIC
                 Window w = SwingUtilities.getWindowAncestor(this);
                 if (w instanceof MainLayout) {
@@ -425,7 +438,7 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
                     tc.showScreen("hoa_don");
                     if (tc.getPnlHoaDon() != null) {
                         try {
-                            tc.getPnlHoaDon().selectActiveTable(table.getMaBan()); // Auto-select table
+                            tc.getPnlHoaDon().selectActiveTable(finalMaBan);
                         } catch (Exception ex) {
                             ex.printStackTrace();
                         }
@@ -546,30 +559,46 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
     }
 
     private void processCheckInObj(DatBan db, Ban table) {
-        if (db.getSoLuongKhach() > table.getSoGhe()) {
+        // Tính tổng sức chứa TẤT CẢ bàn trong booking (hỗ trợ đặt nhiều bàn)
+        java.util.List<String> allBanIds = db.getDanhSachBan();
+        int tongSucChua = 0;
+        ArrayList<Ban> allBanList = banDAO.getAllBan();
+        for (Ban b : allBanList) {
+            if (allBanIds.contains(b.getMaBan())) {
+                tongSucChua += b.getSoGhe();
+            }
+        }
+
+        if (db.getSoLuongKhach() > tongSucChua) {
+            String banListStr = String.join(", ", allBanIds);
             JOptionPane.showMessageDialog(this,
-                    "Số lượng khách đặt (" + db.getSoLuongKhach() + ") vượt quá số ghế của bàn này (" + table.getSoGhe()
-                            + " ghế).\n" +
+                    "Số lượng khách đặt (" + db.getSoLuongKhach() + ") vượt quá tổng sức chứa (" + tongSucChua
+                            + " ghế) của bàn: " + banListStr + ".\n" +
                             "Vui lòng chọn bàn khác lớn hơn hoặc nhận bàn xong rồi dùng chức năng GHÉP BÀN để gộp thêm bàn!",
                     "Lỗi Sức Chứa", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+        String allBanDisplay = String.join(", ", allBanIds);
         int choice = JOptionPane.showConfirmDialog(this,
                 "Xác nhận nhận bàn cho khách: " + db.getTenKhach() + "\nSĐT: " + db.getSdt() + "\nSố khách: "
-                        + db.getSoLuongKhach(),
+                        + db.getSoLuongKhach() + "\nBàn: " + allBanDisplay,
                 "Check-in Đặt Bàn",
                 JOptionPane.YES_NO_OPTION);
 
         if (choice == JOptionPane.YES_OPTION) {
             if (datBanDAO.capNhatTrangThai(db.getMaDat(), "Đã nhận bàn")) {
-                banDAO.updateTrangThai(table.getMaBan(), "Có Khách");
+                // Cập nhật trạng thái TẤT CẢ bàn trong booking
+                for (String maBan : allBanIds) {
+                    banDAO.updateTrangThai(maBan, "Có Khách");
+                }
 
-                // Pass Name (as Note) and Phone to Invoice
+                // Tạo hóa đơn cho bàn chính (bàn đầu tiên)
+                String maBanChinh = db.getMaBan();
                 String maNV = connectDB.SessionManager.getCurrentUser() != null
                         ? connectDB.SessionManager.getCurrentUser().getMaNV()
                         : null;
-                HoaDon hd = new HoaDon(table.getMaBan(), db.getSoLuongKhach(), db.getSdt(), db.getTenKhach(), maNV);
+                HoaDon hd = new HoaDon(maBanChinh, db.getSoLuongKhach(), db.getSdt(), db.getTenKhach(), maNV);
                 int maHD = hoaDonDAO.insert(hd);
 
                 refreshAllFloors();
@@ -588,8 +617,43 @@ public class ManHinhPhucVu extends JPanel implements TableCard.TableCardListener
         if (maHD != -1) {
             openOrdering(maHD, table.getTenBan());
         } else {
+            // Bàn phụ trong booking nhiều bàn — tìm hóa đơn của bàn chính
+            DatBan booking = findCheckedInBookingForTable(table.getMaBan());
+            if (booking != null) {
+                // Tìm bàn chính (bàn đầu tiên có hóa đơn)
+                for (String maBan : booking.getDanhSachBan()) {
+                    int hdChinh = hoaDonDAO.getMaHDByBan(maBan);
+                    if (hdChinh != -1) {
+                        String tenBanChinh = table.getTenBan() + " (HĐ bàn " + maBan + ")";
+                        openOrdering(hdChinh, tenBanChinh);
+                        return;
+                    }
+                }
+            }
             JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn!");
         }
+    }
+
+    /**
+     * Tìm booking "Đã nhận bàn" chứa bàn này (hỗ trợ đặt nhiều bàn).
+     */
+    private DatBan findCheckedInBookingForTable(String maBan) {
+        try {
+            java.sql.Connection con = connectDB.ConnectDB.getConnection();
+            String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                    "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                    "WHERE ctdb.MaBan = ? AND db.TrangThai = N'Đã nhận bàn' " +
+                    "ORDER BY db.ThoiGianBatDau DESC";
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maBan);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return datBanDAO.getDatBanByID(rs.getInt("MaDat"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void openOrdering(int maHD, String tenBan) {

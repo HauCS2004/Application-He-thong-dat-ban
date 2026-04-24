@@ -126,12 +126,24 @@ public class DatBanDAO {
             if (rs.next()) {
                 int maDat = rs.getInt("MaDat");
                 DatBan db = new DatBan(
-                        maDat, maBan,
+                        maDat, null,
                         rs.getString("TenKhachDat"), rs.getString("SDT"),
                         rs.getTimestamp("ThoiGianBatDau"), rs.getTimestamp("ThoiGianKetThuc"),
                         rs.getInt("SoLuongKhach"), rs.getString("TrangThai"),
                         rs.getDouble("TienCoc"), rs.getString("GhiChu"),
                         rs.getTimestamp("NgayTao"), (Integer) rs.getObject("MaHD"));
+                // Load đầy đủ danh sách bàn từ ChiTietDatBan (hỗ trợ đặt nhiều bàn)
+                java.util.List<String> banList = new java.util.ArrayList<>();
+                PreparedStatement ps2 = con.prepareStatement(
+                        "SELECT MaBan FROM ChiTietDatBan WHERE MaDat = ?");
+                ps2.setInt(1, maDat);
+                ResultSet rs2 = ps2.executeQuery();
+                while (rs2.next()) {
+                    banList.add(rs2.getString("MaBan"));
+                }
+                if (!banList.isEmpty()) {
+                    db.setDanhSachBan(banList);
+                }
                 return db;
             }
         } catch (Exception e) {
@@ -340,6 +352,12 @@ public class DatBanDAO {
             con.createStatement().executeUpdate(
                     "UPDATE Ban SET TrangThai=N'Có Khách' WHERE MaBan IN " +
                             "(SELECT MaBan FROM HoaDon WHERE TrangThai=N'Chưa thanh toán')");
+            // Có khách (bàn thuộc booking đã nhận bàn — hỗ trợ đặt nhiều bàn)
+            con.createStatement().executeUpdate(
+                    "UPDATE Ban SET TrangThai=N'Có Khách' WHERE TrangThai=N'Trống' AND MaBan IN (" +
+                            "SELECT ctdb.MaBan FROM DatBan db " +
+                            "INNER JOIN ChiTietDatBan ctdb ON db.MaDat=ctdb.MaDat " +
+                            "WHERE db.TrangThai=N'Đã nhận bàn')");
             // Đã đặt (qua ChiTietDatBan)
             con.createStatement().executeUpdate(
                     "UPDATE Ban SET TrangThai=N'Đã Đặt' WHERE TrangThai=N'Trống' AND MaBan IN (" +

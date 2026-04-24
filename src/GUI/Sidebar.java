@@ -175,13 +175,25 @@ public class Sidebar extends JPanel {
         item.add(lblIcon, BorderLayout.WEST);
         item.add(lblText, BorderLayout.CENTER);
 
-        // Hover effect
+        // Lưu icon gốc để dùng khi hover
+        final ImageIcon originalIcon = icon;
+
+        // Hover effect — phóng to icon + text ~15-17%
         item.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (!cardName.equals(currentCard)) {
                     item.setBackground(colorHover);
                 }
+                // Scale icon lên 28x28 (~17%)
+                if (originalIcon != null && originalIcon.getIconWidth() > 0) {
+                    Image imgHover = originalIcon.getImage().getScaledInstance(28, 28, Image.SCALE_SMOOTH);
+                    lblIcon.setIcon(new ImageIcon(imgHover));
+                }
+                // Scale font lên 16pt (~14%)
+                lblText.setFont(new Font("Segoe UI", Font.BOLD, 16));
+                item.setBorder(new EmptyBorder(10, 13, 10, 13)); // Thu padding để bù kích thước tăng
+                item.revalidate();
             }
 
             @Override
@@ -189,6 +201,16 @@ public class Sidebar extends JPanel {
                 if (!cardName.equals(currentCard)) {
                     item.setBackground(colorBg);
                 }
+                // Khôi phục icon gốc 24x24
+                if (originalIcon != null && originalIcon.getIconWidth() > 0) {
+                    Image imgNormal = originalIcon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+                    lblIcon.setIcon(new ImageIcon(imgNormal));
+                }
+                // Khôi phục font gốc
+                boolean isActive = cardName.equals(currentCard);
+                lblText.setFont(new Font("Segoe UI", isActive ? Font.BOLD : Font.PLAIN, 14));
+                item.setBorder(new EmptyBorder(12, 15, 12, 15));
+                item.revalidate();
             }
 
             @Override
