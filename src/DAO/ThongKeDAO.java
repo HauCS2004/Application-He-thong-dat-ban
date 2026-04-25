@@ -273,6 +273,50 @@ public class ThongKeDAO {
     }
 
     // ----------------------------------------------------------------
+    // 8. Chỉ số vận hành: [Thành công, Hủy, Tổng Doanh Thu]
+    // ----------------------------------------------------------------
+    public Object[] getChiSoVanHanh(Date from, Date to) {
+        Object[] result = new Object[]{0, 0, 0.0};
+        try {
+            Connection con = ConnectDB.getConnection();
+            String sql = "SELECT " +
+                    "SUM(CASE WHEN TrangThai = N'Đã thanh toán' THEN 1 ELSE 0 END) as ThanhCong, " +
+                    "SUM(CASE WHEN TrangThai = N'Đã hủy' THEN 1 ELSE 0 END) as Huy, " +
+                    "SUM(CASE WHEN TrangThai = N'Đã thanh toán' THEN TongTien ELSE 0 END) as DoanhThu " +
+                    "FROM HoaDon WHERE NgayTao BETWEEN ? AND ?";
+
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(from);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp start = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            cal.setTime(to);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            java.sql.Timestamp end = new java.sql.Timestamp(cal.getTimeInMillis());
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setTimestamp(1, start);
+            ps.setTimestamp(2, end);
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                result[0] = rs.getInt("ThanhCong");
+                result[1] = rs.getInt("Huy");
+                result[2] = rs.getDouble("DoanhThu");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // ----------------------------------------------------------------
     // 8. Doanh thu theo khoảng ngày tùy chọn (FIX: filter thực sự)
     // ----------------------------------------------------------------
     public ArrayList<Object[]> getDoanhThuTheoKhoang(Date from, Date to) {

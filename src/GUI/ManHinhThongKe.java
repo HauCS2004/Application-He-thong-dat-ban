@@ -48,11 +48,16 @@ public class ManHinhThongKe extends JPanel {
     // Insights
     private JLabel lblTopDay;
     private JLabel lblTopFood;
+    private JLabel lblSoDonHang;
+    private JLabel lblAOV;
+    private JLabel lblTyLeHuy;
+
 
     // BarChart Variables (Food)
     private DefaultCategoryDataset datasetFood;
     private ChartPanel chartPanelFood;
     private JLabel lblTotalFoodSold;
+    private JComboBox<String> cmbTopFood;
 
     // BarChart Variables (Employee)
     private DefaultCategoryDataset datasetEmployee;
@@ -192,6 +197,9 @@ public class ManHinhThongKe extends JPanel {
         renderer.setDefaultItemLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
         plot.setRenderer(renderer);
 
+        org.jfree.chart.axis.CategoryAxis domainAxis = plot.getDomainAxis();
+        domainAxis.setCategoryLabelPositions(org.jfree.chart.axis.CategoryLabelPositions.UP_45);
+
         chartPanelDoanhThu = new ChartPanel(chart);
         chartPanelDoanhThu.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -209,19 +217,30 @@ public class ManHinhThongKe extends JPanel {
         pnlRight.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         // Insights Panel
-        JPanel pnlInsights = new JPanel(new GridLayout(2, 1, 5, 10));
+        JPanel pnlInsights = new JPanel(new GridLayout(5, 1, 5, 10));
         pnlInsights.setOpaque(false);
-        pnlInsights.setBorder(BorderFactory.createTitledBorder("Top Insights"));
+        pnlInsights.setBorder(BorderFactory.createTitledBorder("Top Insights & Vận Hành"));
 
         lblTopDay = new JLabel("Ngày cao điểm: N/A");
         lblTopFood = new JLabel("Món bán chạy: N/A");
-        lblTopDay.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblTopFood.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblTopDay.setForeground(new Color(17, 24, 39));
-        lblTopFood.setForeground(new Color(17, 24, 39));
+        lblSoDonHang = new JLabel("Tổng số đơn: N/A");
+        lblAOV = new JLabel("Giá trị đơn trung bình (AOV): N/A");
+        lblTyLeHuy = new JLabel("Tỷ lệ hủy đơn: N/A");
+
+        Font fBold = new Font("Segoe UI", Font.BOLD, 13);
+        Color cGray = new Color(17, 24, 39);
+
+        lblTopDay.setFont(fBold); lblTopDay.setForeground(cGray);
+        lblTopFood.setFont(fBold); lblTopFood.setForeground(cGray);
+        lblSoDonHang.setFont(fBold); lblSoDonHang.setForeground(cGray);
+        lblAOV.setFont(fBold); lblAOV.setForeground(cGray);
+        lblTyLeHuy.setFont(fBold); lblTyLeHuy.setForeground(cGray);
 
         pnlInsights.add(lblTopDay);
         pnlInsights.add(lblTopFood);
+        pnlInsights.add(lblSoDonHang);
+        pnlInsights.add(lblAOV);
+        pnlInsights.add(lblTyLeHuy);
 
         pnlRight.add(pnlInsights, BorderLayout.NORTH);
         pnlRight.add(new JScrollPane(tblDoanhThu), BorderLayout.CENTER);
@@ -258,15 +277,38 @@ public class ManHinhThongKe extends JPanel {
         pnlFilter.add(dateToFood);
         pnlFilter.add(btnFilter);
 
+        cmbTopFood = new JComboBox<>(new String[]{"Top 5", "Top 10", "Tất cả"});
+        cmbTopFood.addActionListener(e -> loadFoodData());
+        pnlFilter.add(new JLabel("  Hiển thị:"));
+        pnlFilter.add(cmbTopFood);
+
         pnl.add(pnlFilter, BorderLayout.NORTH);
 
         // Table
-        String[] cols = { "Tên Món Ăn", "Số Lượng Bán", "Tổng Tiền" };
+        String[] cols = { "Tên Món Ăn", "Số Lượng Bán", "Giá TB / Phần", "Tổng Tiền", "% Doanh Thu", "Xu Hướng" };
         modelMonAn = new DefaultTableModel(cols, 0);
         tblMonAn = new JTable(modelMonAn);
         tblMonAn.setRowHeight(30);
         tblMonAn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tblMonAn.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        tblMonAn.getColumnModel().getColumn(5).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (value != null) {
+                    String valStr = value.toString();
+                    if (valStr.startsWith("▲")) {
+                        setForeground(new Color(22, 163, 74)); // green-600
+                    } else if (valStr.startsWith("▼")) {
+                        setForeground(new Color(220, 38, 38)); // red-600
+                    } else {
+                        setForeground(isSelected ? table.getSelectionForeground() : table.getForeground());
+                    }
+                }
+                return this;
+            }
+        });
 
         // BarChart (Food)
         datasetFood = new DefaultCategoryDataset();
@@ -286,14 +328,17 @@ public class ManHinhThongKe extends JPanel {
         plot.setDomainGridlinesVisible(false);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
 
-        BarRenderer renderer = (BarRenderer) plot.getRenderer();
-        renderer.setSeriesPaint(0, new Color(59, 130, 246)); // Solid blue
+        CustomBarRenderer renderer = new CustomBarRenderer();
+        plot.setRenderer(renderer);
         renderer.setBarPainter(new org.jfree.chart.renderer.category.StandardBarPainter()); // Remove gradient
         renderer.setMaximumBarWidth(0.2); // avoid thick bars
         renderer.setDefaultItemLabelsVisible(true);
         renderer.setDefaultItemLabelGenerator(new StandardCategoryItemLabelGenerator(
                 "{2}", new java.text.DecimalFormat("#,###")));
         renderer.setDefaultItemLabelFont(new Font("Segoe UI", Font.BOLD, 12));
+        renderer.setDefaultPositiveItemLabelPosition(new org.jfree.chart.labels.ItemLabelPosition(
+                org.jfree.chart.labels.ItemLabelAnchor.CENTER, org.jfree.chart.ui.TextAnchor.CENTER));
+        renderer.setDefaultItemLabelPaint(Color.WHITE);
 
         chartPanelFood = new ChartPanel(chart);
         chartPanelFood.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -360,7 +405,7 @@ public class ManHinhThongKe extends JPanel {
                 lbl.setText("Tăng 100% so với kỳ trước");
                 lbl.setForeground(new Color(22, 163, 74)); // green-600
             } else {
-                lbl.setText("--");
+                lbl.setText("Chưa có đơn");
                 lbl.setForeground(Color.GRAY);
             }
             return;
@@ -373,8 +418,13 @@ public class ManHinhThongKe extends JPanel {
             lbl.setText(String.format("Tăng %.1f%% so với kỳ trước", percent));
             lbl.setForeground(new Color(22, 163, 74));
         } else if (percent < 0) {
-            lbl.setText(String.format("Giảm %.1f%% so với kỳ trước", Math.abs(percent)));
-            lbl.setForeground(new Color(220, 38, 38)); // red-600
+            if (current == 0) {
+                lbl.setText("Chưa có đơn hôm nay");
+                lbl.setForeground(Color.GRAY);
+            } else {
+                lbl.setText(String.format("Giảm %.1f%% so với kỳ trước", Math.abs(percent)));
+                lbl.setForeground(new Color(220, 38, 38)); // red-600
+            }
         } else {
             lbl.setText("Không đổi so với kỳ trước");
             lbl.setForeground(Color.GRAY);
@@ -398,22 +448,41 @@ public class ManHinhThongKe extends JPanel {
         double maxRev = 0;
 
         for (Object[] row : list) {
-            String dateStr = String.valueOf(row[0]);
+            String originalDate = String.valueOf(row[0]);
+            String dateStr = originalDate;
+            try {
+                java.text.SimpleDateFormat sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("dd/MM");
+                dateStr = sdfOut.format(sdfIn.parse(originalDate));
+            } catch (Exception ignored) {}
             double revenue = (Double) row[1];
 
             modelDoanhThu.addRow(new Object[] {
-                    dateStr,
+                    originalDate,
                     formatMoney(revenue)
             });
 
             if (revenue > maxRev) {
                 maxRev = revenue;
-                topDay = dateStr;
+                topDay = originalDate;
             }
 
             // Thêm dữ liệu vào biểu đồ
             datasetDoanhThu.setValue(revenue, "Doanh Thu", dateStr);
         }
+
+        // Metrics
+        Object[] metrics = tkDAO.getChiSoVanHanh(f, t);
+        int thanhCong = (int) metrics[0];
+        int huy = (int) metrics[1];
+        double doanhThu = (double) metrics[2];
+        int tongDon = thanhCong + huy;
+        double aov = thanhCong > 0 ? doanhThu / thanhCong : 0;
+        double tyLeHuy = tongDon > 0 ? ((double) huy / tongDon) * 100 : 0;
+
+        lblSoDonHang.setText(String.format("Tổng số đơn: %d (Thành công: %d, Hủy: %d)", tongDon, thanhCong, huy));
+        lblAOV.setText("Giá trị đơn trung bình (AOV): " + formatCompactMoney(aov));
+        lblTyLeHuy.setText(String.format("Tỷ lệ hủy đơn: %.1f%%", tyLeHuy));
 
         // Update Insights
         lblTopDay.setText("Ngày cao điểm nhất: " + topDay + " (" + formatCompactMoney(maxRev) + ")");
@@ -436,24 +505,49 @@ public class ManHinhThongKe extends JPanel {
         Date t = dateToFood.getDate();
         if (f != null && t != null) {
             ArrayList<Object[]> list = tkDAO.getTopMonAn(f, t);
+            
+            long diffInMillies = Math.abs(t.getTime() - f.getTime());
+            long diffInDays = java.util.concurrent.TimeUnit.DAYS.convert(diffInMillies, java.util.concurrent.TimeUnit.MILLISECONDS) + 1;
+            Date prevFrom = new Date(f.getTime() - diffInDays * 24L * 3600 * 1000);
+            Date prevTo = new Date(t.getTime() - diffInDays * 24L * 3600 * 1000);
+            ArrayList<Object[]> prevList = tkDAO.getTopMonAn(prevFrom, prevTo);
+            java.util.HashMap<String, Integer> prevSales = new java.util.HashMap<>();
+            for (Object[] r : prevList) prevSales.put((String)r[0], (int)r[1]);
+
             int totalQty = 0;
+            double totalRev = 0;
+            for (Object[] row : list) totalRev += (Double) row[2];
+
+            int topSelection = cmbTopFood.getSelectedIndex();
+            int limit = topSelection == 0 ? 5 : (topSelection == 1 ? 10 : Integer.MAX_VALUE);
+
             int index = 0;
 
             for (Object[] row : list) {
                 String name = (String) row[0];
                 int qty = (int) row[1];
                 double price = (Double) row[2];
+                double avgPrice = qty > 0 ? price / qty : 0;
+                double percent = totalRev > 0 ? (price / totalRev) * 100 : 0;
+
+                int prevQty = prevSales.getOrDefault(name, 0);
+                String trend = "-";
+                if (qty > prevQty) trend = "▲ " + (qty - prevQty);
+                else if (qty < prevQty) trend = "▼ " + (prevQty - qty);
 
                 modelMonAn.addRow(new Object[] {
                         name,
                         qty,
-                        formatMoney(price)
+                        formatMoney(avgPrice),
+                        formatMoney(price),
+                        String.format("%.1f%%", percent),
+                        trend
                 });
 
                 totalQty += qty;
 
-                // Top 5 vào BarChart
-                if (index < 5) {
+                // Top N vào BarChart
+                if (index < limit) {
                     datasetFood.addValue(qty, "So Luong", name);
                 }
 
@@ -472,6 +566,7 @@ public class ManHinhThongKe extends JPanel {
     private JTable tblGoldenHour;
     private DefaultTableModel modelGoldenHour;
 
+    @SuppressWarnings("unused")
     private JPanel createGoldenHourTab() {
         JPanel pnl = new JPanel(new BorderLayout(10, 10));
         pnl.setBackground(Color.WHITE);
@@ -568,6 +663,7 @@ public class ManHinhThongKe extends JPanel {
     private JTable tblEmployee;
     private DefaultTableModel modelEmployee;
 
+    @SuppressWarnings("unused")
     private JPanel createEmployeePerformanceTab() {
         JPanel pnl = new JPanel(new BorderLayout(10, 10));
         pnl.setBackground(Color.WHITE);
@@ -632,8 +728,8 @@ public class ManHinhThongKe extends JPanel {
         plot.setDomainGridlinesVisible(false);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
 
-        BarRenderer renderer = (BarRenderer) plot.getRenderer();
-        renderer.setSeriesPaint(0, new Color(16, 185, 129)); // flat green
+        CustomBarRenderer renderer = new CustomBarRenderer();
+        plot.setRenderer(renderer);
         renderer.setBarPainter(new org.jfree.chart.renderer.category.StandardBarPainter()); // Remove gradient
         renderer.setMaximumBarWidth(0.2);
         renderer.setDefaultItemLabelsVisible(true);
@@ -796,5 +892,19 @@ public class ManHinhThongKe extends JPanel {
             return String.format("%.2fK", amount / 1_000.0); // Ngàn
         }
         return formatMoney(amount);
+    }
+
+    // --- CUSTOM BAR RENDERER ---
+    private class CustomBarRenderer extends BarRenderer {
+        private final Paint topPaint = new Color(245, 158, 11); // Amber/Gold
+        private final Paint normalPaint = new Color(59, 130, 246); // Blue
+        
+        @Override
+        public Paint getItemPaint(int row, int column) {
+            if (column == 0) {
+                return topPaint;
+            }
+            return normalPaint;
+        }
     }
 }
