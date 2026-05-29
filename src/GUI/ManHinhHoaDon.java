@@ -9,10 +9,14 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.*;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Date;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -56,6 +60,12 @@ public class ManHinhHoaDon extends JPanel {
     // --- TAB 1 COMPONENTS (PAYMENT) ---
     private JPanel pnlTableList;
     private JScrollPane scrollTables;
+    private JTextField txtSearchActiveTable;
+    private JPopupMenu popupTableSuggestions;
+    private JList<TableSearchEntry> listTableSuggestions;
+    private DefaultListModel<TableSearchEntry> modelTableSuggestions;
+    private final ArrayList<TableSearchEntry> activeTableEntries = new ArrayList<>();
+    private boolean suppressActiveTableSearchEvents = false;
 
     private JLabel lblTitleBan;
     private JLabel lblNhanVien;
@@ -103,17 +113,17 @@ public class ManHinhHoaDon extends JPanel {
         // 2. Load danh sách bàn trước
         loadTableList();
 
+        if (txtSearchActiveTable != null) {
+            setActiveTableSearchText(maBan);
+            applyActiveTableSearch();
+        }
+
         // 3. Tìm TableCard có maBan khớp rồi kích hoạt
-        for (Component c : pnlTableList.getComponents()) {
-            if (c instanceof GUI.components.TableCard) {
-                GUI.components.TableCard card = (GUI.components.TableCard) c;
-                Entity.Ban b = card.getTable();
-                if (b != null && b.getMaBan().equals(maBan)) {
-                    resetCardSelection();
-                    card.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
-                    selectTable(maBan);
-                    break;
-                }
+        for (TableSearchEntry entry : activeTableEntries) {
+            if (entry.table != null && entry.table.getMaBan().equalsIgnoreCase(maBan)) {
+                highlightTableCard(entry.table.getMaBan());
+                selectTable(entry.table.getMaBan());
+                break;
             }
         }
     }
@@ -170,11 +180,38 @@ public class ManHinhHoaDon extends JPanel {
         pnl.setBackground(new Color(243, 244, 246));
         pnl.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        JPanel pnlHeaderWrap = new JPanel(new BorderLayout(0, 10));
+        pnlHeaderWrap.setOpaque(false);
+
         JLabel lblHeader = new JLabel("BÀN ĐANG PHỤC VỤ (" + connectDB.SessionManager.getDisplayName() + ")");
         lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblHeader.setForeground(new Color(31, 41, 55));
-        lblHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
-        pnl.add(lblHeader, BorderLayout.NORTH);
+        pnlHeaderWrap.add(lblHeader, BorderLayout.NORTH);
+
+        JPanel pnlSearch = new JPanel(new BorderLayout(8, 0));
+        pnlSearch.setOpaque(false);
+
+        txtSearchActiveTable = new JTextField();
+        txtSearchActiveTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtSearchActiveTable.putClientProperty("JTextField.placeholderText",
+                "Tìm bàn, mã HĐ, khách, SĐT, khu, bàn ghép...");
+        txtSearchActiveTable.setPreferredSize(new Dimension(0, 38));
+
+        JButton btnClearSearch = new JButton("×");
+        btnClearSearch.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnClearSearch.setFocusable(false);
+        btnClearSearch.setMargin(new Insets(0, 0, 0, 0));
+        btnClearSearch.setPreferredSize(new Dimension(40, 38));
+        btnClearSearch.addActionListener(e -> {
+            setActiveTableSearchText("");
+            applyActiveTableSearch();
+            txtSearchActiveTable.requestFocusInWindow();
+        });
+
+        pnlSearch.add(txtSearchActiveTable, BorderLayout.CENTER);
+        pnlSearch.add(btnClearSearch, BorderLayout.EAST);
+        pnlHeaderWrap.add(pnlSearch, BorderLayout.SOUTH);
+        pnl.add(pnlHeaderWrap, BorderLayout.NORTH);
 
         // Use FlowLayout for visual cards
         pnlTableList = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
@@ -189,9 +226,13 @@ public class ManHinhHoaDon extends JPanel {
         scrollTables.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
+                updateTableListPreferredSize();
                 pnlTableList.revalidate();
             }
         });
+
+        initActiveTableSuggestionPopup();
+        setupActiveTableSearch();
 
         pnl.add(scrollTables, BorderLayout.CENTER);
 
@@ -465,86 +506,382 @@ public class ManHinhHoaDon extends JPanel {
         return pnl;
     }
 
+    private void initActiveTableSuggestionPopup() {
+        modelTableSuggestions = new DefaultListModel<>();
+        listTableSuggestions = new JList<>(modelTableSuggestions);
+        listTableSuggestions.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listTableSuggestions.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        listTableSuggestions.setFixedCellHeight(44);
+        listTableSuggestions.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof TableSearchEntry) {
+                    TableSearchEntry entry = (TableSearchEntry) value;
+                    label.setText(entry.toSuggestionHtml());
+                    label.setBorder(new EmptyBorder(6, 10, 6, 10));
+                }
+                return label;
+            }
+        });
+        listTableSuggestions.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                TableSearchEntry selectedEntry = listTableSuggestions.getSelectedValue();
+                if (selectedEntry != null) {
+                    selectSearchEntry(selectedEntry);
+                }
+            }
+        });
+
+        popupTableSuggestions = new JPopupMenu();
+        popupTableSuggestions.setFocusable(false);
+        popupTableSuggestions.setBorder(BorderFactory.createLineBorder(new Color(209, 213, 219)));
+
+        JScrollPane scrollSuggestion = new JScrollPane(listTableSuggestions);
+        scrollSuggestion.setBorder(null);
+        scrollSuggestion.setPreferredSize(new Dimension(0, 220));
+        popupTableSuggestions.add(scrollSuggestion);
+    }
+
+    private void setupActiveTableSearch() {
+        if (txtSearchActiveTable == null) {
+            return;
+        }
+
+        txtSearchActiveTable.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                handleSearchChanged();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                handleSearchChanged();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                handleSearchChanged();
+            }
+
+            private void handleSearchChanged() {
+                if (!suppressActiveTableSearchEvents) {
+                    applyActiveTableSearch();
+                }
+            }
+        });
+
+        txtSearchActiveTable.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (popupTableSuggestions != null && popupTableSuggestions.isVisible()
+                        && modelTableSuggestions.getSize() > 0) {
+                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        int nextIndex = Math.min(listTableSuggestions.getSelectedIndex() + 1,
+                                modelTableSuggestions.getSize() - 1);
+                        listTableSuggestions.setSelectedIndex(Math.max(0, nextIndex));
+                        listTableSuggestions.ensureIndexIsVisible(listTableSuggestions.getSelectedIndex());
+                        e.consume();
+                        return;
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        int nextIndex = listTableSuggestions.getSelectedIndex() <= 0 ? 0
+                                : listTableSuggestions.getSelectedIndex() - 1;
+                        listTableSuggestions.setSelectedIndex(nextIndex);
+                        listTableSuggestions.ensureIndexIsVisible(nextIndex);
+                        e.consume();
+                        return;
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        TableSearchEntry selectedEntry = listTableSuggestions.getSelectedValue();
+                        if (selectedEntry == null && modelTableSuggestions.getSize() > 0) {
+                            selectedEntry = modelTableSuggestions.getElementAt(0);
+                        }
+                        if (selectedEntry != null) {
+                            selectSearchEntry(selectedEntry);
+                            e.consume();
+                            return;
+                        }
+                    }
+                }
+
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    hideTableSuggestionPopup();
+                }
+            }
+        });
+
+        txtSearchActiveTable.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!txtSearchActiveTable.isFocusOwner() && !listTableSuggestions.isFocusOwner()) {
+                        hideTableSuggestionPopup();
+                    }
+                });
+            }
+        });
+    }
+
+    private void applyActiveTableSearch() {
+        if (pnlTableList == null) {
+            return;
+        }
+
+        java.util.List<TableSearchEntry> matches = findMatchingTableEntries(
+                txtSearchActiveTable != null ? txtSearchActiveTable.getText() : "");
+
+        pnlTableList.removeAll();
+        for (TableSearchEntry entry : matches) {
+            pnlTableList.add(entry.card);
+        }
+
+        updateTableListPreferredSize();
+        pnlTableList.revalidate();
+        pnlTableList.repaint();
+
+        if (selectedMaBan != null) {
+            highlightTableCard(selectedMaBan);
+        }
+
+        updateTableSuggestionPopup(matches);
+    }
+
+    private java.util.List<TableSearchEntry> findMatchingTableEntries(String query) {
+        ArrayList<TableSearchEntry> matches = new ArrayList<>();
+        String normalizedQuery = normalizeSearchText(query);
+        if (normalizedQuery.isBlank()) {
+            matches.addAll(activeTableEntries);
+            return matches;
+        }
+
+        String[] tokens = normalizedQuery.split("\\s+");
+        for (TableSearchEntry entry : activeTableEntries) {
+            boolean match = true;
+            for (String token : tokens) {
+                if (!entry.searchableText.contains(token)) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                matches.add(entry);
+            }
+        }
+        return matches;
+    }
+
+    private void updateTableSuggestionPopup(java.util.List<TableSearchEntry> matches) {
+        if (popupTableSuggestions == null || txtSearchActiveTable == null) {
+            return;
+        }
+
+        modelTableSuggestions.clear();
+        String query = txtSearchActiveTable.getText() != null ? txtSearchActiveTable.getText().trim() : "";
+        if (query.isEmpty() || !txtSearchActiveTable.isFocusOwner()) {
+            hideTableSuggestionPopup();
+            return;
+        }
+
+        int limit = Math.min(matches.size(), 6);
+        for (int i = 0; i < limit; i++) {
+            modelTableSuggestions.addElement(matches.get(i));
+        }
+
+        if (modelTableSuggestions.isEmpty()) {
+            hideTableSuggestionPopup();
+            return;
+        }
+
+        listTableSuggestions.setSelectedIndex(0);
+        popupTableSuggestions.setPopupSize(txtSearchActiveTable.getWidth(), 220);
+        popupTableSuggestions.show(txtSearchActiveTable, 0, txtSearchActiveTable.getHeight());
+    }
+
+    private void hideTableSuggestionPopup() {
+        if (popupTableSuggestions != null) {
+            popupTableSuggestions.setVisible(false);
+        }
+    }
+
+    private void setActiveTableSearchText(String text) {
+        suppressActiveTableSearchEvents = true;
+        txtSearchActiveTable.setText(text);
+        suppressActiveTableSearchEvents = false;
+    }
+
+    private void selectSearchEntry(TableSearchEntry entry) {
+        if (entry == null) {
+            return;
+        }
+        hideTableSuggestionPopup();
+        setActiveTableSearchText(entry.table.getMaBan());
+        applyActiveTableSearch();
+        highlightTableCard(entry.table.getMaBan());
+        selectTable(entry.table.getMaBan());
+    }
+
+    private void highlightTableCard(String maBan) {
+        resetCardSelection();
+        for (TableSearchEntry entry : activeTableEntries) {
+            if (entry.table != null && entry.table.getMaBan().equalsIgnoreCase(maBan)) {
+                entry.card.setSelected(true);
+                entry.card.repaint();
+                break;
+            }
+        }
+    }
+
+    private void updateTableListPreferredSize() {
+        int rowHeight = 160;
+        int cols = 2;
+        if (scrollTables != null && scrollTables.getWidth() > 0) {
+            cols = scrollTables.getWidth() / 155;
+        }
+        if (cols < 1) {
+            cols = 1;
+        }
+        int rows = (int) Math.ceil((double) Math.max(1, pnlTableList.getComponentCount()) / cols);
+        pnlTableList.setPreferredSize(new Dimension(pnlTableList.getWidth(), rows * rowHeight + 50));
+    }
+
+    private ResolvedInvoiceInfo resolveOpenInvoiceInfo(String maBan) {
+        int directMaHD = hdDAO.getMaHDByBan(maBan);
+        if (directMaHD != -1) {
+            return new ResolvedInvoiceInfo(maBan, directMaHD, hdDAO.getThongTinHoaDon(directMaHD));
+        }
+
+        try {
+            java.sql.Connection con = connectDB.ConnectDB.getConnection();
+            String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
+                    "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
+                    "WHERE ctdb.MaBan = ? AND db.TrangThai = N'Đã nhận bàn' " +
+                    "ORDER BY db.ThoiGianBatDau DESC";
+            java.sql.PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, maBan);
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(rs.getInt("MaDat"));
+                if (booking != null) {
+                    for (String relatedTable : booking.getDanhSachBan()) {
+                        int relatedMaHD = hdDAO.getMaHDByBan(relatedTable);
+                        if (relatedMaHD != -1) {
+                            return new ResolvedInvoiceInfo(
+                                    relatedTable,
+                                    relatedMaHD,
+                                    hdDAO.getThongTinHoaDon(relatedMaHD));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new ResolvedInvoiceInfo(maBan, -1, null);
+    }
+
+    private TableSearchEntry buildTableSearchEntry(Ban table) {
+        GUI.components.TableCard card = new GUI.components.TableCard(table);
+        card.setPreferredSize(new Dimension(140, 140));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                highlightTableCard(table.getMaBan());
+                selectTable(table.getMaBan());
+            }
+        });
+
+        ResolvedInvoiceInfo invoiceInfo = resolveOpenInvoiceInfo(table.getMaBan());
+        int maHD = invoiceInfo.maHD;
+        HoaDon hd = invoiceInfo.hoaDon;
+        String sdtKhach = hd != null && hd.getSdtKhach() != null ? hd.getSdtKhach().trim() : "";
+        String tenKhach = extractCustomerNameForSearch(hd, sdtKhach);
+        String multiTableDisplay = hd != null ? getMultiTableDisplay(hd) : table.getMaBan();
+        String searchableText = normalizeSearchText(String.join(" ",
+                safe(table.getMaBan()),
+                safe(table.getTenBan()),
+                safe(table.getMaKV()),
+                table.getSoGhe() + " chỗ",
+                "hoa don " + (maHD == -1 ? "" : maHD),
+                maHD == -1 ? "" : "#" + maHD,
+                safe(tenKhach),
+                safe(sdtKhach),
+                safe(multiTableDisplay),
+                hd != null ? safe(hd.getGhiChu()) : "",
+                safe(table.getTrangThai())));
+
+        return new TableSearchEntry(table, card, maHD, tenKhach, sdtKhach, multiTableDisplay, searchableText);
+    }
+
+    private String extractCustomerNameForSearch(HoaDon hd, String sdtKhach) {
+        if (sdtKhach != null && !sdtKhach.isBlank()) {
+            KhachHang kh = khDAO.getBySDT(sdtKhach);
+            if (kh != null && kh.getTenKhach() != null && !kh.getTenKhach().isBlank()) {
+                return kh.getTenKhach();
+            }
+        }
+
+        if (hd != null && hd.getGhiChu() != null) {
+            String ghiChu = hd.getGhiChu().trim();
+            String prefix = "Khách đặt:";
+            if (ghiChu.startsWith(prefix)) {
+                return ghiChu.substring(prefix.length()).trim();
+            }
+        }
+
+        return "Khách lẻ";
+    }
+
+    private String normalizeSearchText(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase()
+                .trim();
+        return normalized.replaceAll("\\s+", " ");
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
     // =========================================================================
     // LOGIC METHODS
     // =========================================================================
 
     private void loadTableList() {
         pnlTableList.removeAll();
+        activeTableEntries.clear();
         ArrayList<Ban> listBan = banDAO.getAllBan();
 
         for (Ban b : listBan) {
             if ("Có Khách".equalsIgnoreCase(b.getTrangThai())) {
-                GUI.components.TableCard card = new GUI.components.TableCard(b);
-                card.setPreferredSize(new Dimension(140, 140));
-                card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                card.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        resetCardSelection();
-                        card.setBorder(BorderFactory.createLineBorder(Color.BLUE, 3));
-                        selectTable(b.getMaBan());
-                    }
-                });
-                pnlTableList.add(card);
+                activeTableEntries.add(buildTableSearchEntry(b));
             }
         }
 
-        int rowHeight = 160;
-        int cols = 2;
-        if (scrollTables.getWidth() > 0)
-            cols = scrollTables.getWidth() / 155;
-        if (cols < 1)
-            cols = 1;
-        int rows = (int) Math.ceil((double) pnlTableList.getComponentCount() / cols);
-        pnlTableList.setPreferredSize(new Dimension(pnlTableList.getWidth(), rows * rowHeight + 50));
-
-        pnlTableList.revalidate();
-        pnlTableList.repaint();
+        applyActiveTableSearch();
     }
 
     private void resetCardSelection() {
-        for (Component c : pnlTableList.getComponents()) {
-            if (c instanceof GUI.components.TableCard) {
-                ((GUI.components.TableCard) c).setBorder(null);
-                ((GUI.components.TableCard) c).repaint();
-            }
+        for (TableSearchEntry entry : activeTableEntries) {
+            entry.card.setSelected(false);
+            entry.card.repaint();
         }
     }
 
     private void selectTable(String maBan) {
-        this.selectedMaBan = maBan;
-        this.currentMaHD = hdDAO.getMaHDByBan(maBan);
-
-        // Bàn phụ trong booking nhiều bàn — tìm hóa đơn của bàn chính
-        if (currentMaHD == -1) {
-            try {
-                java.sql.Connection con = connectDB.ConnectDB.getConnection();
-                String sql = "SELECT TOP 1 db.MaDat FROM DatBan db " +
-                        "INNER JOIN ChiTietDatBan ctdb ON db.MaDat = ctdb.MaDat " +
-                        "WHERE ctdb.MaBan = ? AND db.TrangThai = N'Đã nhận bàn' " +
-                        "ORDER BY db.ThoiGianBatDau DESC";
-                java.sql.PreparedStatement ps = con.prepareStatement(sql);
-                ps.setString(1, maBan);
-                java.sql.ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    int maDat = rs.getInt("MaDat");
-                    Entity.DatBan booking = new DAO.DatBanDAO().getDatBanByID(maDat);
-                    if (booking != null) {
-                        for (String mb : booking.getDanhSachBan()) {
-                            int hdChinh = hdDAO.getMaHDByBan(mb);
-                            if (hdChinh != -1) {
-                                this.currentMaHD = hdChinh;
-                                this.selectedMaBan = mb; // Trỏ về bàn chính
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        ResolvedInvoiceInfo invoiceInfo = resolveOpenInvoiceInfo(maBan);
+        this.selectedMaBan = invoiceInfo.billingMaBan;
+        this.currentMaHD = invoiceInfo.maHD;
 
         if (currentMaHD == -1) {
             JOptionPane.showMessageDialog(this, "Bàn này chưa có hóa đơn (Chưa gọi món)!");
@@ -1331,6 +1668,56 @@ public class ManHinhHoaDon extends JPanel {
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi xuất PDF: " + e.getMessage());
+        }
+    }
+
+    private static class ResolvedInvoiceInfo {
+        private final String billingMaBan;
+        private final int maHD;
+        private final HoaDon hoaDon;
+
+        private ResolvedInvoiceInfo(String billingMaBan, int maHD, HoaDon hoaDon) {
+            this.billingMaBan = billingMaBan;
+            this.maHD = maHD;
+            this.hoaDon = hoaDon;
+        }
+    }
+
+    private static class TableSearchEntry {
+        private final Ban table;
+        private final GUI.components.TableCard card;
+        private final int maHD;
+        private final String tenKhach;
+        private final String sdtKhach;
+        private final String relatedTables;
+        private final String searchableText;
+
+        private TableSearchEntry(Ban table, GUI.components.TableCard card, int maHD, String tenKhach,
+                String sdtKhach, String relatedTables, String searchableText) {
+            this.table = table;
+            this.card = card;
+            this.maHD = maHD;
+            this.tenKhach = tenKhach;
+            this.sdtKhach = sdtKhach;
+            this.relatedTables = relatedTables;
+            this.searchableText = searchableText;
+        }
+
+        private String toSuggestionHtml() {
+            String hdLabel = maHD == -1 ? "Chưa có HĐ" : "HĐ #" + maHD;
+            String customerLabel = (tenKhach == null || tenKhach.isBlank()) ? "Khách lẻ" : tenKhach;
+            String phoneLabel = (sdtKhach == null || sdtKhach.isBlank()) ? "" : " · " + sdtKhach;
+            String relatedLabel = (relatedTables == null || relatedTables.isBlank()
+                    || relatedTables.equalsIgnoreCase(table.getMaBan()))
+                            ? ""
+                            : " · " + relatedTables;
+
+            return "<html><b>" + table.getMaBan() + "</b> · " + hdLabel
+                    + "<br><span style='color:#6b7280'>" + customerLabel
+                    + phoneLabel
+                    + " · " + table.getSoGhe() + " chỗ"
+                    + relatedLabel
+                    + "</span></html>";
         }
     }
 }

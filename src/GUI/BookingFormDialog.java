@@ -26,6 +26,12 @@ import Entity.Ban;
  */
 public class BookingFormDialog extends JDialog {
 
+    private static final double UI_SCALE = 1.2;
+    private static final int OPEN_HOUR = 9;
+    private static final int CLOSE_HOUR = 22;
+    private static final int EVENING_START_HOUR = 17;
+    private static final int SLOT_INTERVAL_MINUTES = 30;
+
     // ── WIZARD STATE ─────────────────────────────────────────────────
     private int currentStep = 1;
     private static final int TOTAL_STEPS = 3;
@@ -60,6 +66,7 @@ public class BookingFormDialog extends JDialog {
     private JButton btnPrev, btnNext;
     private JLabel[] stepLabels;
     private JPanel[] stepDots;
+    private final List<JButton> timeSlotButtons = new ArrayList<>();
 
     // ── DAO ──────────────────────────────────────────────────────────
     private DatBanDAO datBanDAO;
@@ -81,6 +88,22 @@ public class BookingFormDialog extends JDialog {
     private static final Color BORDER = new Color(229, 231, 235);
     private static final Color BG_PAGE = new Color(249, 250, 251);
 
+    private static int scaled(int value) {
+        return (int) Math.round(value * UI_SCALE);
+    }
+
+    private static Font uiFont(int style, int size) {
+        return new Font("Segoe UI", style, scaled(size));
+    }
+
+    private static Dimension uiSize(int width, int height) {
+        return new Dimension(scaled(width), scaled(height));
+    }
+
+    private static EmptyBorder uiPadding(int top, int left, int bottom, int right) {
+        return new EmptyBorder(scaled(top), scaled(left), scaled(bottom), scaled(right));
+    }
+
     public BookingFormDialog(Frame parent, String preSelectedTableId) {
         super(parent, "Đặt Bàn", true);
         datBanDAO = new DatBanDAO();
@@ -93,7 +116,8 @@ public class BookingFormDialog extends JDialog {
             this.selectedTableIds.add(preSelectedTableId);
         }
 
-        setSize(720, 650);
+        setSize(1020, 820);
+        setMinimumSize(new Dimension(980, 780));
         setLocationRelativeTo(parent);
         setResizable(false);
     }
@@ -146,7 +170,7 @@ public class BookingFormDialog extends JDialog {
         pnl.setBackground(Color.WHITE);
         pnl.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
-                new EmptyBorder(20, 40, 20, 40)));
+                uiPadding(24, 48, 24, 48)));
 
         JPanel pnlSteps = new JPanel(new GridLayout(1, 3, 0, 0));
         pnlSteps.setOpaque(false);
@@ -178,37 +202,39 @@ public class BookingFormDialog extends JDialog {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int size = Math.min(getWidth(), getHeight());
                 g2.setColor(getBackground());
-                g2.fillOval(0, 0, 36, 36);
+                g2.fillOval(0, 0, size, size);
                 g2.setColor(getForeground());
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
+                g2.setFont(uiFont(Font.BOLD, 14));
                 String num = String.valueOf(index + 1);
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(num, (36 - fm.stringWidth(num)) / 2, (36 + fm.getAscent() - fm.getDescent()) / 2);
+                g2.drawString(num, (size - fm.stringWidth(num)) / 2,
+                        (size + fm.getAscent() - fm.getDescent()) / 2);
                 g2.dispose();
             }
         };
-        dot.setPreferredSize(new Dimension(36, 36));
-        dot.setMaximumSize(new Dimension(36, 36));
+        dot.setPreferredSize(uiSize(42, 42));
+        dot.setMaximumSize(uiSize(42, 42));
         dot.setOpaque(false);
         dot.setAlignmentX(Component.CENTER_ALIGNMENT);
         stepDots[index] = dot;
 
         // Title
         JLabel lbl = new JLabel(title);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setFont(uiFont(Font.BOLD, 13));
         lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
         stepLabels[index] = lbl;
 
         // Subtitle
         JLabel lblSub = new JLabel(subtitle);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSub.setFont(uiFont(Font.PLAIN, 11));
         lblSub.setForeground(TEXT_MUTED);
         lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        pnl.add(Box.createVerticalStrut(2));
+        pnl.add(Box.createVerticalStrut(scaled(2)));
         pnl.add(dot);
-        pnl.add(Box.createVerticalStrut(6));
+        pnl.add(Box.createVerticalStrut(scaled(8)));
         pnl.add(lbl);
         pnl.add(lblSub);
 
@@ -253,67 +279,65 @@ public class BookingFormDialog extends JDialog {
     private JPanel createStep1() {
         JPanel pnl = new JPanel(new BorderLayout(0, 0));
         pnl.setBackground(Color.WHITE);
-        pnl.setBorder(new EmptyBorder(25, 40, 10, 40));
+        pnl.setBorder(uiPadding(28, 48, 12, 48));
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
         // ── Số khách ─────────────────────────────────────────────────
-        JPanel pnlGuests = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
-        pnlGuests.setOpaque(false);
-        pnlGuests.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pnlGuests.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        JPanel pnlControlsCard = new JPanel(new GridBagLayout());
+        pnlControlsCard.setOpaque(true);
+        pnlControlsCard.setBackground(BG_PAGE);
+        pnlControlsCard.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlControlsCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, scaled(170)));
+        pnlControlsCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                uiPadding(18, 22, 18, 22)));
 
-        JLabel lblGuests = new JLabel("Số khách");
-        lblGuests.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblGuests.setForeground(TEXT_PRIMARY);
+        JLabel lblGuests = createStepFieldLabel("Số khách");
 
         spinGuests = new JSpinner(new SpinnerNumberModel(2, 1, 500, 1));
-        spinGuests.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        spinGuests.setPreferredSize(new Dimension(80, 40));
+        spinGuests.setFont(uiFont(Font.BOLD, 16));
+        spinGuests.setPreferredSize(uiSize(110, 52));
         JComponent editor = spinGuests.getEditor();
         if (editor instanceof JSpinner.DefaultEditor) {
-            ((JSpinner.DefaultEditor) editor).getTextField().setHorizontalAlignment(JTextField.CENTER);
+            JFormattedTextField txtSpinner = ((JSpinner.DefaultEditor) editor).getTextField();
+            txtSpinner.setHorizontalAlignment(JTextField.CENTER);
+            txtSpinner.setFont(uiFont(Font.BOLD, 16));
+            txtSpinner.setBorder(BorderFactory.createEmptyBorder());
         }
 
-        pnlGuests.add(lblGuests);
-        pnlGuests.add(spinGuests);
-
-        // Duration
-        JLabel lblDuration = new JLabel("Thời lượng");
-        lblDuration.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblDuration.setForeground(TEXT_PRIMARY);
-        pnlGuests.add(Box.createHorizontalStrut(30));
-        pnlGuests.add(lblDuration);
-
+        JLabel lblDuration = createStepFieldLabel("Thời lượng");
         cboThoiLuong = new JComboBox<>(new String[] { "1 giờ", "1.5 giờ", "2 giờ", "3 giờ", "4 giờ" });
         cboThoiLuong.setSelectedIndex(2);
-        cboThoiLuong.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        cboThoiLuong.setPreferredSize(new Dimension(100, 40));
-        pnlGuests.add(cboThoiLuong);
+        cboThoiLuong.setFont(uiFont(Font.PLAIN, 14));
+        cboThoiLuong.setPreferredSize(uiSize(160, 52));
+        cboThoiLuong.addActionListener(e -> {
+            normalizeSelectedTimeSlot();
+            refreshTimeSlots();
+        });
 
-        content.add(pnlGuests);
-        content.add(Box.createVerticalStrut(15));
-
-        // ── Ngày ─────────────────────────────────────────────────────
-        JPanel pnlDate = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
-        pnlDate.setOpaque(false);
-        pnlDate.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pnlDate.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-
-        JLabel lblDate = new JLabel("Chọn ngày");
-        lblDate.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblDate.setForeground(TEXT_PRIMARY);
-
+        JLabel lblDate = createStepFieldLabel("Chọn ngày");
         dateChooser = new JDateChooser(new Date());
         dateChooser.setDateFormatString("dd/MM/yyyy");
-        dateChooser.setPreferredSize(new Dimension(160, 40));
-        dateChooser.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        dateChooser.setPreferredSize(uiSize(220, 52));
+        dateChooser.setFont(uiFont(Font.PLAIN, 14));
         dateChooser.setMinSelectableDate(new Date());
+        if (dateChooser.getDateEditor().getUiComponent() instanceof JTextField) {
+            JTextField txtDate = (JTextField) dateChooser.getDateEditor().getUiComponent();
+            txtDate.setFont(uiFont(Font.PLAIN, 14));
+            txtDate.setBorder(BorderFactory.createEmptyBorder(0, scaled(10), 0, 0));
+        }
+        JButton btnCalendar = dateChooser.getCalendarButton();
+        if (btnCalendar != null) {
+            btnCalendar.setPreferredSize(uiSize(36, 36));
+            btnCalendar.setFocusable(false);
+        }
 
         // Khi đổi ngày → cập nhật lại trạng thái enabled/disabled của các khung giờ
         dateChooser.getDateEditor().addPropertyChangeListener("date", evt -> {
+            normalizeSelectedTimeSlot();
             // Reset giờ đã chọn nếu nó là giờ trong quá khứ so với ngày mới
             if (selectedHour >= 0) {
                 Calendar now = Calendar.getInstance();
@@ -334,66 +358,79 @@ public class BookingFormDialog extends JDialog {
         });
 
         // Quick date buttons
-        JButton btnToday = createQuickDateBtn("Hôm nay", 0);
-        JButton btnTomorrow = createQuickDateBtn("Ngày mai", 1);
-        JButton btnDay2 = createQuickDateBtn("+2 ngày", 2);
+        JPanel pnlQuickDates = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(10), 0));
+        pnlQuickDates.setOpaque(false);
+        pnlQuickDates.add(createQuickDateBtn("Hôm nay", 0));
+        pnlQuickDates.add(createQuickDateBtn("Ngày mai", 1));
+        pnlQuickDates.add(createQuickDateBtn("+2 ngày", 2));
 
-        pnlDate.add(lblDate);
-        pnlDate.add(dateChooser);
-        pnlDate.add(btnToday);
-        pnlDate.add(btnTomorrow);
-        pnlDate.add(btnDay2);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 0, scaled(16), scaled(16));
 
-        content.add(pnlDate);
-        content.add(Box.createVerticalStrut(20));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        pnlControlsCard.add(lblGuests, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.25;
+        pnlControlsCard.add(spinGuests, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        pnlControlsCard.add(lblDuration, gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 0.3;
+        gbc.insets = new Insets(0, 0, scaled(16), 0);
+        pnlControlsCard.add(cboThoiLuong, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0;
+        gbc.insets = new Insets(0, 0, 0, scaled(16));
+        pnlControlsCard.add(lblDate, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.3;
+        pnlControlsCard.add(dateChooser, gbc);
+
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.7;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        pnlControlsCard.add(pnlQuickDates, gbc);
+
+        content.add(pnlControlsCard);
+        content.add(Box.createVerticalStrut(scaled(26)));
 
         // ── Khung giờ ────────────────────────────────────────────────
         JLabel lblTime = new JLabel("Chọn giờ");
-        lblTime.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTime.setFont(uiFont(Font.BOLD, 15));
         lblTime.setForeground(TEXT_PRIMARY);
         lblTime.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(lblTime);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(scaled(14)));
 
-        // Buổi labels
-        JPanel pnlTimePeriods = new JPanel(new BorderLayout(0, 8));
-        pnlTimePeriods.setOpaque(false);
-        pnlTimePeriods.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Lunch slots
-        JLabel lblLunch = new JLabel("Buổi trưa");
-        lblLunch.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblLunch.setForeground(TEXT_MUTED);
-
-        JPanel pnlLunch = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        pnlLunch.setOpaque(false);
-        for (int h = 10; h <= 13; h++) {
-            for (int m = 0; m < 60; m += 30) {
-                pnlLunch.add(createTimeSlotBtn(h, m));
-            }
-        }
-
-        // Dinner slots
-        JLabel lblDinner = new JLabel("Buổi tối");
-        lblDinner.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblDinner.setForeground(TEXT_MUTED);
-
-        JPanel pnlDinner = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        pnlDinner.setOpaque(false);
-        for (int h = 17; h <= 21; h++) {
-            for (int m = 0; m < 60; m += 30) {
-                pnlDinner.add(createTimeSlotBtn(h, m));
-            }
-        }
+        timeSlotButtons.clear();
 
         JPanel pnlTimeAll = new JPanel();
         pnlTimeAll.setLayout(new BoxLayout(pnlTimeAll, BoxLayout.Y_AXIS));
         pnlTimeAll.setOpaque(false);
-        pnlTimeAll.add(lblLunch);
-        pnlTimeAll.add(pnlLunch);
-        pnlTimeAll.add(Box.createVerticalStrut(8));
-        pnlTimeAll.add(lblDinner);
-        pnlTimeAll.add(pnlDinner);
+        pnlTimeAll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlTimeAll.add(createTimePeriodSection(
+                "Buổi trưa",
+                "09:00 - 16:30",
+                buildTimeSlots(OPEN_HOUR, 0, EVENING_START_HOUR - 1, 30),
+                6));
+        pnlTimeAll.add(Box.createVerticalStrut(scaled(18)));
+        pnlTimeAll.add(createTimePeriodSection(
+                "Buổi tối",
+                "17:00 - 22:00",
+                buildTimeSlots(EVENING_START_HOUR, 0, CLOSE_HOUR, 0),
+                6));
 
         pnlTimeSlots = pnlTimeAll;
 
@@ -402,6 +439,10 @@ public class BookingFormDialog extends JDialog {
         scrollTime.setOpaque(false);
         scrollTime.getViewport().setOpaque(false);
         scrollTime.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scrollTime.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollTime.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollTime.getVerticalScrollBar().setUnitIncrement(scaled(18));
+        scrollTime.setPreferredSize(new Dimension(0, scaled(370)));
 
         content.add(scrollTime);
 
@@ -409,15 +450,69 @@ public class BookingFormDialog extends JDialog {
         return pnl;
     }
 
+    private JLabel createStepFieldLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(uiFont(Font.BOLD, 15));
+        lbl.setForeground(TEXT_PRIMARY);
+        return lbl;
+    }
+
+    private JPanel createTimePeriodSection(String title, String subtitle, List<int[]> slots, int columns) {
+        JPanel section = new JPanel(new BorderLayout(0, scaled(12)));
+        section.setOpaque(true);
+        section.setBackground(BG_PAGE);
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+                uiPadding(16, 18, 18, 18)));
+
+        JPanel pnlHeader = new JPanel(new BorderLayout(0, scaled(2)));
+        pnlHeader.setOpaque(false);
+
+        JLabel lblSection = new JLabel(title);
+        lblSection.setFont(uiFont(Font.BOLD, 13));
+        lblSection.setForeground(TEXT_MUTED);
+        pnlHeader.add(lblSection, BorderLayout.NORTH);
+
+        JLabel lblSubtitle = new JLabel(subtitle);
+        lblSubtitle.setFont(uiFont(Font.PLAIN, 11));
+        lblSubtitle.setForeground(new Color(148, 163, 184));
+        pnlHeader.add(lblSubtitle, BorderLayout.SOUTH);
+
+        section.add(pnlHeader, BorderLayout.NORTH);
+
+        JPanel pnlSlots = new JPanel(new GridLayout(0, Math.max(1, columns), scaled(12), scaled(12)));
+        pnlSlots.setOpaque(false);
+        pnlSlots.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        for (int[] slot : slots) {
+            pnlSlots.add(createTimeSlotBtn(slot[0], slot[1]));
+        }
+
+        section.add(pnlSlots, BorderLayout.CENTER);
+        return section;
+    }
+
+    private List<int[]> buildTimeSlots(int startHour, int startMinute, int endHour, int endMinute) {
+        List<int[]> slots = new ArrayList<>();
+        int startTotalMinutes = startHour * 60 + startMinute;
+        int endTotalMinutes = endHour * 60 + endMinute;
+        for (int totalMinutes = startTotalMinutes; totalMinutes <= endTotalMinutes;
+                totalMinutes += SLOT_INTERVAL_MINUTES) {
+            slots.add(new int[] { totalMinutes / 60, totalMinutes % 60 });
+        }
+        return slots;
+    }
+
     private JButton createQuickDateBtn(String text, int daysFromNow) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btn.setFont(uiFont(Font.PLAIN, 12));
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setBackground(new Color(243, 244, 246));
         btn.setForeground(TEXT_PRIMARY);
-        btn.setBorder(new EmptyBorder(6, 12, 6, 12));
-        btn.setPreferredSize(new Dimension(80, 32));
+        btn.setBorder(uiPadding(8, 14, 8, 14));
+        btn.setPreferredSize(uiSize(110, 40));
 
         btn.addActionListener(e -> {
             Calendar cal = Calendar.getInstance();
@@ -450,38 +545,22 @@ public class BookingFormDialog extends JDialog {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), scaled(12), scaled(12));
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFont(uiFont(Font.BOLD, 13));
         btn.setFocusPainted(false);
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(72, 38));
-
-        boolean isSelected = (hour == selectedHour && minute == selectedMinute);
-        updateTimeSlotStyle(btn, hour, minute, isSelected);
-
-        // Check if past time
-        Calendar cal = Calendar.getInstance();
-        Calendar slotCal = Calendar.getInstance();
-        if (dateChooser != null && dateChooser.getDate() != null) {
-            slotCal.setTime(dateChooser.getDate());
-        }
-        slotCal.set(Calendar.HOUR_OF_DAY, hour);
-        slotCal.set(Calendar.MINUTE, minute);
-        slotCal.set(Calendar.SECOND, 0);
-
-        boolean isPast = slotCal.before(cal);
-        if (isPast && isSameDay(cal, slotCal)) {
-            btn.setEnabled(false);
-            btn.setBackground(new Color(243, 244, 246));
-            btn.setForeground(new Color(209, 213, 219));
-        }
+        btn.setPreferredSize(uiSize(104, 50));
+        btn.putClientProperty("hour", hour);
+        btn.putClientProperty("minute", minute);
+        timeSlotButtons.add(btn);
+        applyTimeSlotState(btn, hour, minute, hour == selectedHour && minute == selectedMinute);
 
         btn.addActionListener(e -> {
             selectedHour = hour;
@@ -492,7 +571,7 @@ public class BookingFormDialog extends JDialog {
         btn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (btn.isEnabled() && selectedHour != hour && selectedMinute != minute) {
+                if (btn.isEnabled() && !(selectedHour == hour && selectedMinute == minute)) {
                     btn.setBackground(ACCENT_LIGHT);
                     btn.setForeground(ACCENT);
                 }
@@ -520,50 +599,84 @@ public class BookingFormDialog extends JDialog {
         }
     }
 
+    private void applyTimeSlotState(JButton btn, int hour, int minute, boolean isSelected) {
+        if (isPastTimeSlot(hour, minute)) {
+            btn.setEnabled(false);
+            btn.setBackground(new Color(243, 244, 246));
+            btn.setForeground(new Color(209, 213, 219));
+            btn.setToolTipText("Khung giờ này đã qua.");
+            return;
+        }
+
+        if (exceedsClosingTime(hour, minute)) {
+            btn.setEnabled(false);
+            btn.setBackground(new Color(243, 244, 246));
+            btn.setForeground(new Color(209, 213, 219));
+            btn.setToolTipText("Khung giờ này kết thúc sau 22:00.");
+            return;
+        }
+
+        btn.setEnabled(true);
+        btn.setToolTipText(null);
+        updateTimeSlotStyle(btn, hour, minute, isSelected);
+    }
+
     private boolean isSameDay(Calendar c1, Calendar c2) {
         return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
                 c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
     }
 
+    private Calendar buildSlotCalendar(Date baseDate, int hour, int minute) {
+        Calendar cal = Calendar.getInstance();
+        if (baseDate != null) {
+            cal.setTime(baseDate);
+        }
+        cal.set(Calendar.HOUR_OF_DAY, hour);
+        cal.set(Calendar.MINUTE, minute);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal;
+    }
+
+    private boolean isPastTimeSlot(int hour, int minute) {
+        if (dateChooser == null || dateChooser.getDate() == null) {
+            return false;
+        }
+        Calendar now = Calendar.getInstance();
+        Calendar slotCal = buildSlotCalendar(dateChooser.getDate(), hour, minute);
+        return isSameDay(now, slotCal) && slotCal.before(now);
+    }
+
+    private boolean exceedsClosingTime(int hour, int minute) {
+        if (dateChooser == null || dateChooser.getDate() == null) {
+            return false;
+        }
+        Calendar endCal = buildSlotCalendar(dateChooser.getDate(), hour, minute);
+        endCal.add(Calendar.MINUTE, getDurationMinutes());
+        Calendar closeCal = buildSlotCalendar(dateChooser.getDate(), CLOSE_HOUR, 0);
+        return endCal.after(closeCal);
+    }
+
+    private boolean isTimeSlotSelectable(int hour, int minute) {
+        return !isPastTimeSlot(hour, minute) && !exceedsClosingTime(hour, minute);
+    }
+
+    private void normalizeSelectedTimeSlot() {
+        if (selectedHour >= 0 && !isTimeSlotSelectable(selectedHour, selectedMinute)) {
+            selectedHour = -1;
+            selectedMinute = -1;
+        }
+    }
+
     private void refreshTimeSlots() {
         if (pnlTimeSlots == null)
             return;
-        // Rebuild all time slot buttons with updated selection state
-        for (Component comp : pnlTimeSlots.getComponents()) {
-            if (comp instanceof JPanel) {
-                JPanel panel = (JPanel) comp;
-                for (Component child : panel.getComponents()) {
-                    if (child instanceof JButton) {
-                        JButton btn = (JButton) child;
-                        String text = btn.getText();
-                        if (text.matches("\\d{2}:\\d{2}")) {
-                            int h = Integer.parseInt(text.substring(0, 2));
-                            int m = Integer.parseInt(text.substring(3, 5));
-                            boolean isSelected = (h == selectedHour && m == selectedMinute);
-
-                            // Check if past time
-                            Calendar cal = Calendar.getInstance();
-                            Calendar slotCal = Calendar.getInstance();
-                            if (dateChooser.getDate() != null) {
-                                slotCal.setTime(dateChooser.getDate());
-                            }
-                            slotCal.set(Calendar.HOUR_OF_DAY, h);
-                            slotCal.set(Calendar.MINUTE, m);
-                            slotCal.set(Calendar.SECOND, 0);
-
-                            boolean isPast = slotCal.before(cal) && isSameDay(cal, slotCal);
-                            if (isPast) {
-                                btn.setEnabled(false);
-                                btn.setBackground(new Color(243, 244, 246));
-                                btn.setForeground(new Color(209, 213, 219));
-                            } else {
-                                btn.setEnabled(true);
-                                updateTimeSlotStyle(btn, h, m, isSelected);
-                            }
-                        }
-                    }
-                }
-            }
+        normalizeSelectedTimeSlot();
+        for (JButton btn : timeSlotButtons) {
+            int h = (Integer) btn.getClientProperty("hour");
+            int m = (Integer) btn.getClientProperty("minute");
+            boolean isSelected = (h == selectedHour && m == selectedMinute);
+            applyTimeSlotState(btn, h, m, isSelected);
         }
         pnlTimeSlots.revalidate();
         pnlTimeSlots.repaint();
@@ -573,9 +686,9 @@ public class BookingFormDialog extends JDialog {
     // STEP 2: Chọn bàn
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStep2() {
-        JPanel pnl = new JPanel(new BorderLayout(0, 8));
+        JPanel pnl = new JPanel(new BorderLayout(0, scaled(10)));
         pnl.setBackground(Color.WHITE);
-        pnl.setBorder(new EmptyBorder(15, 40, 10, 40));
+        pnl.setBorder(uiPadding(20, 48, 12, 48));
 
         // ── TOP SECTION: Header + Filters ────────────────────────────
         JPanel pnlTop = new JPanel();
@@ -584,47 +697,47 @@ public class BookingFormDialog extends JDialog {
 
         // Header info
         lblTableInfo = new JLabel();
-        lblTableInfo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblTableInfo.setFont(uiFont(Font.PLAIN, 13));
         lblTableInfo.setForeground(TEXT_MUTED);
 
-        JPanel pnlHeader = new JPanel(new BorderLayout(0, 4));
+        JPanel pnlHeader = new JPanel(new BorderLayout(0, scaled(4)));
         pnlHeader.setOpaque(false);
         pnlHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel lblTitle = new JLabel("Chọn bàn phù hợp");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTitle.setFont(uiFont(Font.BOLD, 16));
         lblTitle.setForeground(TEXT_PRIMARY);
         pnlHeader.add(lblTitle, BorderLayout.NORTH);
         pnlHeader.add(lblTableInfo, BorderLayout.CENTER);
 
         // Capacity status indicator
         lblCapacityStatus = new JLabel(" ");
-        lblCapacityStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblCapacityStatus.setBorder(new EmptyBorder(4, 0, 4, 0));
+        lblCapacityStatus.setFont(uiFont(Font.BOLD, 13));
+        lblCapacityStatus.setBorder(uiPadding(4, 0, 4, 0));
         pnlHeader.add(lblCapacityStatus, BorderLayout.SOUTH);
 
         pnlTop.add(pnlHeader);
 
         // ── BỘ LỌC ──────────────────────────────────────────────────
-        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(10), scaled(4)));
         pnlFilter.setOpaque(false);
         pnlFilter.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pnlFilter.setBorder(new EmptyBorder(4, 0, 4, 0));
+        pnlFilter.setBorder(uiPadding(4, 0, 4, 0));
 
         // Zone filter
         JLabel lblZone = new JLabel("Khu vực:");
-        lblZone.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblZone.setFont(uiFont(Font.BOLD, 12));
         lblZone.setForeground(TEXT_MUTED);
         pnlFilter.add(lblZone);
 
         cboZoneFilter = new JComboBox<>(new String[] {
                 "Tất cả", "Tầng G", "Tầng 1", "VIP Room", "Ngoài trời"
         });
-        cboZoneFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cboZoneFilter.setPreferredSize(new Dimension(110, 30));
+        cboZoneFilter.setFont(uiFont(Font.PLAIN, 12));
+        cboZoneFilter.setPreferredSize(uiSize(128, 36));
         cboZoneFilter.addActionListener(e -> loadAvailableTables());
         pnlFilter.add(cboZoneFilter);
 
-        pnlFilter.add(Box.createHorizontalStrut(10));
+        pnlFilter.add(Box.createHorizontalStrut(scaled(10)));
 
         // Suggestion button
         btnSuggest = new JButton("Gợi ý bàn") {
@@ -640,27 +753,27 @@ public class BookingFormDialog extends JDialog {
                 super.paintComponent(g);
             }
         };
-        btnSuggest.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnSuggest.setFont(uiFont(Font.BOLD, 12));
         btnSuggest.setForeground(Color.WHITE);
         btnSuggest.setFocusPainted(false);
         btnSuggest.setContentAreaFilled(false);
         btnSuggest.setBorderPainted(false);
         btnSuggest.setOpaque(false);
         btnSuggest.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnSuggest.setPreferredSize(new Dimension(120, 30));
+        btnSuggest.setPreferredSize(uiSize(140, 36));
         btnSuggest.setToolTipText("Tự động chọn tổ hợp bàn phù hợp nhất");
         btnSuggest.addActionListener(e -> suggestTables());
         pnlFilter.add(btnSuggest);
 
         // Reset selection button
         JButton btnReset = new JButton("Bỏ chọn");
-        btnReset.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btnReset.setFont(uiFont(Font.PLAIN, 11));
         btnReset.setForeground(DANGER);
         btnReset.setBackground(new Color(254, 242, 242));
         btnReset.setFocusPainted(false);
-        btnReset.setBorder(new EmptyBorder(5, 10, 5, 10));
+        btnReset.setBorder(uiPadding(5, 10, 5, 10));
         btnReset.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnReset.setPreferredSize(new Dimension(90, 30));
+        btnReset.setPreferredSize(uiSize(100, 36));
         btnReset.addActionListener(e -> {
             selectedTableIds.clear();
             selectedTableNames.clear();
@@ -673,7 +786,7 @@ public class BookingFormDialog extends JDialog {
         pnl.add(pnlTop, BorderLayout.NORTH);
 
         // ── TABLE GRID ───────────────────────────────────────────────
-        pnlTableGrid = new JPanel(new GridLayout(0, 3, 12, 12));
+        pnlTableGrid = new JPanel(new GridLayout(0, 3, scaled(14), scaled(14)));
         pnlTableGrid.setOpaque(false);
 
         JScrollPane scroll = new JScrollPane(pnlTableGrid);
@@ -685,7 +798,7 @@ public class BookingFormDialog extends JDialog {
         pnl.add(scroll, BorderLayout.CENTER);
 
         // ── LEGEND ───────────────────────────────────────────────────
-        JPanel pnlLegend = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 4));
+        JPanel pnlLegend = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(15), scaled(4)));
         pnlLegend.setOpaque(false);
         pnlLegend.add(createLegendItem(ACCENT_LIGHT, ACCENT, "Đang chọn"));
         pnlLegend.add(createLegendItem(SUCCESS_LIGHT, SUCCESS, "Trống"));
@@ -698,7 +811,7 @@ public class BookingFormDialog extends JDialog {
     }
 
     private JPanel createLegendItem(Color bg, Color fg, String text) {
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(4), 0));
         pnl.setOpaque(false);
 
         JPanel dot = new JPanel() {
@@ -708,17 +821,17 @@ public class BookingFormDialog extends JDialog {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(bg);
-                g2.fillRoundRect(0, 0, 16, 16, 6, 6);
+                g2.fillRoundRect(0, 0, scaled(16), scaled(16), scaled(6), scaled(6));
                 g2.setColor(fg);
-                g2.fillOval(4, 4, 8, 8);
+                g2.fillOval(scaled(4), scaled(4), scaled(8), scaled(8));
                 g2.dispose();
             }
         };
-        dot.setPreferredSize(new Dimension(16, 16));
+        dot.setPreferredSize(uiSize(16, 16));
         dot.setOpaque(false);
 
         JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lbl.setFont(uiFont(Font.PLAIN, 11));
         lbl.setForeground(TEXT_MUTED);
 
         pnl.add(dot);
@@ -900,14 +1013,14 @@ public class BookingFormDialog extends JDialog {
         boolean isSelected = selectedTableIds.contains(table.getMaBan());
         boolean multiMode = isMultiTableMode();
 
-        JPanel card = new JPanel(new BorderLayout(8, 4)) {
+        JPanel card = new JPanel(new BorderLayout(scaled(8), scaled(4))) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 14, 14));
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), scaled(14), scaled(14)));
                 // Border
                 boolean sel = selectedTableIds.contains(table.getMaBan());
                 if (sel) {
@@ -917,13 +1030,13 @@ public class BookingFormDialog extends JDialog {
                     g2.setColor(BORDER);
                     g2.setStroke(new BasicStroke(1f));
                 }
-                g2.draw(new RoundRectangle2D.Float(1, 1, getWidth() - 2, getHeight() - 2, 14, 14));
+                g2.draw(new RoundRectangle2D.Float(1, 1, getWidth() - 2, getHeight() - 2, scaled(14), scaled(14)));
                 g2.dispose();
             }
         };
         card.setOpaque(false);
-        card.setBorder(new EmptyBorder(12, 14, 12, 14));
-        card.setPreferredSize(new Dimension(0, 90));
+        card.setBorder(uiPadding(12, 14, 12, 14));
+        card.setPreferredSize(new Dimension(0, scaled(104)));
 
         // Background color
         if (isSelected) {
@@ -942,13 +1055,13 @@ public class BookingFormDialog extends JDialog {
         pnlTop.setOpaque(false);
 
         JLabel lblIcon = new JLabel(table.getTenBan());
-        lblIcon.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblIcon.setFont(uiFont(Font.BOLD, 14));
         lblIcon.setForeground(isSelected ? ACCENT_DARK : TEXT_PRIMARY);
 
         // Zone label
         String zoneName = getZoneName(table.getMaKV());
         JLabel lblZone = new JLabel(zoneName);
-        lblZone.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblZone.setFont(uiFont(Font.PLAIN, 10));
         lblZone.setForeground(TEXT_MUTED);
 
         pnlTop.add(lblIcon, BorderLayout.WEST);
@@ -959,7 +1072,7 @@ public class BookingFormDialog extends JDialog {
         pnlBottom.setOpaque(false);
 
         JLabel lblCap = new JLabel(table.getSoGhe() + " chỗ ngồi");
-        lblCap.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblCap.setFont(uiFont(Font.PLAIN, 12));
         lblCap.setForeground(TEXT_MUTED);
 
         String statusText;
@@ -978,7 +1091,7 @@ public class BookingFormDialog extends JDialog {
             statusColor = WARNING;
         }
         JLabel lblStatus = new JLabel(statusText);
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblStatus.setFont(uiFont(Font.BOLD, 11));
         lblStatus.setForeground(statusColor);
 
         pnlBottom.add(lblCap, BorderLayout.WEST);
@@ -1030,7 +1143,7 @@ public class BookingFormDialog extends JDialog {
             JLabel lblCheck = new JLabel(selectedTableIds.size() > 1
                     ? "Chọn [" + (selectedTableIds.indexOf(table.getMaBan()) + 1) + "]"
                     : "Đã chọn");
-            lblCheck.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblCheck.setFont(uiFont(Font.BOLD, 16));
             lblCheck.setForeground(ACCENT);
             lblCheck.setHorizontalAlignment(SwingConstants.CENTER);
             card.add(lblCheck, BorderLayout.CENTER);
@@ -1190,9 +1303,9 @@ public class BookingFormDialog extends JDialog {
     // STEP 3: Thông tin khách + Xác nhận
     // ═══════════════════════════════════════════════════════════════════
     private JPanel createStep3() {
-        JPanel pnl = new JPanel(new BorderLayout(0, 15));
+        JPanel pnl = new JPanel(new BorderLayout(0, scaled(15)));
         pnl.setBackground(Color.WHITE);
-        pnl.setBorder(new EmptyBorder(25, 40, 10, 40));
+        pnl.setBorder(uiPadding(28, 48, 12, 48));
 
         // ── Summary Card ─────────────────────────────────────────────
         JPanel pnlSummary = new JPanel() {
@@ -1205,15 +1318,15 @@ public class BookingFormDialog extends JDialog {
                 GradientPaint gp = new GradientPaint(0, 0, new Color(239, 246, 255), getWidth(), getHeight(),
                         new Color(224, 242, 254));
                 g2.setPaint(gp);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 16, 16));
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), scaled(16), scaled(16)));
                 g2.setColor(new Color(186, 230, 253));
-                g2.draw(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 16, 16));
+                g2.draw(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, scaled(16), scaled(16)));
                 g2.dispose();
             }
         };
-        pnlSummary.setLayout(new FlowLayout(FlowLayout.LEFT, 25, 12));
+        pnlSummary.setLayout(new FlowLayout(FlowLayout.LEFT, scaled(25), scaled(12)));
         pnlSummary.setOpaque(false);
-        pnlSummary.setPreferredSize(new Dimension(0, 60));
+        pnlSummary.setPreferredSize(new Dimension(0, scaled(76)));
 
         pnl.add(pnlSummary, BorderLayout.NORTH);
 
@@ -1223,20 +1336,20 @@ public class BookingFormDialog extends JDialog {
         pnlForm.setOpaque(false);
 
         JLabel lblTitle = new JLabel("Thông tin khách hàng");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTitle.setFont(uiFont(Font.BOLD, 16));
         lblTitle.setForeground(TEXT_PRIMARY);
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlForm.add(lblTitle);
-        pnlForm.add(Box.createVerticalStrut(15));
+        pnlForm.add(Box.createVerticalStrut(scaled(15)));
 
         // Phone
         pnlForm.add(createFormLabel("Số điện thoại *"));
         txtSDT = new JTextField();
-        txtSDT.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtSDT.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        txtSDT.setFont(uiFont(Font.PLAIN, 14));
+        txtSDT.setMaximumSize(new Dimension(Integer.MAX_VALUE, scaled(50)));
         txtSDT.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER, 1),
-                new EmptyBorder(8, 12, 8, 12)));
+                uiPadding(8, 12, 8, 12)));
         txtSDT.putClientProperty("JTextField.placeholderText", "Nhập số điện thoại...");
         txtSDT.addFocusListener(new FocusAdapter() {
             @Override
@@ -1245,35 +1358,35 @@ public class BookingFormDialog extends JDialog {
             }
         });
         pnlForm.add(txtSDT);
-        pnlForm.add(Box.createVerticalStrut(10));
+        pnlForm.add(Box.createVerticalStrut(scaled(10)));
 
         // Customer status
         lblCustomerStatus = new JLabel(" ");
-        lblCustomerStatus.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        lblCustomerStatus.setFont(uiFont(Font.ITALIC, 12));
         lblCustomerStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlForm.add(lblCustomerStatus);
-        pnlForm.add(Box.createVerticalStrut(5));
+        pnlForm.add(Box.createVerticalStrut(scaled(5)));
 
         // Name
         pnlForm.add(createFormLabel("Tên khách hàng *"));
         txtTenKH = new JTextField();
-        txtTenKH.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtTenKH.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        txtTenKH.setFont(uiFont(Font.PLAIN, 14));
+        txtTenKH.setMaximumSize(new Dimension(Integer.MAX_VALUE, scaled(50)));
         txtTenKH.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER, 1),
-                new EmptyBorder(8, 12, 8, 12)));
+                uiPadding(8, 12, 8, 12)));
         txtTenKH.putClientProperty("JTextField.placeholderText", "Nhập tên khách hàng...");
         pnlForm.add(txtTenKH);
-        pnlForm.add(Box.createVerticalStrut(12));
+        pnlForm.add(Box.createVerticalStrut(scaled(12)));
 
         // Notes
         pnlForm.add(createFormLabel("Ghi chú (tùy chọn)"));
         txtGhiChu = new JTextField();
-        txtGhiChu.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtGhiChu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        txtGhiChu.setFont(uiFont(Font.PLAIN, 14));
+        txtGhiChu.setMaximumSize(new Dimension(Integer.MAX_VALUE, scaled(50)));
         txtGhiChu.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER, 1),
-                new EmptyBorder(8, 12, 8, 12)));
+                uiPadding(8, 12, 8, 12)));
         txtGhiChu.putClientProperty("JTextField.placeholderText", "VD: Kỷ niệm sinh nhật, ghế trẻ em...");
         pnlForm.add(txtGhiChu);
 
@@ -1284,10 +1397,10 @@ public class BookingFormDialog extends JDialog {
 
     private JLabel createFormLabel(String text) {
         JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setFont(uiFont(Font.BOLD, 13));
         lbl.setForeground(TEXT_PRIMARY);
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lbl.setBorder(new EmptyBorder(0, 0, 5, 0));
+        lbl.setBorder(uiPadding(0, 0, 5, 0));
         return lbl;
     }
 
@@ -1319,7 +1432,7 @@ public class BookingFormDialog extends JDialog {
 
     private JLabel createSummaryBadge(String icon, String text) {
         JLabel lbl = new JLabel(icon + " " + text);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setFont(uiFont(Font.BOLD, 13));
         lbl.setForeground(ACCENT_DARK);
         return lbl;
     }
@@ -1350,32 +1463,32 @@ public class BookingFormDialog extends JDialog {
     private JPanel createNavigation() {
         JPanel pnl = new JPanel(new BorderLayout());
         pnl.setBackground(new Color(249, 250, 251));
-        pnl.setBorder(new EmptyBorder(12, 40, 12, 40));
+        pnl.setBorder(uiPadding(14, 48, 14, 48));
 
         // Prev button
         btnPrev = new JButton("←  Quay lại");
-        btnPrev.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnPrev.setFont(uiFont(Font.BOLD, 13));
         btnPrev.setFocusPainted(false);
         btnPrev.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnPrev.setBackground(Color.WHITE);
         btnPrev.setForeground(TEXT_PRIMARY);
         btnPrev.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER, 1),
-                new EmptyBorder(10, 20, 10, 20)));
+                uiPadding(10, 20, 10, 20)));
         btnPrev.setVisible(false);
         btnPrev.addActionListener(e -> prevStep());
 
         // Cancel button
         JButton btnCancel = new JButton("Hủy");
-        btnCancel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnCancel.setFont(uiFont(Font.PLAIN, 13));
         btnCancel.setFocusPainted(false);
         btnCancel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnCancel.setBackground(Color.WHITE);
         btnCancel.setForeground(TEXT_MUTED);
-        btnCancel.setBorder(new EmptyBorder(10, 20, 10, 20));
+        btnCancel.setBorder(uiPadding(10, 20, 10, 20));
         btnCancel.addActionListener(e -> dispose());
 
-        JPanel pnlLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel pnlLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(8), 0));
         pnlLeft.setOpaque(false);
         pnlLeft.add(btnCancel);
         pnlLeft.add(btnPrev);
@@ -1387,12 +1500,12 @@ public class BookingFormDialog extends JDialog {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), scaled(10), scaled(10));
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        btnNext.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnNext.setFont(uiFont(Font.BOLD, 14));
         btnNext.setFocusPainted(false);
         btnNext.setContentAreaFilled(false);
         btnNext.setBorderPainted(false);
@@ -1400,8 +1513,8 @@ public class BookingFormDialog extends JDialog {
         btnNext.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnNext.setBackground(ACCENT);
         btnNext.setForeground(Color.WHITE);
-        btnNext.setBorder(new EmptyBorder(10, 28, 10, 28));
-        btnNext.setPreferredSize(new Dimension(200, 44));
+        btnNext.setBorder(uiPadding(10, 28, 10, 28));
+        btnNext.setPreferredSize(uiSize(220, 52));
         btnNext.addActionListener(e -> nextStep());
 
         // Hover effect
@@ -1587,6 +1700,10 @@ public class BookingFormDialog extends JDialog {
         if (sel.contains("4"))
             return 4;
         return 2;
+    }
+
+    private int getDurationMinutes() {
+        return (int) Math.round(getDurationHours() * 60);
     }
 
     private void showError(String msg) {

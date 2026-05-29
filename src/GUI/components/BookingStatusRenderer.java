@@ -17,7 +17,7 @@ public class BookingStatusRenderer extends DefaultTableCellRenderer {
 
         String status = (String) value;
 
-        if ("Đã nhận bàn".equals(status) || "Hoàn tất".equals(status)) {
+        if ("Đã nhận bàn".equals(status) || "Hoàn tất".equals(status) || "Đã hoàn tất".equals(status)) {
             label.setBackground(new Color(220, 252, 231)); // Light Green
             label.setForeground(new Color(22, 163, 74)); // Dark Green
             label.setText(status);
@@ -29,7 +29,7 @@ public class BookingStatusRenderer extends DefaultTableCellRenderer {
             label.setBackground(new Color(254, 243, 199)); // Light Orange
             label.setForeground(new Color(217, 119, 6)); // Dark Orange
             label.setText(status);
-        } else if ("Đã hủy".equals(status)) {
+        } else if ("Đã hủy".equals(status) || "Đã hủy (Quá giờ)".equals(status)) {
             label.setBackground(new Color(254, 226, 226)); // Light Red
             label.setForeground(new Color(220, 38, 38)); // Dark Red
             label.setText(status);

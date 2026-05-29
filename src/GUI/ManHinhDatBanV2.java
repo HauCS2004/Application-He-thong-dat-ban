@@ -16,6 +16,7 @@ import DAO.BanDAO;
 import DAO.HoaDonDAO;
 import DAO.KhachHangDAO;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 
 /**
@@ -932,6 +933,8 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
         checkAlerts();
         // -------------------------
 
+        ArrayList<DatBan> filteredBookings = new ArrayList<>();
+
         for (DatBan booking : bookings) {
             // Filter by status if not "Tất cả"
             boolean matchStatus = false;
@@ -970,6 +973,12 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
                 if (!matchTime) continue;
             }
 
+            filteredBookings.add(booking);
+        }
+
+        filteredBookings.sort(createNearestBookingComparator());
+
+        for (DatBan booking : filteredBookings) {
             // Hiển thị TẤT CẢ bàn đã đặt (hỗ trợ đặt nhiều bàn)
             String allBanDisplay = String.join(", ", booking.getDanhSachBan());
             Object[] row = {
@@ -986,6 +995,38 @@ public class ManHinhDatBanV2 extends JPanel implements TableCard.TableCardListen
 
             modelBookings.addRow(row);
         }
+    }
+
+    private Comparator<DatBan> createNearestBookingComparator() {
+        final long now = System.currentTimeMillis();
+        return (a, b) -> {
+            long diffA = getDistanceFromNow(a, now);
+            long diffB = getDistanceFromNow(b, now);
+            int compareDistance = Long.compare(diffA, diffB);
+            if (compareDistance != 0) {
+                return compareDistance;
+            }
+
+            Date timeA = a.getThoiGianBatDau();
+            Date timeB = b.getThoiGianBatDau();
+            if (timeA == null && timeB == null) {
+                return Integer.compare(a.getMaDat(), b.getMaDat());
+            }
+            if (timeA == null) {
+                return 1;
+            }
+            if (timeB == null) {
+                return -1;
+            }
+            return timeA.compareTo(timeB);
+        };
+    }
+
+    private long getDistanceFromNow(DatBan booking, long now) {
+        if (booking == null || booking.getThoiGianBatDau() == null) {
+            return Long.MAX_VALUE;
+        }
+        return Math.abs(booking.getThoiGianBatDau().getTime() - now);
     }
 
     private String getInitials(String name) {
